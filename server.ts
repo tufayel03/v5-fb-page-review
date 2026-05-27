@@ -3857,6 +3857,16 @@ async function startServer() {
                 `).run(review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, id);
             } catch (err: any) {
                 console.error("Update error:", err);
+                console.error("Failing update review parameters:", {
+                  id,
+                  page_id,
+                  user_id,
+                  review_type,
+                  star_rating,
+                  title,
+                  bkash_number,
+                  facebook_post_link
+                });
                 return res.status(500).json({ error: 'Server error', message: err.message });
             }
         } else {
@@ -3868,6 +3878,17 @@ async function startServer() {
                 `).run(id, page_id, user_id || 'anonymous', review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, initialStatus);
             } catch (err: any) {
                 console.error("Insert error:", err);
+                console.error("Failing insert review parameters:", {
+                  id,
+                  page_id,
+                  user_id,
+                  review_type,
+                  star_rating,
+                  title,
+                  bkash_number,
+                  facebook_post_link,
+                  initialStatus
+                });
                 return res.status(500).json({ error: 'Server error', message: err.message });
             }
         }
