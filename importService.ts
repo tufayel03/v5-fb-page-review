@@ -92,7 +92,41 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
             
             const exists = checkPageStmt.get(urlParam, nameParam);
             if (exists) {
-              skipped++;
+              const existingPageId = (exists as any).id;
+              if (isFraud) {
+                // If importing as Fraud, update the existing page's badge and score
+                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100 WHERE id = ?").run(existingPageId);
+                
+                // Parse contact & payment methods of the row to link and update them as well
+                const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+                const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+
+                const addOrUpdateNumber = (num: string, type: string) => {
+                  const existing: any = getContactStmt.get(num);
+                  let newStatus = 'Reported';
+
+                  if (existing) {
+                    const links = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()) : [];
+                    if (!links.includes(existingPageId)) links.push(existingPageId);
+
+                    let updatedStatus = existing.status || 'Normal';
+                    if (existing.status !== 'Suspicious') {
+                      updatedStatus = 'Reported';
+                    }
+
+                    updateContactStmt.run(links.join(','), type, updatedStatus, existing.id);
+                  } else {
+                    insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, existingPageId);
+                  }
+                };
+
+                for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
+                for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
+
+                successful++;
+              } else {
+                skipped++;
+              }
               continue;
             }
 
@@ -305,9 +339,45 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
             
             const exists = checkPageStmt.get(urlParam, nameParam);
             if (exists) {
-              skipped++;
-              // Map anyway so we don't db query it next time
-              insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, (exists as any).id);
+              const existingPageId = (exists as any).id;
+              if (isFraud) {
+                // If syncing as Fraud, update the existing page's badge and score
+                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100 WHERE id = ?").run(existingPageId);
+                
+                // Parse contact & payment methods of the row to link and update them as well
+                const pmRaw = row['payment method'] || '';
+                const contactRaw = row['contact number'] || row['contact'] || '';
+                const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+                const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+
+                const addOrUpdateNumber = (num: string, type: string) => {
+                  const existing: any = getContactStmt.get(num);
+                  let newStatus = 'Reported';
+
+                  if (existing) {
+                    const links = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()) : [];
+                    if (!links.includes(existingPageId)) links.push(existingPageId);
+
+                    let updatedStatus = existing.status || 'Normal';
+                    if (existing.status !== 'Suspicious') {
+                      updatedStatus = 'Reported';
+                    }
+
+                    updateContactStmt.run(links.join(','), type, updatedStatus, existing.id);
+                  } else {
+                    insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, existingPageId);
+                  }
+                };
+
+                for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
+                for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
+
+                successful++;
+                insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, existingPageId);
+              } else {
+                skipped++;
+                insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, existingPageId);
+              }
               continue;
             }
 
