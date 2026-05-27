@@ -679,7 +679,7 @@ export default function PageProfile() {
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
-                      Unclaimed Registry
+                      Unclaimed Profile
                     </span>
                   )}
 
@@ -779,11 +779,10 @@ export default function PageProfile() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-rose-900 uppercase tracking-wider">
-                      Fraud Warning Banner Enabled
+                      Warning: Reported as Fraud
                     </h4>
-                    <p className="text-xs text-rose-700 leading-relaxed mt-1 font-medium">
-                      This page has been flagged in our directory system as high-risk with multiple critical fraud reports. 
-                      Do not complete any digital cash out transfers, down payments, or merchant transactions without complete validation.
+                    <p className="text-xs text-rose-700 leading-relaxed mt-1 font-semibold">
+                      This page has been reported as fraud. Do not send any money, advanced payments, or personal details to this seller.
                     </p>
                   </div>
                 </div>
@@ -794,11 +793,10 @@ export default function PageProfile() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-amber-900 uppercase tracking-wider">
-                      Flagged Warning Notice
+                      Warning: Active Disputes
                     </h4>
-                    <p className="text-xs text-amber-850 leading-relaxed mt-1 font-medium">
-                      Consumers loaded <strong>{fraudCount}</strong> active dispute report{fraudCount > 1 ? "s" : ""} for this shop listing. 
-                      Please scroll down to check full verified evidence documentation before committing to your purchase order.
+                    <p className="text-xs text-amber-850 leading-relaxed mt-1 font-semibold">
+                      Users have reported fraud complaints against this page. Please scroll down to check all evidence and reviews before making any purchases.
                     </p>
                   </div>
                 </div>
