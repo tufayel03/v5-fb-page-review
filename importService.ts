@@ -289,7 +289,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const checkRowMapStmt = db.prepare('SELECT id FROM GoogleSheetRowMap WHERE import_type = ? AND unique_key = ?');
+  const checkRowMapStmt = db.prepare('SELECT id, database_record_id FROM GoogleSheetRowMap WHERE import_type = ? AND unique_key = ?');
   const insertRowMapStmt = db.prepare('INSERT INTO GoogleSheetRowMap (id, import_type, external_row_id, sheet_row_number, unique_key, database_record_id) VALUES (?, ?, ?, ?, ?, ?)');
 
   const getContactStmt = db.prepare('SELECT id, linked_page_ids, status FROM ContactNumbers WHERE number = ?');
@@ -327,11 +327,18 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
             }
 
             const uniqueKey = (pageUrl || pageName).toLowerCase().trim();
-            const alreadyMapped = checkRowMapStmt.get(importType, uniqueKey);
+            const alreadyMapped: any = checkRowMapStmt.get(importType, uniqueKey);
 
             if (alreadyMapped) {
-              skipped++;
-              continue;
+              // Verify if the page still exists in the database
+              const pageExists = db.prepare('SELECT id FROM FacebookPages WHERE id = ?').get(alreadyMapped.database_record_id);
+              if (!pageExists) {
+                // The page was manually deleted, so delete the stale mapping to allow re-importing
+                db.prepare('DELETE FROM GoogleSheetRowMap WHERE id = ?').run(alreadyMapped.id);
+              } else {
+                skipped++;
+                continue;
+              }
             }
 
             let pageId = Date.now().toString() + Math.floor(Math.random() * 1000) + i;

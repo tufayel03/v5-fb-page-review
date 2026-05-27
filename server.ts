@@ -1229,7 +1229,14 @@ async function startServer() {
         if ((req as any).user.role !== 'Super Admin' && (req as any).user.role !== 'Admin') {
           return res.status(403).json({ error: 'Only admins can mass-delete pages' });
         }
-        db.prepare(`DELETE FROM FacebookPages WHERE id IN (${placeholders})`).run(...ids);
+        db.transaction(() => {
+          db.prepare(`DELETE FROM OwnerReplies WHERE review_id IN (SELECT id FROM Reviews WHERE page_id IN (${placeholders}))`).run(...ids);
+          db.prepare(`DELETE FROM Disputes WHERE page_id IN (${placeholders})`).run(...ids);
+          db.prepare(`DELETE FROM Claims WHERE page_id IN (${placeholders})`).run(...ids);
+          db.prepare(`DELETE FROM Reviews WHERE page_id IN (${placeholders})`).run(...ids);
+          db.prepare(`DELETE FROM GoogleSheetRowMap WHERE database_record_id IN (${placeholders})`).run(...ids);
+          db.prepare(`DELETE FROM FacebookPages WHERE id IN (${placeholders})`).run(...ids);
+        })();
         return res.json({ success: true, message: `Successfully deleted ${ids.length} pages` });
       }
 
@@ -1623,6 +1630,7 @@ async function startServer() {
         db.prepare('DELETE FROM Disputes WHERE page_id = ?').run(req.params.id);
         db.prepare('DELETE FROM Claims WHERE page_id = ?').run(req.params.id);
         db.prepare('DELETE FROM Reviews WHERE page_id = ?').run(req.params.id);
+        db.prepare('DELETE FROM GoogleSheetRowMap WHERE database_record_id = ?').run(req.params.id);
         db.prepare('DELETE FROM FacebookPages WHERE id = ?').run(req.params.id);
       })();
       res.json({ success: true });
