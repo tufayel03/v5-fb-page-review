@@ -55,10 +55,62 @@ import nodemailer from 'nodemailer';
 import { setupFraudEndpoints } from './fraud_endpoints.ts';
 import { setupBusinessEndpoints } from './business_endpoints.ts';
 import { startExcelImportJob, startGoogleSheetSyncJob } from './importService.js';
+import crypto from 'crypto';
+import 'dotenv/config';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key';
+// SECURITY: Refuse to start with weak/default JWT secret
+const JWT_SECRET = (() => {
+  const envSecret = process.env.JWT_SECRET;
+  if (!envSecret || envSecret === 'your_jwt_secret_here' || envSecret === 'dev-jwt-secret-key') {
+    const generated = crypto.randomBytes(64).toString('hex');
+    console.warn(`\n\u26a0\ufe0f  JWT_SECRET not set or is a placeholder. Auto-generated a strong secret for this session.`);
+    console.warn(`   For production, add a strong JWT_SECRET to your .env file.\n`);
+    return generated;
+  }
+  return envSecret;
+})();
+
+// SECURITY: CRON_SECRET — internal auth token for cron jobs, never exposed in code
+const CRON_SECRET = process.env.CRON_SECRET || crypto.randomBytes(32).toString('hex');
+
+// HTML sanitizer to prevent XSS in emails
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// In-memory rate limiter
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(windowMs: number, maxRequests: number) {
+  return (req: any, res: any, next: any) => {
+    const key = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown') + ':' + req.path;
+    const now = Date.now();
+    const record = rateLimitStore.get(key);
+    if (!record || now > record.resetAt) {
+      rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    record.count++;
+    if (record.count > maxRequests) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    return next();
+  };
+}
+// Clean up expired rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of rateLimitStore) {
+    if (now > record.resetAt) rateLimitStore.delete(key);
+  }
+}, 300000);
 
 async function startServer() {
   const app = express();
@@ -91,6 +143,8 @@ async function startServer() {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:;");
     
     next();
   });
@@ -101,16 +155,21 @@ async function startServer() {
   setupFraudEndpoints(app, db);
   setupBusinessEndpoints(app, db);
 
-  // Auth Routes
-  app.post('/api/auth/register', async (req, res) => {
+  // Auth Routes (rate limited: 10 attempts per 15 minutes)
+  const authLimiter = rateLimit(15 * 60 * 1000, 10);
+  const contactLimiter = rateLimit(15 * 60 * 1000, 5);
+
+  app.post('/api/auth/register', authLimiter, async (req, res) => {
     const { full_name, username, email, password, is_business } = req.body;
     try {
+      // SECURITY: Enforce password strength
+      if (!password || password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+      }
       const hash = bcrypt.hashSync(password, 10);
       const id = Date.now().toString();
-      let role = is_business ? 'owner' : 'user';
-      if (email && email.toLowerCase().trim() === 'admin@bidnsteal.com') {
-        role = 'admin';
-      }
+      // SECURITY: Role is ONLY user or owner. Admin accounts are created via database seeder or by existing admins.
+      const role = is_business ? 'owner' : 'user';
       
       db.prepare(`INSERT INTO Users (id, full_name, username, email, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)`)
         .run(id, full_name, username, email, hash, role);
@@ -272,7 +331,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/auth/login', (req, res) => {
+  app.post('/api/auth/login', authLimiter, (req, res) => {
     const { email_or_username, password } = req.body;
     const user = db.prepare(`SELECT * FROM Users WHERE email = ? OR username = ?`)
       .get(email_or_username, email_or_username) as any;
@@ -283,7 +342,7 @@ async function startServer() {
     res.json({ token, user: { id: user.id, full_name: user.full_name, username: user.username, email: user.email, role: user.role, created_at: user.created_at } });
   });
 
-  app.post('/api/auth/forgot-password', async (req, res) => {
+  app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
     const { email } = req.body;
     const user = db.prepare(`SELECT * FROM Users WHERE email = ?`).get(email) as any;
     
@@ -463,10 +522,13 @@ async function startServer() {
     }
   });
 
-  app.post('/api/auth/reset-password', (req, res) => {
+  app.post('/api/auth/reset-password', authLimiter, (req, res) => {
     const { token, newPassword } = req.body;
     if (!token || !newPassword) return res.status(400).json({ error: 'Missing data' });
-    
+    // SECURITY: Enforce password strength on reset too
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    }
     const user = db.prepare('SELECT * FROM Users WHERE reset_token = ? AND reset_token_expires > ?').get(token, new Date().toISOString()) as any;
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired reset token.' });
@@ -567,7 +629,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/public/contact', async (req, res) => {
+  app.post('/api/public/contact', contactLimiter, async (req, res) => {
     try {
       const { name, email, subject, message } = req.body;
       const id = crypto.randomUUID();
@@ -601,13 +663,13 @@ async function startServer() {
             from: `"${fromName}" <${authUser}>`, 
             replyTo: email,
             to: toEmail,
-            subject: `New Contact Form Message: ${subject}`,
-            html: `<p><strong>Name:</strong> ${name}</p>
-                   <p><strong>Email:</strong> ${email}</p>
-                   <p><strong>Subject:</strong> ${subject}</p>
+            subject: `New Contact Form Message: ${escapeHtml(subject)}`,
+            html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p>
+                   <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+                   <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
                    <br />
                    <p><strong>Message:</strong></p>
-                   <p>${message.replace(/\n/g, '<br />')}</p>`
+                   <p>${escapeHtml(message).replace(/\n/g, '<br />')}</p>`
           });
         } catch (mailErr) {
           console.error("Failed to forward contact email:", mailErr);
@@ -647,7 +709,8 @@ async function startServer() {
   const requireRoles = (roles: string[]) => {
     return (req: any, res: any, next: any) => {
       const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-      if (token === 'CRON_INTERNAL') {
+      // SECURITY: CRON_SECRET is a runtime-generated random token, not a hardcoded string
+      if (token === CRON_SECRET && CRON_SECRET.length > 20) {
         req.user = { id: 'cron-system-user', role: 'Super Admin' };
         return next();
       }
@@ -896,8 +959,10 @@ async function startServer() {
         dateFilter = 'WHERE date(created_at) >= date(?) AND date(created_at) <= date(?)';
         queryParams = [startDate, endDate];
       } else {
-        const daysLimit = days ? parseInt(days, 10) : 30;
-        dateFilter = `WHERE date(created_at) >= date('now', '-${daysLimit} days')`;
+        // SECURITY: Parameterized query to prevent SQL injection
+        const daysLimit = days ? Math.abs(parseInt(days, 10)) || 30 : 30;
+        dateFilter = `WHERE date(created_at) >= date('now', '-' || ? || ' days')`;
+        queryParams = [daysLimit];
       }
 
       const reviews = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM Reviews ${dateFilter} GROUP BY date(created_at) ORDER BY date(created_at)`).all(...queryParams) as any[];
@@ -1801,6 +1866,10 @@ async function startServer() {
       if (role === 'Super Admin' && (req as any).user.role !== 'Super Admin') {
         return res.status(403).json({ error: 'Only Super Admins can create Super Admins' });
       }
+      // SECURITY: Enforce password strength
+      if (!password || password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+      }
       
       const existing = db.prepare('SELECT id FROM Users WHERE email = ?').get(email);
       if(existing) return res.status(400).json({ error: 'Email already exists' });
@@ -1808,10 +1877,12 @@ async function startServer() {
       const hashedPassword = await bcrypt.hash(password, 10);
       const userId = crypto.randomUUID();
       const finalUsername = username || email.split('@')[0] + Math.floor(Math.random()*1000);
-      db.prepare('INSERT INTO Users (id, email, password, full_name, username, role) VALUES (?, ?, ?, ?, ?, ?)').run(userId, email, hashedPassword, full_name, finalUsername, role);
+      // SECURITY: Column is password_hash, not password
+      db.prepare('INSERT INTO Users (id, email, password_hash, full_name, username, role) VALUES (?, ?, ?, ?, ?, ?)').run(userId, email, hashedPassword, full_name, finalUsername, role);
       res.json({ success: true, id: userId });
     } catch(e) {
-      res.status(500).json({ error: 'Server error: ' + String(e) });
+      console.error('Admin create user error:', e);
+      res.status(500).json({ error: 'Server error' });
     }
   });
 
@@ -4088,7 +4159,7 @@ async function startServer() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer CRON_INTERNAL'
+              'Authorization': `Bearer ${CRON_SECRET}`
             },
             body: JSON.stringify({ import_type: setting.import_type })
           });

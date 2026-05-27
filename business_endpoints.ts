@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key';
+// SECURITY: JWT_SECRET sourced from environment only — no hardcoded fallback
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 function verifyToken(req: Request, res: Response, next: Function) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -90,7 +91,7 @@ export function setupBusinessEndpoints(app: any, db: any) {
       });
     } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: String(e) });
+      res.status(500).json({ error: 'Server error' });
     }
   });
 

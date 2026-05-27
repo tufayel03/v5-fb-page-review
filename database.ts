@@ -432,21 +432,28 @@ try { db.exec('ALTER TABLE BulkImports ADD COLUMN status TEXT DEFAULT "Pending";
 try { db.exec('ALTER TABLE BulkImports ADD COLUMN error_report TEXT;'); } catch (e) {}
 
 
-// Seed some data if empty
+// Seed admin user if none exists — password from env or auto-generated
 const countUsers = db.prepare('SELECT COUNT(*) as count FROM Users WHERE role = \'admin\'').get() as { count: number };
 if (countUsers.count === 0) {
-  const seedUserId = '2e4a64ef-4b44-4b55-a226-d3a373cf58bb';
+  const seedUserId = crypto.randomUUID();
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@fbpagereview.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomUUID();
+  if (!process.env.ADMIN_PASSWORD) {
+    console.warn(`\n⚠️  No ADMIN_PASSWORD set in .env — auto-generated admin password: ${adminPassword}`);
+    console.warn(`   Admin email: ${adminEmail}`);
+    console.warn(`   Set ADMIN_EMAIL and ADMIN_PASSWORD in .env for production.\n`);
+  }
   db.prepare(`
     INSERT INTO Users (id, full_name, username, email, password_hash, role) 
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(email) DO UPDATE SET role = 'admin'
-  `).run(seedUserId, 'System Admin', 'admin', 'admin@bidnsteal.com', bcrypt.hashSync('admin', 10), 'admin');
+  `).run(seedUserId, 'System Admin', 'admin', adminEmail, bcrypt.hashSync(adminPassword, 10), 'admin');
 }
 
-// Proactive security: Demote toxictrader2003@gmail.com to user and ensure admin@bidnsteal.com is admin
+// Ensure admin user role is correctly set (using env-configured email)
 try {
-  db.prepare("UPDATE Users SET role = 'user' WHERE LOWER(email) = 'toxictrader2003@gmail.com'").run();
-  db.prepare("UPDATE Users SET role = 'admin' WHERE LOWER(email) = 'admin@bidnsteal.com'").run();
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@fbpagereview.com';
+  db.prepare("UPDATE Users SET role = 'admin' WHERE LOWER(email) = LOWER(?)").run(adminEmail);
 } catch (roleErr) {
   console.warn("User role migration warning:", roleErr);
 }

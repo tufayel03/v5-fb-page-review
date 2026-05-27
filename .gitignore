@@ -13,13 +13,18 @@ coverage/
 *.db-wal
 *.sqlite
 database.sqlite
+data.db
 
 # Local file uploads
 uploads/
 
+# Workspace / temporary generated files
+workspace/
+
 # Backups, temporary scripts & Excel files
 *.tmp
 *.tmp2
+*.bak
 test_db.ts
 test_server.js
 update_server.js
