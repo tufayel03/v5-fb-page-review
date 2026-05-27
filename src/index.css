@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@layer base {
+  html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none;
+  }
+  
+  body.mobile-search-active header,
+  body.mobile-search-active div.fixed.bottom-0 {
+    display: none !important;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+/* Premium Light Theme Selector Overrides */
+.admin-panel.theme-light {
+  color-scheme: light;
+}
+
+/* Background Overrides */
+.admin-panel.theme-light [class*="bg-[#050b18]"] {
+  background-color: #f1f5f9 !important; /* light slate for sections like list headers & footers with opacity */
+}
+
+.admin-panel.theme-light .bg-\[\#050b18\],
+.admin-panel.theme-light.bg-\[\#050b18\],
+.admin-panel.theme-light main.bg-\[\#050b18\],
+.admin-panel.theme-light .min-h-screen.bg-\[\#050b18\] {
+  background-color: #f8fafc !important; /* high-contrast light slate design for viewport backgrounds */
+}
+
+.admin-panel.theme-light .bg-\[\#060b15\],
+.admin-panel.theme-light.bg-\[\#060b15\] {
+  background-color: #ffffff !important; /* sidebar is pure white */
+}
+
+.admin-panel.theme-light .bg-\[\#091124\],
+.admin-panel.theme-light.bg-\[\#091124\],
+.admin-panel.theme-light .bg-slate-900 {
+  background-color: #ffffff !important; /* white card background */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+.admin-panel.theme-light .bg-\[\#0d1527\],
+.admin-panel.theme-light.bg-\[\#0d1527\] {
+  background-color: #ffffff !important; /* modals or dropdowns are pure white */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Dark layout overrides of background opacities */
+.admin-panel.theme-light .bg-white\/\[0\.02\],
+.admin-panel.theme-light .bg-white\/5,
+.admin-panel.theme-light .bg-white\/\[0\.05\] {
+  background-color: #f1f5f9 !important;
+}
+
+.admin-panel.theme-light .bg-white\/10,
+.admin-panel.theme-light .bg-white\/\[0\.10\],
+.admin-panel.theme-light .bg-white\/\[0\.15\] {
+  background-color: #e2e8f0 !important;
+}
+
+.admin-panel.theme-light .hover\:bg-white\/5:hover,
+.admin-panel.theme-light .hover\:bg-white\/10:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Border & Divider Overrides */
+.admin-panel.theme-light .border-white\/5,
+.admin-panel.theme-light .border-white\/10,
+.admin-panel.theme-light .border-white\/20,
+.admin-panel.theme-light .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-panel.theme-light .divide-white\/5 > * + *,
+.admin-panel.theme-light .divide-white\/10 > * + * {
+  border-color: #e2e8f0 !important;
+}
+
+/* Typography & Text color Overrides */
+.admin-panel.theme-light .text-slate-100,
+.admin-panel.theme-light .text-slate-200,
+.admin-panel.theme-light .text-slate-300,
+.admin-panel.theme-light .text-slate-350 {
+  color: #1e293b !important; /* slate-800 */
+}
+
+.admin-panel.theme-light .text-white {
+  color: #0f172a !important; /* deep charcoal black */
+}
+
+.admin-panel.theme-light .text-slate-400,
+.admin-panel.theme-light .text-slate-500,
+.admin-panel.theme-light .text-\[\#94a3b8\] {
+  color: #64748b !important; /* Slate muted gray */
+}
+
+/* Custom UI Items inside Light Theme */
+.admin-panel.theme-light input[type="text"],
+.admin-panel.theme-light input[type="search"],
+.admin-panel.theme-light input[type="email"],
+.admin-panel.theme-light input[type="password"],
+.admin-panel.theme-light select,
+.admin-panel.theme-light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.admin-panel.theme-light input::placeholder,
+.admin-panel.theme-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.admin-panel.theme-light .prose {
+  --tw-prose-body: #334155;
+  --tw-prose-headings: #0f172a;
+}
+
+/* Premium Sidebar and Header Refinements */
+.admin-panel.theme-light header,
+.admin-panel.theme-light .bg-\[\#050b18\] header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.admin-panel.theme-light aside {
+  border-right-color: #e2e8f0 !important;
+}
+
+.admin-panel.theme-light aside nav a {
+  color: #475569 !important; /* slate-600 */
+}
+
+.admin-panel.theme-light aside nav a:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.admin-panel.theme-light aside nav a[class*="bg-[#10b981]/10"] {
+  background-color: rgba(16, 185, 129, 0.08) !important; /* soft emerald tint */
+  color: #059669 !important; /* premium green text */
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.admin-panel.theme-light aside nav a[class*="bg-[#10b981]/10"] svg {
+  color: #059669 !important;
+}
+
+/* System status card in Light Mode */
+.admin-panel.theme-light aside .bg-\[\#091124\] {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.admin-panel.theme-light aside .bg-\[\#091124\] span {
+  color: #0f172a !important;
+}
+
+/* Business Dashboard Dark Theme Overrides */
+.business-panel.theme-dark { color-scheme: dark; color: #f1f5f9 !important; }
+.business-panel.theme-dark, .business-panel.theme-dark .bg-slate-50, .business-panel.theme-dark.bg-slate-50 { background-color: #050b18 !important; }
+.business-panel.theme-dark .bg-white { background-color: #091124 !important; border-color: rgba(255, 255, 255, 0.05) !important; box-shadow: none !important; }
+.business-panel.theme-dark [class*="border-slate-"] { border-color: rgba(255, 255, 255, 0.05) !important; }
+.business-panel.theme-dark [class*="text-slate-"] { color: #f1f5f9 !important; }
+.business-panel.theme-dark .text-slate-400, .business-panel.theme-dark .text-slate-500 { color: #94a3b8 !important; }
+.business-panel.theme-dark .hover\:bg-slate-50:hover, .business-panel.theme-dark .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.05) !important; color: #ffffff !important; }
+.business-panel.theme-dark .bg-slate-100, .business-panel.theme-dark .bg-slate-200 { background-color: rgba(255, 255, 255, 0.05) !important; }
+.business-panel.theme-dark select, .business-panel.theme-dark input, .business-panel.theme-dark textarea { background-color: #091124 !important; border-color: rgba(255, 255, 255, 0.1) !important; color: #f1f5f9 !important; }
+.business-panel.theme-dark .bg-indigo-50, .business-panel.theme-dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.1) !important; color: #818cf8 !important; border-color: rgba(99, 102, 241, 0.2) !important; }
+.business-panel.theme-dark .bg-emerald-50, .business-panel.theme-dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.1) !important; color: #34d399 !important; border-color: rgba(16, 185, 129, 0.2) !important; }
+.business-panel.theme-dark .bg-amber-50, .business-panel.theme-dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.1) !important; color: #fbbf24 !important; border-color: rgba(245, 158, 11, 0.2) !important; }
+.business-panel.theme-dark .bg-rose-50, .business-panel.theme-dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.1) !important; color: #fb7185 !important; border-color: rgba(244, 63, 94, 0.2) !important; }
+.business-panel.theme-dark [class*="text-amber-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-indigo-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-emerald-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-rose-"]:not([class*="bg-"]) { filter: brightness(1.3); }

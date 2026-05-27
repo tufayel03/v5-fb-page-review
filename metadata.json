@@ -1,0 +1,8 @@
+{
+  "name": " v5 FB Page Review",
+  "description": "A Trustpilot-style review and fraud-checking platform for Facebook pages and bKash numbers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
