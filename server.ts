@@ -114,7 +114,7 @@ setInterval(() => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   // Global Hardened Security Firewall (Hackerproof Shield)
   app.disable('x-powered-by'); // Remove powered-by fingerprinting to obscure server technology
@@ -2056,6 +2056,41 @@ async function startServer() {
     }
   });
 
+  app.post('/api/admin/contact-numbers/bulk', requireAdmin, (req, res) => {
+    try {
+      const { ids, action, value } = req.body;
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No IDs provided' });
+      }
+
+      if (action === 'delete') {
+        const stmt = db.prepare('DELETE FROM ContactNumbers WHERE id = ?');
+        const deleteTx = db.transaction((idsList) => {
+          for (const id of idsList) stmt.run(id);
+        });
+        deleteTx(ids);
+        return res.json({ success: true, message: `Successfully deleted ${ids.length} contact numbers.` });
+      }
+
+      if (action === 'change_status') {
+        if (!value) {
+          return res.status(400).json({ error: 'No status value provided' });
+        }
+        const stmt = db.prepare('UPDATE ContactNumbers SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        const updateTx = db.transaction((idsList, statusVal) => {
+          for (const id of idsList) stmt.run(statusVal, id);
+        });
+        updateTx(ids, value);
+        return res.json({ success: true, message: `Successfully changed status of ${ids.length} contact numbers to ${value}.` });
+      }
+
+      res.status(400).json({ error: 'Invalid bulk action' });
+    } catch(e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message || 'Server error' });
+    }
+  });
+
   app.delete('/api/admin/contact-numbers/:id', requireAdmin, (req, res) => {
     try {
       db.prepare('DELETE FROM ContactNumbers WHERE id = ?').run(req.params.id);
@@ -3260,19 +3295,55 @@ async function startServer() {
     
     recordSearchQuery(q);
     
-    let pages;
-    const searchTermExact = q.trim();
-    let searchTermLike = `%${q.trim()}%`;
-    const isLikeNumber = /^[\d\+\-\s]+$/.test(q.trim());
+    const rawTrim = q.trim();
+    const queryLike = `%${rawTrim}%`;
+    const isLikeNumber = /^[\d\+\-\s]+$/.test(rawTrim) || (rawTrim.replace(/\D/g, '').length >= 8);
     
-    // Improved Facebook URL matching
-    const fbMatch = q.match(/(?:https?:\/\/)?(?:www\.|m\.)?(?:facebook\.com|fb\.com)\/?([a-zA-Z0-9\.\-_]+)\/?/i);
-    if (fbMatch && fbMatch[1]) {
-        // If it's a Facebook URL, search by the username portion to ensure matches regardless of http/https/www/m
-        searchTermLike = `%${fbMatch[1]}%`;
+    // Normalize phone numbers to make contact search bulletproof
+    const digits = rawTrim.replace(/\D/g, '');
+    let basePhone = '';
+    let phoneLike1 = queryLike;
+    let phoneLike2 = queryLike;
+    let phoneLike3 = queryLike;
+    
+    if (digits.length >= 8 && digits.length <= 15) {
+      if (digits.startsWith('0')) {
+        basePhone = digits.substring(1);
+      } else if (digits.startsWith('880')) {
+        basePhone = digits.substring(3);
+      } else {
+        basePhone = digits;
+      }
+      phoneLike1 = `%${basePhone}%`;
+      phoneLike2 = `%0${basePhone}%`;
+      phoneLike3 = `%880${basePhone}%`;
     }
     
-    pages = db.prepare(`
+    // Robust URL parsing
+    let fbUsername = '';
+    let urlLike = queryLike;
+    if (rawTrim.toLowerCase().includes('facebook.com') || rawTrim.toLowerCase().includes('fb.com') || rawTrim.toLowerCase().includes('facebook') || rawTrim.includes('/')) {
+      try {
+        const cleanUrl = rawTrim.split('?')[0].trim();
+        const profileIdMatch = rawTrim.match(/[?&]id=(\d+)/i);
+        if (profileIdMatch && profileIdMatch[1]) {
+          fbUsername = profileIdMatch[1];
+        } else {
+          const parts = cleanUrl.replace(/\/$/, '').split('/');
+          const lastSegment = parts[parts.length - 1];
+          if (lastSegment && lastSegment !== 'facebook.com' && lastSegment !== 'fb.com') {
+            fbUsername = lastSegment;
+          }
+        }
+      } catch (e) {
+        console.error('URL parse error:', e);
+      }
+      if (fbUsername) {
+        urlLike = `%${fbUsername}%`;
+      }
+    }
+
+    const pages = db.prepare(`
       SELECT p.id, p.facebook_url, p.current_name, p.current_username, p.category, p.sub_category, p.trust_score, p.claim_status, p.is_fraud_listed, p.fraud_listed_at, p.status_badge, p.created_at, p.profile_picture, p.contact_number, p.fraud_list_reason, p.fraud_severity,
              COUNT(r.id) as review_count,
              AVG(r.star_rating) as average_rating,
@@ -3283,10 +3354,19 @@ async function startServer() {
          p.current_name LIKE ? 
       OR p.current_username LIKE ?
       OR p.facebook_url LIKE ?
+      OR p.facebook_url LIKE ?
+      OR p.contact_number LIKE ?
+      OR p.contact_number LIKE ?
       OR p.contact_number LIKE ?
       OR p.website_url LIKE ?
       OR p.extra_contacts LIKE ?
+      OR p.extra_contacts LIKE ?
+      OR p.extra_contacts LIKE ?
       OR p.payment_methods LIKE ?
+      OR p.payment_methods LIKE ?
+      OR p.payment_methods LIKE ?
+      OR r.bkash_number LIKE ?
+      OR r.bkash_number LIKE ?
       OR r.bkash_number LIKE ?
       OR p.facebook_url = ?
       )
@@ -3294,19 +3374,33 @@ async function startServer() {
       ORDER BY review_count DESC
       LIMIT 50
     `).all(
-        searchTermLike, searchTermLike, searchTermLike, searchTermLike, searchTermLike, 
-        searchTermLike, searchTermLike, searchTermLike, searchTermExact
+        queryLike, queryLike, queryLike, urlLike, 
+        phoneLike1, phoneLike2, phoneLike3, 
+        queryLike, 
+        phoneLike1, phoneLike2, phoneLike3,
+        phoneLike1, phoneLike2, phoneLike3,
+        phoneLike1, phoneLike2, phoneLike3,
+        rawTrim
     ).map((p: any) => ({...p, fraud_report_count: Math.max(p.fraud_report_count || 0, p.dynamic_fraud_count || 0)}));
 
     // Add standalone reported numbers if query resembles a number
     if (isLikeNumber) {
-        const contacts = db.prepare("SELECT id, number, type, status, fraud_report_count FROM ContactNumbers WHERE number LIKE ? AND status IN ('Reported', 'Suspicious') LIMIT 5").all(searchTermLike) as any[];
+        const contacts = db.prepare(`
+          SELECT id, number, type, status, fraud_report_count 
+          FROM ContactNumbers 
+          WHERE number LIKE ? OR number LIKE ? OR number LIKE ? OR number LIKE ?
+          LIMIT 5
+        `).all(queryLike, phoneLike1, phoneLike2, phoneLike3) as any[];
+        
         for (const contact of contacts) {
+            if (pages.some((p: any) => p.current_name === contact.number || p.contact_number === contact.number)) {
+                continue;
+            }
             pages.push({
                 id: 'number-' + contact.id,
                 current_name: contact.number,
                 category: contact.type || 'Contact Number',
-                status_badge: contact.status === 'Reported' ? 'Reported as Fraud' : 'Suspicious',
+                status_badge: contact.status === 'Reported' || contact.status === 'Suspicious' ? 'Reported as Fraud' : contact.status,
                 profile_picture: null,
                 review_count: contact.fraud_report_count || 0,
                 average_rating: 0,
@@ -4108,7 +4202,17 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

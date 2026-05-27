@@ -26,6 +26,56 @@ export default function AdminContactNumbers() {
   });
   const navigate = useNavigate();
 
+  // Bulk selection states
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("");
+  const [bulkStatusValue, setBulkStatusValue] = useState("Reported");
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const executeBulkAction = async () => {
+    if (selectedIds.length === 0) return;
+    if (!bulkAction) {
+      alert("Please select a valid bulk action.");
+      return;
+    }
+
+    if (bulkAction === 'delete') {
+      const confirmDelete = window.confirm(`⚠️ Permanently delete ${selectedIds.length} selected contact numbers? This cannot be undone!`);
+      if (!confirmDelete) return;
+    }
+
+    setBulkLoading(true);
+    try {
+      const res = await fetch('/api/admin/contact-numbers/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          ids: selectedIds,
+          action: bulkAction,
+          value: bulkAction === 'change_status' ? bulkStatusValue : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to execute bulk action');
+      }
+
+      alert(data.message || 'Bulk action completed successfully!');
+      setSelectedIds([]);
+      setBulkAction("");
+      fetchNumbers();
+    } catch(err: any) {
+      console.error(err);
+      alert(err.message || 'An error occurred during bulk operations.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -296,14 +346,83 @@ export default function AdminContactNumbers() {
           </div>
         </div>
       )}
+      {/* Bulk Action Workspace Banner */}
+      {selectedIds.length > 0 && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="h-7 px-3 rounded-full bg-emerald-500 text-[#050b18] text-xs font-black flex items-center justify-center select-none shadow">
+              {selectedIds.length} Selected
+            </div>
+            <p className="text-sm text-slate-200 mt-1 lg:mt-0 font-semibold">
+              Select an action to apply to the contact numbers chosen above.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={bulkAction}
+              onChange={(e) => setBulkAction(e.target.value)}
+              className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none"
+            >
+              <option value="">-- Bulk Actions --</option>
+              <option value="change_status">Bulk Change Status...</option>
+              <option value="delete">Bulk Permanently Delete</option>
+            </select>
+
+            {bulkAction === "change_status" && (
+              <select
+                value={bulkStatusValue}
+                onChange={(e) => setBulkStatusValue(e.target.value)}
+                className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none"
+              >
+                <option value="Normal">Normal</option>
+                <option value="Reported">Reported</option>
+                <option value="Suspicious">Suspicious</option>
+                <option value="Verified Merchant">Verified Merchant</option>
+                <option value="Safe">Safe</option>
+              </select>
+            )}
+
+            <button
+              disabled={bulkLoading || !bulkAction}
+              onClick={executeBulkAction}
+              className="bg-emerald-600 hover:bg-emerald-500 font-extrabold text-[#050b18] px-4 py-2 rounded-lg text-sm transition-all shadow hover:shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {bulkLoading ? "Running..." : "Apply to Chosen"}
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-slate-400 hover:text-slate-200 font-semibold px-2 py-1 transition-all"
+            >
+              Clear choices
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-[#091124] border border-white/5 rounded-xl shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-300">
             
-            <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
+            <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs select-none">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={numbers.length > 0 && selectedIds.length === numbers.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(numbers.map(n => n.id));
+                        } else {
+                          setSelectedIds([]);
+                        }
+                      }}
+                      className="rounded border-slate-700 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 shrink-0"
+                    />
+                    <span>SL</span>
+                  </div>
+                </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('number')}>
                   <div className="flex items-center gap-1">Number <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
@@ -346,10 +465,24 @@ export default function AdminContactNumbers() {
                   return (
                     <tr
                       key={number.id}
-                      className="hover:bg-white/[0.02] transition-colors"
+                      className={`hover:bg-white/[0.02] transition-all ${selectedIds.includes(number.id) ? "bg-emerald-500/[0.04] text-white" : ""}`}
                     >
-                      <td className="px-6 py-4 text-slate-400 font-medium">
-                        {startIndex + index + 1}
+                      <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(number.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedIds(prev => [...prev, number.id]);
+                              } else {
+                                setSelectedIds(prev => prev.filter(id => id !== number.id));
+                              }
+                            }}
+                            className="rounded border-slate-700 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 shrink-0"
+                          />
+                          <span className="font-mono text-xs text-slate-500">{startIndex + index + 1}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="font-bold text-white">

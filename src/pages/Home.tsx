@@ -45,7 +45,7 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
   return (
     <div 
       ref={containerRef} 
-      className="w-full max-w-4xl mx-auto my-4 overflow-hidden flex justify-center items-center" 
+      className="w-full max-w-4xl mx-auto my-4 overflow-hidden flex justify-center items-center min-h-[90px] bg-slate-50/50 rounded-xl" 
     />
   );
 }
@@ -59,6 +59,8 @@ export default function Home() {
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [recentPages, setRecentPages] = useState<any[]>([]);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
+  const [isLoadingPages, setIsLoadingPages] = useState(true);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [popularSearches, setPopularSearches] = useState<string[]>([]);
   const [publicSettings, setPublicSettings] = useState<any>({});
   const scrollContainerRefPages = useRef<HTMLDivElement>(null);
@@ -70,11 +72,25 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/pages/recent-fraud")
       .then((res) => res.json())
-      .then((data) => setRecentPages(Array.isArray(data) ? data : []));
+      .then((data) => {
+        setRecentPages(Array.isArray(data) ? data : []);
+        setIsLoadingPages(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching recent pages:", err);
+        setIsLoadingPages(false);
+      });
 
     fetch("/api/reviews/recent")
       .then((res) => res.json())
-      .then((data) => setRecentReviews(Array.isArray(data) ? data : []));
+      .then((data) => {
+        setRecentReviews(Array.isArray(data) ? data : []);
+        setIsLoadingReviews(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching recent reviews:", err);
+        setIsLoadingReviews(false);
+      });
 
     fetch("/api/popular-searches")
       .then((res) => res.json())
@@ -314,6 +330,8 @@ export default function Home() {
                                 referrerPolicy="no-referrer"
                                 src={page.profile_picture}
                                 alt=""
+                                width="40"
+                                height="40"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -345,7 +363,7 @@ export default function Home() {
                                 )}
                               {page.status_badge === "Reported as Fraud" && (
                                 <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-250 text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  <ShieldAlert className="h-3 w-3" /> Reported
+                                  <ShieldAlert className="h-3 w-3" /> Fraud
                                 </span>
                               )}
                             </div>
@@ -564,7 +582,24 @@ export default function Home() {
             </Link>
           </div>
 
-          {recentPages.length === 0 ? (
+          {isLoadingPages ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {[...Array(10)].map((_, idx) => (
+                <div key={idx} className="flex flex-col bg-white p-5 rounded-2xl border border-slate-200/80 animate-pulse">
+                  <div className="flex items-center gap-3.5 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="mt-auto pt-2 flex items-center justify-start">
+                    <div className="h-6 bg-slate-200 rounded-lg w-20" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentPages.length === 0 ? (
             <div className="bg-white p-6 rounded-2xl border border-slate-150 text-center text-slate-500 italic text-sm">
               Currently no threat entries indexed.
             </div>
@@ -594,6 +629,8 @@ export default function Home() {
                             referrerPolicy="no-referrer"
                             src={page.profile_picture}
                             alt=""
+                            width="40"
+                            height="40"
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -636,7 +673,33 @@ export default function Home() {
             </div>
           </div>
 
-          {recentReviews.length === 0 ? (
+          {isLoadingReviews ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, idx) => (
+                <div key={idx} className="flex flex-col bg-white border border-slate-200/80 rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-slate-200 shrink-0" />
+                      <div className="flex-1">
+                        <div className="h-3.5 bg-slate-200 rounded w-3/4 mb-1.5" />
+                        <div className="h-2.5 bg-slate-200 rounded w-1/2" />
+                      </div>
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded w-10 shrink-0" />
+                  </div>
+                  <div className="space-y-2 mb-6">
+                    <div className="h-3 bg-slate-200 rounded w-full" />
+                    <div className="h-3 bg-slate-200 rounded w-11/12" />
+                    <div className="h-3 bg-slate-200 rounded w-4/5" />
+                  </div>
+                  <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-2.5 shrink-0">
+                    <div className="h-7 w-7 rounded-lg bg-slate-200 shrink-0" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentReviews.length === 0 ? (
             <div className="bg-white p-6 rounded-2xl border border-slate-150 text-center text-slate-400 italic text-sm">
               Currently no public reviews registered.
             </div>

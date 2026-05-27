@@ -163,7 +163,7 @@ export default function GlobalSearch() {
                         )}
                         {page.status_badge === 'Reported as Fraud' && (
                           <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
-                            <ShieldAlert className="h-3 w-3" /> Reported
+                            <ShieldAlert className="h-3 w-3" /> Fraud
                           </span>
                         )}
                       </div>

@@ -683,6 +683,12 @@ export default function PageProfile() {
                     </span>
                   )}
 
+                  {page.status_badge === "Reported as Fraud" && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
+                    </span>
+                  )}
+
                   {page.business_verification_status && page.business_verification_status !== "Normal" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
                       🛡️ {page.business_verification_status}

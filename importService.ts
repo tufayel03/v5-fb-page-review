@@ -1,6 +1,21 @@
 import { db } from './database.js';
 import crypto from 'crypto';
 
+function normalizeImportNumber(num: any): string {
+  let cleaned = String(num || '').trim();
+  // Remove trailing .0 if Excel parsed it as a float (e.g. "1712345678.0")
+  if (cleaned.endsWith('.0')) {
+    cleaned = cleaned.substring(0, cleaned.length - 2);
+  }
+  
+  // If it's a 10-digit number starting with '1' to '9' (typical for stripped BD mobile numbers, e.g. "1712345678")
+  if (/^\d{10}$/.test(cleaned) && /^[1-9]/.test(cleaned)) {
+    return '0' + cleaned;
+  }
+  return cleaned;
+}
+
+
 export function startExcelImportJob(
   adminId: string,
   importType: string,
@@ -81,8 +96,8 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
               continue;
             }
 
-            const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => s.trim()).filter(Boolean) : [];
-            const contactList = contactRaw ? String(contactRaw).split(',').map((s) => s.trim()).filter(Boolean) : [];
+            const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+            const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
             
             let mainContact = '';
             let extraContacts: string[] = [];
@@ -300,8 +315,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
             const contactRaw = row['contact number'] || row['contact'] || '';
             const detailsRaw = row['page details'] || row['details'] || '';
 
-            const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => s.trim()).filter(Boolean) : [];
-            const contactList = contactRaw ? String(contactRaw).split(',').map((s) => s.trim()).filter(Boolean) : [];
+            const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+            const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
             
             let mainContact = '';
             let extraContacts: string[] = [];
