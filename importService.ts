@@ -46,8 +46,8 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
   const checkPageStmt = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ? OR current_name = ?');
   const insertPageStmt = db.prepare(`
     INSERT INTO FacebookPages (
-      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const getContactStmt = db.prepare('SELECT id, linked_page_ids, status FROM ContactNumbers WHERE number = ?');
@@ -94,8 +94,8 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
             if (exists) {
               const existingPageId = (exists as any).id;
               if (isFraud) {
-                // If importing as Fraud, update the existing page's badge and score
-                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100 WHERE id = ?").run(existingPageId);
+                // If importing as Fraud, update the existing page's badge, score, and set as listed in fraud directory
+                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100, is_fraud_listed = 1 WHERE id = ?").run(existingPageId);
                 
                 // Parse contact & payment methods of the row to link and update them as well
                 const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
@@ -151,7 +151,8 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
               pmList.length ? JSON.stringify(pmList) : null,
               detailsRaw || null,
               defaultStatus,
-              trustScore
+              trustScore,
+              isFraud ? 1 : 0
             );
             
             const addOrUpdateNumber = (num: string, type: string) => {
@@ -284,8 +285,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
   const checkPageStmt = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ? OR current_name = ?');
   const insertPageStmt = db.prepare(`
     INSERT INTO FacebookPages (
-      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const checkRowMapStmt = db.prepare('SELECT id FROM GoogleSheetRowMap WHERE import_type = ? AND unique_key = ?');
@@ -341,8 +342,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
             if (exists) {
               const existingPageId = (exists as any).id;
               if (isFraud) {
-                // If syncing as Fraud, update the existing page's badge and score
-                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100 WHERE id = ?").run(existingPageId);
+                // If syncing as Fraud, update the existing page's badge, score, and set as listed in fraud directory
+                db.prepare("UPDATE FacebookPages SET status_badge = 'Reported as Fraud', trust_score = -100, is_fraud_listed = 1 WHERE id = ?").run(existingPageId);
                 
                 // Parse contact & payment methods of the row to link and update them as well
                 const pmRaw = row['payment method'] || '';
@@ -406,7 +407,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
               pmList.length ? JSON.stringify(pmList) : null,
               detailsRaw || null,
               defaultStatus,
-              trustScore
+              trustScore,
+              isFraud ? 1 : 0
             );
             
             insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, pageId);

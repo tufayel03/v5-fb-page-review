@@ -4193,18 +4193,18 @@ async function startServer() {
       const type = req.query.type as string;
       if (!type) return res.json([]);
       
-      // Keep only 10 recent logs per type
+      // Keep only 5 recent logs per type
       db.prepare(`
         DELETE FROM GoogleSheetSyncLogs 
         WHERE import_type = ? AND id NOT IN (
           SELECT id FROM GoogleSheetSyncLogs 
           WHERE import_type = ? 
           ORDER BY started_at DESC 
-          LIMIT 10
+          LIMIT 5
         )
       `).run(type, type);
 
-      const logs = db.prepare('SELECT * FROM GoogleSheetSyncLogs WHERE import_type = ? ORDER BY started_at DESC LIMIT 10').all(type);
+      const logs = db.prepare('SELECT * FROM GoogleSheetSyncLogs WHERE import_type = ? ORDER BY started_at DESC LIMIT 5').all(type);
       res.json(logs);
     } catch (e) {
       res.status(500).json({ error: 'Server error' });
