@@ -6,3 +6,24 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Databases & local persistent storage
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+database.sqlite
+
+# Local file uploads
+uploads/
+
+# Backups, temporary scripts & Excel files
+*.tmp
+*.tmp2
+test_db.ts
+test_server.js
+update_server.js
+fix_bkash.cjs
+fix_profile.cjs
+test-delete-logs.ts
+test.xlsx
