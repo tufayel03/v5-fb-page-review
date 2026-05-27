@@ -3593,6 +3593,15 @@ async function startServer() {
         if (user_id === 'anonymous') {
             return res.status(401).json({ error: 'Login required to submit a review' });
         }
+
+        // Ensure user actually exists in the database
+        const userExists = db.prepare('SELECT id FROM Users WHERE id = ?').get(user_id);
+        if (!userExists) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Your session is invalid or your user account was not found. Please log out and sign in again.' 
+            });
+        }
         
         const minLenSetting = db.prepare("SELECT value FROM Settings WHERE key_name = 'min_review_length'").get() as any;
         const maxLenSetting = db.prepare("SELECT value FROM Settings WHERE key_name = 'max_review_length'").get() as any;
