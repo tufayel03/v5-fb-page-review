@@ -174,8 +174,17 @@ function StandardLayout() {
         }
         return {};
       })
-      .then((data) => {
+      .then((data: any) => {
         setPublicSettings(data);
+        if (data.site_logo) {
+          let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = data.site_logo;
+        }
       })
       .catch(() => {});
   }, []);
@@ -802,6 +811,29 @@ function BusinessPublicLayout() {
 }
 
 export default function App() {
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then((res) => {
+        const contentType = res.headers.get("content-type");
+        if (res.ok && contentType && contentType.includes("application/json")) {
+          return res.json();
+        }
+        return {};
+      })
+      .then((data: any) => {
+        if (data.site_logo) {
+          let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = data.site_logo;
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <Router>
       <VisitTracker />
