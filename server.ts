@@ -1141,6 +1141,7 @@ async function startServer() {
       const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
       const minReviews = Number(req.query.minReviews);
       const minFraud = Number(req.query.minFraud);
+      const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
       const page = Math.max(1, Number(req.query.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10)); // max limit protection 100 for admin
       const offset = (page - 1) * limit;
@@ -1191,13 +1192,23 @@ async function startServer() {
         params.push(minFraud);
       }
 
+      if (addedBy !== 'all') {
+        whereClauses.push("added_by = ?");
+        params.push(addedBy);
+      }
+
       const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+      if (req.query.allIds === 'true') {
+        const allItems = db.prepare(`SELECT id FROM FacebookPages ${whereSQL}`).all(...params) as { id: string }[];
+        return res.json({ ids: allItems.map(item => item.id) });
+      }
 
       const countResult = db.prepare(`SELECT COUNT(*) as total FROM FacebookPages ${whereSQL}`).get(...params) as { total: number };
       const total = countResult ? countResult.total : 0;
 
       const items = db.prepare(`
-        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count 
+        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count, added_by 
         FROM FacebookPages 
         ${whereSQL} 
         ORDER BY ${sortBy} ${sortOrder} 
@@ -1296,6 +1307,59 @@ async function startServer() {
           'page details': 'Sample details about fraud'
         }];
       } else {
+        const ids = typeof req.query.ids === 'string' ? req.query.ids.split(',').filter(Boolean) : [];
+        let pages = [];
+
+        if (ids.length > 0) {
+          const placeholders = ids.map(() => '?').join(',');
+          pages = db.prepare(`SELECT * FROM FacebookPages WHERE id IN (${placeholders})`).all(...ids) as any[];
+        } else {
+          const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+          const status = typeof req.query.status === 'string' ? req.query.status.trim() : 'all';
+          const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
+          const minReviews = Number(req.query.minReviews);
+          const minFraud = Number(req.query.minFraud);
+          const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
+
+          let whereClauses: string[] = [];
+          let params: any[] = [];
+
+          if (search) {
+            whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ?)');
+            const likePattern = `%${search}%`;
+            params.push(likePattern, likePattern);
+          }
+          if (status !== 'all') {
+            if (status === 'fraud') {
+              whereClauses.push("status_badge = 'Reported as Fraud'");
+            } else if (status === 'clean') {
+              whereClauses.push("status_badge != 'Reported as Fraud'");
+            }
+          }
+          if (claimStatus !== 'all') {
+            if (claimStatus === 'claimed') {
+              whereClauses.push("claim_status = 'Claimed'");
+            } else if (claimStatus === 'unclaimed') {
+              whereClauses.push("claim_status = 'Unclaimed'");
+            }
+          }
+          if (!isNaN(minReviews) && minReviews > 0) {
+            whereClauses.push("total_reviews >= ?");
+            params.push(minReviews);
+          }
+          if (!isNaN(minFraud) && minFraud > 0) {
+            whereClauses.push("fraud_report_count >= ?");
+            params.push(minFraud);
+          }
+          if (addedBy !== 'all') {
+            whereClauses.push("added_by = ?");
+            params.push(addedBy);
+          }
+
+          const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+          pages = db.prepare(`SELECT * FROM FacebookPages ${whereSQL}`).all(...params) as any[];
+        }
+
         const safeParseArray = (str: string | null): string[] => {
           if (!str) return [];
           try {
@@ -1305,13 +1369,16 @@ async function startServer() {
           } catch (e) {}
           return str.split(',').map(s => s.trim()).filter(Boolean);
         };
-        const pages = db.prepare(`SELECT * FROM FacebookPages`).all() as any[];
         data = pages.map(p => ({
           'page name': p.current_name,
           'page url': p.facebook_url,
           'payment method': p.payment_methods ? safeParseArray(p.payment_methods).join(', ') : '',
-          'contact number': p.contact_number + (p.extra_contacts ? ', ' + safeParseArray(p.extra_contacts).join(', ') : ''),
-          'page details': p.page_details
+          'contact number': (p.contact_number || '') + (p.extra_contacts ? ', ' + safeParseArray(p.extra_contacts).join(', ') : ''),
+          'page details': p.page_details,
+          'status badge': p.status_badge || 'Under Review',
+          'claim status': p.claim_status || 'Unclaimed',
+          'added by': p.added_by || 'admin',
+          'created at': p.created_at || ''
         }));
       }
       
@@ -1379,14 +1446,16 @@ async function startServer() {
           id, current_name, facebook_url, category, sub_category, contact_number, status_badge, trust_score,
           extra_contacts, payment_methods, other_urls, profile_picture, website_url, page_details,
           trusted_ranking_score, featured_trusted_seller, admin_trusted_note,
-          business_verification_status, business_verification_note, business_verified_by_admin_id, business_verified_at
+          business_verification_status, business_verification_note, business_verified_by_admin_id, business_verified_at,
+          added_by
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, current_name, facebook_url, category, sub_category || null, contact_number, status_badge || 'Under Review', trust_score || 0,
         extra_contacts || null, payment_methods || null, other_urls || null, profile_picture || null, website_url || null, page_details || null,
         trusted_ranking_score || 0, featured_trusted_seller || 0, admin_trusted_note || null,
-        business_verification_status || 'Normal', business_verification_note || null, business_verification_status && business_verification_status !== 'Normal' ? (req as any).user.id : null, business_verification_status && business_verification_status !== 'Normal' ? new Date().toISOString() : null
+        business_verification_status || 'Normal', business_verification_note || null, business_verification_status && business_verification_status !== 'Normal' ? (req as any).user.id : null, business_verification_status && business_verification_status !== 'Normal' ? new Date().toISOString() : null,
+        'admin'
       );
       
       if (business_verification_status && business_verification_status !== 'Normal') {
@@ -1974,6 +2043,7 @@ async function startServer() {
       const type = req.query.type as string;
       const account_type = req.query.account_type as string;
       const status = req.query.status as string;
+      const addedBy = req.query.addedBy as string;
       const sortBy = req.query.sortBy as string || 'created_at';
       const sortOrder = req.query.sortOrder as string === 'asc' ? 'ASC' : 'DESC';
 
@@ -1998,6 +2068,15 @@ async function startServer() {
         baseQuery += ` AND status = ?`;
         params.push(status);
       }
+      if (addedBy && addedBy !== 'all') {
+        baseQuery += ` AND added_by = ?`;
+        params.push(addedBy);
+      }
+
+      if (req.query.allIds === 'true') {
+        const allItems = db.prepare(`SELECT id ${baseQuery}`).all(...params) as { id: string }[];
+        return res.json({ ids: allItems.map(item => item.id) });
+      }
 
       const countResult = db.prepare(`SELECT COUNT(*) as count ${baseQuery}`).get(...params) as any;
       const totalCount = countResult ? countResult.count : 0;
@@ -2006,7 +2085,7 @@ async function startServer() {
       const finalSortColumn = validSortOptions.includes(sortBy) ? sortBy : 'created_at';
 
       const numbers = db.prepare(`
-        SELECT id, number, type, account_type, display_name, status, total_mentions, fraud_report_count, suspicious_report_count, first_reported_at, last_reported_at, created_at, updated_at
+        SELECT id, number, type, account_type, display_name, status, total_mentions, fraud_report_count, suspicious_report_count, first_reported_at, last_reported_at, created_at, updated_at, added_by
         ${baseQuery}
         ORDER BY ${finalSortColumn} ${sortOrder}
         LIMIT ? OFFSET ?
@@ -2022,6 +2101,78 @@ async function startServer() {
     } catch(e) {
       console.error(e);
       res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  app.get('/api/admin/contact-numbers/export', requireAdmin, (req, res) => {
+    try {
+      const ids = typeof req.query.ids === 'string' ? req.query.ids.split(',').filter(Boolean) : [];
+      let numbers = [];
+
+      if (ids.length > 0) {
+        const placeholders = ids.map(() => '?').join(',');
+        numbers = db.prepare(`SELECT * FROM ContactNumbers WHERE id IN (${placeholders})`).all(...ids) as any[];
+      } else {
+        const search = req.query.search as string;
+        const type = req.query.type as string;
+        const account_type = req.query.account_type as string;
+        const status = req.query.status as string;
+        const addedBy = req.query.addedBy as string;
+
+        let query = `SELECT * FROM ContactNumbers WHERE 1=1`;
+        const params: any[] = [];
+
+        if (search) {
+          query += ` AND (number LIKE ? OR display_name LIKE ? OR linked_page_ids LIKE ? OR admin_note LIKE ?)`;
+          const pattern = `%${search}%`;
+          params.push(pattern, pattern, pattern, pattern);
+        }
+        if (type && type !== 'all') {
+          query += ` AND type = ?`;
+          params.push(type);
+        }
+        if (account_type && account_type !== 'all') {
+          query += ` AND account_type = ?`;
+          params.push(account_type);
+        }
+        if (status && status !== 'all') {
+          query += ` AND status = ?`;
+          params.push(status);
+        }
+        if (addedBy && addedBy !== 'all') {
+          query += ` AND added_by = ?`;
+          params.push(addedBy);
+        }
+
+        numbers = db.prepare(query).all(...params) as any[];
+      }
+
+      const data = numbers.map(n => ({
+        'Number': n.number,
+        'Type': n.type || 'Unknown',
+        'Account Type': n.account_type || 'Unknown',
+        'Display Name': n.display_name || '',
+        'Status': n.status || 'Normal',
+        'Fraud Report Count': n.fraud_report_count ?? 0,
+        'Suspicious Report Count': n.suspicious_report_count ?? 0,
+        'Total Mentions': n.total_mentions ?? 0,
+        'First Reported At': n.first_reported_at || '',
+        'Last Reported At': n.last_reported_at || '',
+        'Added By': n.added_by || 'admin',
+        'Admin Note': n.admin_note || '',
+        'Created At': n.created_at || ''
+      }));
+
+      const worksheet = xlsx.utils.json_to_sheet(data);
+      const workbook = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(workbook, worksheet, "Contact Numbers");
+      const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Disposition', 'attachment; filename="contact-numbers-export.xlsx"');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch(e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
@@ -2052,8 +2203,8 @@ async function startServer() {
       const { number, type, account_type, display_name, status, admin_note } = req.body;
       const id = crypto.randomUUID();
       db.prepare(`
-        INSERT INTO ContactNumbers (id, number, type, account_type, display_name, status, admin_note)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO ContactNumbers (id, number, type, account_type, display_name, status, admin_note, added_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')
       `).run(id, number, type || 'Unknown', account_type || 'Unknown', display_name, status || 'Normal', admin_note || '');
       res.json({ success: true, id });
     } catch (e: any) {
@@ -3670,9 +3821,9 @@ async function startServer() {
           db.prepare(`
             INSERT INTO FacebookPages (
               id, current_name, facebook_url, website_url, category, sub_category, contact_number,
-              extra_contacts, payment_methods, other_urls, profile_picture, page_details
+              extra_contacts, payment_methods, other_urls, profile_picture, page_details, added_by
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'users')
           `).run(
             page_id, page_name, page_url || '', website_url || null, category || null, sub_category || null, contact_number || null,
             extra_contacts || null, payment_methods || null, other_urls || null, profile_picture || null, page_details || null
@@ -3819,8 +3970,8 @@ async function startServer() {
             );
           } else {
             db.prepare(`
-              INSERT INTO ContactNumbers (id, number, type, account_type, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids) 
-              VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+              INSERT INTO ContactNumbers (id, number, type, account_type, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids, added_by) 
+              VALUES (?, ?, ?, ?, 1, ?, ?, ?, 'users')
             `).run(
               crypto.randomUUID(), 
               bkash_number, 
@@ -4049,7 +4200,7 @@ async function startServer() {
         if (existing) {
           target_page_id = existing.id;
         } else {
-          db.prepare('INSERT INTO FacebookPages (id, current_name, facebook_url, category) VALUES (?, ?, ?, ?)')
+          db.prepare('INSERT INTO FacebookPages (id, current_name, facebook_url, category, added_by) VALUES (?, ?, ?, ?, \'users\')')
             .run(target_page_id, page_name, page_url.trim(), 'Other');
         }
       }

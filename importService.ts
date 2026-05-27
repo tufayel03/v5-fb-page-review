@@ -46,15 +46,15 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
   const checkPageStmt = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ? OR current_name = ?');
   const insertPageStmt = db.prepare(`
     INSERT INTO FacebookPages (
-      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed, added_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin')
   `);
 
   const getContactStmt = db.prepare('SELECT id, linked_page_ids, status FROM ContactNumbers WHERE number = ?');
   const updateContactStmt = db.prepare('UPDATE ContactNumbers SET linked_page_ids = ?, type = ?, status = ? WHERE id = ?');
   const insertContactStmt = db.prepare(`
-    INSERT INTO ContactNumbers (id, number, type, account_type, status, linked_page_ids) 
-    VALUES (?, ?, ?, 'Unknown', ?, ?)
+    INSERT INTO ContactNumbers (id, number, type, account_type, status, linked_page_ids, added_by) 
+    VALUES (?, ?, ?, 'Unknown', ?, ?, 'admin')
   `);
 
   function nextBatch() {
@@ -285,8 +285,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
   const checkPageStmt = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ? OR current_name = ?');
   const insertPageStmt = db.prepare(`
     INSERT INTO FacebookPages (
-      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed, added_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin')
   `);
 
   const checkRowMapStmt = db.prepare('SELECT id, database_record_id FROM GoogleSheetRowMap WHERE import_type = ? AND unique_key = ?');
@@ -295,8 +295,8 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
   const getContactStmt = db.prepare('SELECT id, linked_page_ids, status FROM ContactNumbers WHERE number = ?');
   const updateContactStmt = db.prepare('UPDATE ContactNumbers SET linked_page_ids = ?, type = ?, status = ? WHERE id = ?');
   const insertContactStmt = db.prepare(`
-    INSERT INTO ContactNumbers (id, number, type, account_type, status, linked_page_ids) 
-    VALUES (?, ?, ?, 'Unknown', ?, ?)
+    INSERT INTO ContactNumbers (id, number, type, account_type, status, linked_page_ids, added_by) 
+    VALUES (?, ?, ?, 'Unknown', ?, ?, 'admin')
   `);
 
   function nextBatch() {

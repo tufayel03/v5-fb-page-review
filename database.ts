@@ -39,6 +39,7 @@ db.exec(`
     page_details TEXT,
     category_id TEXT,
     subcategory_id TEXT,
+    added_by TEXT DEFAULT 'admin',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES Users(id)
@@ -82,6 +83,7 @@ db.exec(`
     last_reported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'Normal',
     admin_note TEXT,
+    added_by TEXT DEFAULT 'admin',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -384,6 +386,8 @@ try { db.exec('ALTER TABLE FacebookPages ADD COLUMN fraud_listed_at DATETIME;');
 try { db.exec('ALTER TABLE FacebookPages ADD COLUMN fraud_severity TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE FacebookPages ADD COLUMN fraud_internal_note TEXT;'); } catch (e) {}
 
+try { db.exec("ALTER TABLE FacebookPages ADD COLUMN added_by TEXT DEFAULT 'admin';"); } catch (e) {}
+try { db.exec("ALTER TABLE ContactNumbers ADD COLUMN added_by TEXT DEFAULT 'admin';"); } catch (e) {}
 
 try { db.exec('ALTER TABLE Users ADD COLUMN reset_token TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE Users ADD COLUMN reset_token_expires DATETIME;'); } catch (e) {}

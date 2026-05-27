@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, Filter, Phone, AlertTriangle, Plus, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, Phone, AlertTriangle, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 export default function AdminContactNumbers() {
@@ -13,6 +13,7 @@ export default function AdminContactNumbers() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
+  const [addedByFilter, setAddedByFilter] = useState('all');
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -31,11 +32,99 @@ export default function AdminContactNumbers() {
   const [bulkAction, setBulkAction] = useState("");
   const [bulkStatusValue, setBulkStatusValue] = useState("Reported");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+
+  const selectAllMatchingContacts = async () => {
+    setSelectingAllMatching(true);
+    try {
+      let sortBy = 'created_at';
+      let sortOrder = 'desc';
+      if (sortConfig) {
+        sortBy = sortConfig.key;
+        sortOrder = sortConfig.direction === 'asc' ? 'asc' : 'desc';
+      }
+
+      const params = new URLSearchParams({
+        search: debouncedSearch,
+        type: typeFilter,
+        account_type: accountTypeFilter,
+        status: statusFilter,
+        addedBy: addedByFilter,
+        sortBy,
+        sortOrder,
+        allIds: "true"
+      });
+
+      const res = await fetch(`/api/admin/contact-numbers?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.ids)) {
+          setSelectedIds(data.ids);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSelectingAllMatching(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    const queryParams = new URLSearchParams();
+    if (selectedIds.length > 0) {
+      queryParams.append("ids", selectedIds.join(","));
+    } else {
+      let sortBy = 'created_at';
+      let sortOrder = 'desc';
+      if (sortConfig) {
+        sortBy = sortConfig.key;
+        sortOrder = sortConfig.direction === 'asc' ? 'asc' : 'desc';
+      }
+
+      queryParams.append("search", debouncedSearch);
+      queryParams.append("type", typeFilter);
+      queryParams.append("account_type", accountTypeFilter);
+      queryParams.append("status", statusFilter);
+      queryParams.append("addedBy", addedByFilter);
+      queryParams.append("sortBy", sortBy);
+      queryParams.append("sortOrder", sortOrder);
+    }
+
+    const token = localStorage.getItem("token") || "";
+    fetch(`/api/admin/contact-numbers/export?${queryParams}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to export");
+        return res.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `contact-numbers-export-${Date.now()}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(err => {
+        alert(err.message || "Export failed");
+      });
+  };
 
   const executeBulkAction = async () => {
     if (selectedIds.length === 0) return;
     if (!bulkAction) {
       alert("Please select a valid bulk action.");
+      return;
+    }
+
+    if (bulkAction === 'export') {
+      handleExportExcel();
+      setSelectedIds([]);
+      setBulkAction("");
       return;
     }
 
@@ -102,6 +191,7 @@ export default function AdminContactNumbers() {
       type: typeFilter,
       account_type: accountTypeFilter,
       status: statusFilter,
+      addedBy: addedByFilter,
       sortBy,
       sortOrder,
     });
@@ -129,7 +219,7 @@ export default function AdminContactNumbers() {
       });
 
     return () => controller.abort();
-  }, [currentPage, itemsPerPage, debouncedSearch, typeFilter, accountTypeFilter, statusFilter, sortConfig, refreshTrigger]);
+  }, [currentPage, itemsPerPage, debouncedSearch, typeFilter, accountTypeFilter, statusFilter, addedByFilter, sortConfig, refreshTrigger]);
 
   const fetchNumbers = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -183,9 +273,9 @@ export default function AdminContactNumbers() {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-             <select
+        <div className="flex flex-col lg:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+              <select
                  value={typeFilter}
                  onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -216,8 +306,18 @@ export default function AdminContactNumbers() {
                  <option value="Verified Merchant" className="bg-[#091124]">Verified Merchant</option>
                  <option value="Safe" className="bg-[#091124]">Safe</option>
               </select>
+
+              <select
+                 value={addedByFilter}
+                 onChange={(e) => { setAddedByFilter(e.target.value); setCurrentPage(1); }}
+                 className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                 <option value="all" className="bg-[#091124]">All Sources</option>
+                 <option value="admin" className="bg-[#091124]">Admin Added</option>
+                 <option value="users" className="bg-[#091124]">User Added</option>
+              </select>
           </div>
-          <div className="relative flex-1 w-full sm:w-64">
+          <div className="relative flex-1 w-full lg:w-64">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
@@ -227,15 +327,42 @@ export default function AdminContactNumbers() {
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" /> Add Number
-          </button>
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <button
+              onClick={handleExportExcel}
+              className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full lg:w-auto cursor-pointer"
+            >
+              <FileDown className="h-4 w-4" /> Export Excel
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full lg:w-auto"
+            >
+              <Plus className="h-4 w-4" /> Add Number
+            </button>
+          </div>
         </div>
 
       </div>
+
+      {/* Clear filter indicator */}
+      {(typeFilter !== "all" || accountTypeFilter !== "all" || statusFilter !== "all" || addedByFilter !== "all" || searchQuery !== "") && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              setTypeFilter("all");
+              setAccountTypeFilter("all");
+              setStatusFilter("all");
+              setAddedByFilter("all");
+              setSearchQuery("");
+              setCurrentPage(1);
+            }}
+            className="text-xs text-rose-400 hover:text-rose-300 font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            ✕ Reset All Active Filters
+          </button>
+        </div>
+      )}
 
       {showAddModal && (
         <div className="fixed inset-0 bg-[#050b18]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in animate-duration-150">
@@ -349,13 +476,22 @@ export default function AdminContactNumbers() {
       {/* Bulk Action Workspace Banner */}
       {selectedIds.length > 0 && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="h-7 px-3 rounded-full bg-emerald-500 text-[#050b18] text-xs font-black flex items-center justify-center select-none shadow">
               {selectedIds.length} Selected
             </div>
             <p className="text-sm text-slate-200 mt-1 lg:mt-0 font-semibold">
               Select an action to apply to the contact numbers chosen above.
             </p>
+            {selectedIds.length === numbers.length && totalCount > numbers.length && (
+              <button
+                disabled={selectingAllMatching}
+                onClick={selectAllMatchingContacts}
+                className="bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {selectingAllMatching ? "Loading all..." : `Select all ${totalCount} numbers`}
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -366,6 +502,7 @@ export default function AdminContactNumbers() {
             >
               <option value="">-- Bulk Actions --</option>
               <option value="change_status">Bulk Change Status...</option>
+              <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>
 
@@ -492,9 +629,20 @@ export default function AdminContactNumbers() {
                           {number.display_name || "No Name"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-slate-300 font-medium">
-                        {number.type || "Unknown"} -{" "}
-                        {number.account_type || "Unknown"}
+                      <td className="px-6 py-4 font-medium">
+                        <div className="text-slate-300">
+                          {number.type || "Unknown"} -{" "}
+                          {number.account_type || "Unknown"}
+                        </div>
+                        <div className="mt-0.5">
+                          <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
+                            number.added_by === 'users'
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
+                              : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                          }`}>
+                            {number.added_by === 'users' ? 'User' : 'Admin'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span

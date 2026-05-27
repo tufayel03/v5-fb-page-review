@@ -13,6 +13,7 @@ export default function AdminPages() {
   const [claimFilter, setClaimFilter] = useState("all");
   const [minReviewsFilter, setMinReviewsFilter] = useState("");
   const [minFraudFilter, setMinFraudFilter] = useState("");
+  const [addedByFilter, setAddedByFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: "created_at", direction: "desc" });
 
   // Bulk action states
@@ -20,13 +21,14 @@ export default function AdminPages() {
   const [bulkAction, setBulkAction] = useState("");
   const [bulkStatusValue, setBulkStatusValue] = useState("Under Review");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [selectingAllMatching, setSelectingAllMatching] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchPages();
     }, 250); // 250ms debounce for admin search actions
     return () => clearTimeout(timer);
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, minFraudFilter, sortConfig]);
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, minFraudFilter, addedByFilter, sortConfig]);
 
   const fetchPages = () => {
     setLoading(true);
@@ -38,6 +40,7 @@ export default function AdminPages() {
       claimStatus: claimFilter,
       minReviews: minReviewsFilter,
       minFraud: minFraudFilter,
+      addedBy: addedByFilter,
     });
 
     if (sortConfig) {
@@ -64,6 +67,69 @@ export default function AdminPages() {
         setPages([]);
         setTotal(0);
         setLoading(false);
+      });
+  };
+
+  const selectAllMatchingPages = async () => {
+    setSelectingAllMatching(true);
+    try {
+      const queryParams = new URLSearchParams({
+        search: searchQuery,
+        status: statusFilter,
+        claimStatus: claimFilter,
+        minReviews: minReviewsFilter,
+        minFraud: minFraudFilter,
+        addedBy: addedByFilter,
+        allIds: "true"
+      });
+      const res = await fetch(`/api/admin/pages?${queryParams}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.ids)) {
+          setSelectedPageIds(data.ids);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSelectingAllMatching(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    const queryParams = new URLSearchParams();
+    if (selectedPageIds.length > 0) {
+      queryParams.append("ids", selectedPageIds.join(","));
+    } else {
+      queryParams.append("search", searchQuery);
+      queryParams.append("status", statusFilter);
+      queryParams.append("claimStatus", claimFilter);
+      queryParams.append("minReviews", minReviewsFilter);
+      queryParams.append("minFraud", minFraudFilter);
+      queryParams.append("addedBy", addedByFilter);
+    }
+
+    const token = localStorage.getItem("token") || "";
+    fetch(`/api/admin/pages/export?${queryParams}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to export");
+        return res.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `facebook-pages-export-${Date.now()}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(err => {
+        alert(err.message || "Export failed");
       });
   };
 
@@ -96,32 +162,6 @@ export default function AdminPages() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (!pages || pages.length === 0) return;
-    const headers = ['ID', 'Name', 'URL', 'Status Badge', 'Claim Status', 'Total Reviews', 'Fraud Reports', 'Created At'];
-    const csvContent = [
-      headers.join(','),
-      ...pages.map(p => [
-        p.id,
-        '"' + (p.current_name || '').replace(/"/g, '""') + '"',
-        p.facebook_url || '',
-        p.status_badge || '',
-        p.claim_status || 'Unclaimed',
-        p.total_reviews ?? 0,
-        p.fraud_report_count ?? 0,
-        p.created_at || ''
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'pages_dir_export.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -149,6 +189,13 @@ export default function AdminPages() {
     if (selectedPageIds.length === 0) return;
     if (!bulkAction) {
       alert("Please select a valid bulk action.");
+      return;
+    }
+
+    if (bulkAction === 'export') {
+      handleExportExcel();
+      setSelectedPageIds([]);
+      setBulkAction("");
       return;
     }
 
@@ -205,8 +252,8 @@ export default function AdminPages() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <button onClick={handleExportCSV} className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
-            <FileDown className="h-4 w-4" /> Export CSV
+          <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
+            <FileDown className="h-4 w-4" /> Export Excel
           </button>
           <Link to="/tufayel/pages/new" className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors whitespace-nowrap w-full sm:w-auto">
             <Plus className="h-4 w-4" /> Add Page
@@ -219,7 +266,7 @@ export default function AdminPages() {
         <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2 select-none">
           <Filter className="h-3 w-3 text-emerald-500" /> Search & Advanced Filters
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           
           {/* Page Status Filter */}
           <div className="space-y-1.5">
@@ -246,6 +293,20 @@ export default function AdminPages() {
               <option value="all">All Pages</option>
               <option value="claimed">Claimed Pages</option>
               <option value="unclaimed">Unclaimed Pages</option>
+            </select>
+          </div>
+
+          {/* Added By Filter */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Added By</label>
+            <select
+              value={addedByFilter}
+              onChange={(e) => { setAddedByFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <option value="all">All Sources</option>
+              <option value="admin">Admin</option>
+              <option value="users">Users</option>
             </select>
           </div>
 
@@ -292,7 +353,7 @@ export default function AdminPages() {
         </div>
 
         {/* Clear filter indicator */}
-        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || minFraudFilter !== "" || searchQuery !== "") && (
+        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || minFraudFilter !== "" || addedByFilter !== "all" || searchQuery !== "") && (
           <div className="flex justify-end mt-1">
             <button
               onClick={() => {
@@ -300,6 +361,7 @@ export default function AdminPages() {
                 setClaimFilter("all");
                 setMinReviewsFilter("");
                 setMinFraudFilter("");
+                setAddedByFilter("all");
                 setSearchQuery("");
                 setCurrentPage(1);
               }}
@@ -314,13 +376,22 @@ export default function AdminPages() {
       {/* Bulk Action Workspace Banner */}
       {selectedPageIds.length > 0 && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="h-7 px-3 rounded-full bg-emerald-500 text-[#050b18] text-xs font-black flex items-center justify-center select-none shadow">
               {selectedPageIds.length} Selected
             </div>
             <p className="text-sm text-slate-200 mt-1 lg:mt-0 font-semibold">
               Select an action to apply to the directory pages chosen above.
             </p>
+            {selectedPageIds.length === pages.length && total > pages.length && (
+              <button
+                disabled={selectingAllMatching}
+                onClick={selectAllMatchingPages}
+                className="bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {selectingAllMatching ? "Loading all..." : `Select all ${total} pages`}
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -333,6 +404,7 @@ export default function AdminPages() {
               <option value="mark_fraud">Bulk Mark as Fraud (-100 Score)</option>
               <option value="clear_fraud">Bulk Clear Fraud (Under Review)</option>
               <option value="change_status">Bulk Change Status Badge...</option>
+              <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>
 
@@ -538,8 +610,19 @@ export default function AdminPages() {
                           {page.status_badge}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-450 font-mono text-xs whitespace-nowrap">
-                        {page.created_at ? new Date(page.created_at).toLocaleDateString() : ""}
+                      <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
+                        <div className="text-slate-300">
+                          {page.created_at ? new Date(page.created_at).toLocaleDateString() : ""}
+                        </div>
+                        <div className="mt-0.5">
+                          <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
+                            page.added_by === 'users'
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
+                              : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                          }`}>
+                            {page.added_by === 'users' ? 'User' : 'Admin'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
