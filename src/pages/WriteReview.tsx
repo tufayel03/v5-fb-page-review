@@ -24,6 +24,7 @@ import { useAuth } from "../context/AuthContext";
 export default function WriteReview() {
   const [searchParams] = useSearchParams();
   const pageId = searchParams.get("pageId") || "";
+  const reviewId = searchParams.get("reviewId") || "";
   const initialType =
     searchParams.get("type") === "fraud" ? "Fraud Report" : "Good";
 
@@ -366,7 +367,33 @@ export default function WriteReview() {
   }, [pageUrl, pageId, navigate, getValues]);
 
   useEffect(() => {
-    if (pageId && user) {
+    if (reviewId) {
+      const token = localStorage.getItem("token");
+      fetch(`/api/reviews/${reviewId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            setIsEditing(true);
+            reset({
+              ...getValues(),
+              page_id: data.page_id,
+              review_type: data.review_type,
+              star_rating: data.star_rating?.toString(),
+              title: data.title,
+              description: data.description,
+              date_of_experience: data.date_of_experience || "",
+              bkash_number: data.bkash_number || "",
+              order_amount: data.order_amount || "",
+              facebook_post_link: data.facebook_post_link || "",
+              is_on_behalf: data.is_on_behalf === 1,
+            });
+            setIsSearchingPage(false);
+          }
+        })
+        .catch(() => {});
+    } else if (pageId && user) {
       const token = localStorage.getItem("token");
       if (token) {
         fetch(`/api/reviews/check/${pageId}`, {
@@ -386,13 +413,14 @@ export default function WriteReview() {
                 bkash_number: data.bkash_number || "",
                 order_amount: data.order_amount || "",
                 facebook_post_link: data.facebook_post_link || "",
+                is_on_behalf: data.is_on_behalf === 1,
               });
             }
           })
           .catch(() => {});
       }
     }
-  }, [pageId, user, reset]);
+  }, [pageId, reviewId, user, reset]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -477,6 +505,7 @@ export default function WriteReview() {
         other_urls: JSON.stringify(otherUrls),
         profile_picture: profileImageFile,
         proof_images: proofImages,
+        editReviewId: reviewId || undefined,
       };
 
       const res = await fetch("/api/reviews", {

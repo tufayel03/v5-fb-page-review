@@ -22,6 +22,7 @@ import {
   BarChart3,
   Smartphone,
   Trash2,
+  Pencil,
   DollarSign,
   Facebook,
   X,
@@ -1347,7 +1348,14 @@ export default function PageProfile() {
                           {user &&
                             (user.id === review.user_id ||
                               ["admin", "Admin", "Super Admin", "Moderator"].includes(user.role)) && (
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-3.5">
+                              <Link
+                                to={`/write-review?pageId=${review.page_id}&reviewId=${review.id}`}
+                                className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                              >
+                                <Pencil className="h-[14px] w-[14px]" /> Edit
+                              </Link>
+
                               {deleteConfirmId === review.id ? (
                                 <button
                                   onClick={() => handleDeleteReview(review.id)}

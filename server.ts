@@ -3996,7 +3996,16 @@ async function startServer() {
         
         let id;
         let existingReview: any = null;
-        if (user_id !== 'anonymous' && is_on_behalf === 0) {
+        if (req.body.editReviewId) {
+            const checkRev = db.prepare('SELECT id, user_id FROM Reviews WHERE id = ?').get(req.body.editReviewId) as any;
+            if (checkRev) {
+                if (is_admin_user || checkRev.user_id === user_id) {
+                    existingReview = checkRev;
+                } else {
+                    return res.status(403).json({ error: 'You do not have permission to edit this review.' });
+                }
+            }
+        } else if (user_id !== 'anonymous' && is_on_behalf === 0) {
             const limitOne = db.prepare("SELECT value FROM Settings WHERE key_name = 'limit_one_review_per_page'").get() as any;
             if (!limitOne || limitOne.value === 'true') {
                 existingReview = db.prepare('SELECT id FROM Reviews WHERE page_id = ? AND user_id = ?').get(page_id, user_id) as any;
@@ -4091,6 +4100,18 @@ async function startServer() {
       res.json(review || null);
     } catch (e) {
       res.json(null);
+    }
+  });
+
+  app.get('/api/reviews/:id', (req, res) => {
+    try {
+      const review = db.prepare('SELECT * FROM Reviews WHERE id = ?').get(req.params.id);
+      if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
+      res.json(review);
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to fetch review' });
     }
   });
 
