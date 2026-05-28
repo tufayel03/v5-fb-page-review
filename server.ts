@@ -4439,7 +4439,25 @@ async function startServer() {
       }
     }));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      try {
+        const indexPath = path.join(distPath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          let html = fs.readFileSync(indexPath, 'utf-8');
+          
+          // Fetch verification snippet dynamically from SQLite DB
+          const row = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('head_verification_code') as any;
+          if (row && row.value) {
+            html = html.replace('</head>', `${row.value}\n</head>`);
+          }
+          
+          res.setHeader('Content-Type', 'text/html');
+          return res.send(html);
+        }
+        res.sendFile(indexPath);
+      } catch (err) {
+        console.error("Error serving dynamic index.html:", err);
+        res.status(500).send("Internal Server Error");
+      }
     });
   }
 
