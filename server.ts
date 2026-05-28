@@ -3738,6 +3738,7 @@ async function startServer() {
     // Auth Check
     let user_id = 'anonymous';
     let is_on_behalf = 0;
+    let is_admin_user = false;
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
       try {
@@ -3748,8 +3749,11 @@ async function startServer() {
         if (decoded.role === 'owner' || decoded.role === 'page_owner') {
           return res.status(403).json({ error: 'Business accounts cannot write reviews.' });
         }
-        if ((decoded.role === 'admin' || decoded.role === 'Super Admin') && req.body.is_on_behalf) {
-          is_on_behalf = 1;
+        if (decoded.role === 'admin' || decoded.role === 'Super Admin') {
+          is_admin_user = true;
+          if (req.body.is_on_behalf) {
+            is_on_behalf = 1;
+          }
         }
       } catch (e) {}
     }
@@ -4000,26 +4004,30 @@ async function startServer() {
         }
 
         let initialStatus = 'Pending';
-        try {
-            const autoApprove = db.prepare("SELECT value FROM Settings WHERE key_name = 'auto_approve_reviews'").get() as any;
-            if (autoApprove && autoApprove.value === 'true' && (review_type === 'Safe' || review_type === 'Neutral' || review_type === 'Good')) {
-                initialStatus = 'Published';
-            }
-
-            if (review_type === 'Fraud Report' || review_type === 'Suspicious' || review_type === 'Bad') {
-                const reqFraudApproveGlob = db.prepare("SELECT value FROM Settings WHERE key_name = 'require_admin_approval_fraud'").get() as any;
-                const globalRequireFraudApprove = !reqFraudApproveGlob || reqFraudApproveGlob.value === 'true'; // Default to true if not set
-
-                const pageInfo = db.prepare("SELECT require_manual_fraud_approval FROM FacebookPages WHERE id = ?").get(page_id) as any;
-                const pageRequireFraudApprove = pageInfo && pageInfo.require_manual_fraud_approval === 1;
-
-                if (pageRequireFraudApprove || globalRequireFraudApprove) {
-                    initialStatus = 'Pending';
-                } else {
+        if (is_admin_user) {
+            initialStatus = 'Published';
+        } else {
+            try {
+                const autoApprove = db.prepare("SELECT value FROM Settings WHERE key_name = 'auto_approve_reviews'").get() as any;
+                if (autoApprove && autoApprove.value === 'true' && (review_type === 'Safe' || review_type === 'Neutral' || review_type === 'Good')) {
                     initialStatus = 'Published';
                 }
-            }
-        } catch (e) {}
+
+                if (review_type === 'Fraud Report' || review_type === 'Suspicious' || review_type === 'Bad') {
+                    const reqFraudApproveGlob = db.prepare("SELECT value FROM Settings WHERE key_name = 'require_admin_approval_fraud'").get() as any;
+                    const globalRequireFraudApprove = !reqFraudApproveGlob || reqFraudApproveGlob.value === 'true'; // Default to true if not set
+
+                    const pageInfo = db.prepare("SELECT require_manual_fraud_approval FROM FacebookPages WHERE id = ?").get(page_id) as any;
+                    const pageRequireFraudApprove = pageInfo && pageInfo.require_manual_fraud_approval === 1;
+
+                    if (pageRequireFraudApprove || globalRequireFraudApprove) {
+                        initialStatus = 'Pending';
+                    } else {
+                        initialStatus = 'Published';
+                    }
+                }
+            } catch (e) {}
+        }
 
         if (existingReview) {
             id = existingReview.id;

@@ -285,6 +285,7 @@ export default function PageProfile() {
 
   const [reviewsData, setReviewsData] = useState<{ reviews: any[]; total: number; totalPages: number }>({ reviews: [], total: 0, totalPages: 1 });
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setReviewsLoading(true);
@@ -1277,7 +1278,26 @@ export default function PageProfile() {
                           {review.title}
                         </h3>
                         <p className="text-[14px] text-slate-650 font-normal leading-relaxed mb-3.5 break-words whitespace-pre-line">
-                          {renderClickableText(review.description)}
+                          {(() => {
+                            const isLong = review.description && review.description.length > 300;
+                            const isExpanded = expandedReviews[review.id];
+                            const displayText = isLong && !isExpanded
+                              ? review.description.slice(0, 300) + "..."
+                              : review.description;
+                            return (
+                              <>
+                                {renderClickableText(displayText)}
+                                {isLong && (
+                                  <button
+                                    onClick={() => setExpandedReviews(prev => ({ ...prev, [review.id]: !isExpanded }))}
+                                    className="text-[#1877f2] hover:text-[#145dbf] font-extrabold text-xs ml-1 inline-block align-baseline transition-colors select-none cursor-pointer"
+                                  >
+                                    {isExpanded ? "See Less" : "See More"}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
                         </p>
 
                         {/* Action elements */}
