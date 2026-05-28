@@ -750,12 +750,10 @@ export default function PageProfile() {
               </div>
             </div>
 
-            {/* Right Column: Interaction Actions */}
             {(!user ||
               (user.role !== "owner" &&
                 user.role !== "page_owner" &&
-                user.role !== "admin" &&
-                user.role !== "super_admin")) && (
+                user.role !== "Business Owner")) && (
               <div className="flex flex-col sm:flex-row items-stretch lg:items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 select-none">
                 <Link
                   to={`/write-review?pageId=${page.id}`}
@@ -1083,11 +1081,10 @@ export default function PageProfile() {
                     </p>
                   </div>
 
-                  {(!user ||
+                   {(!user ||
                     (user.role !== "owner" &&
                       user.role !== "page_owner" &&
-                      user.role !== "admin" &&
-                      user.role !== "super_admin")) && (
+                      user.role !== "Business Owner")) && (
                     <Link
                       to={`/write-review?pageId=${page.id}`}
                       className="text-xs font-black text-[#0fbc6f] hover:underline uppercase tracking-wider bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg select-none transition-all"
