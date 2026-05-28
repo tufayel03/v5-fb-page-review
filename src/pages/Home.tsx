@@ -60,12 +60,22 @@ export default function Home() {
   const [recentPages, setRecentPages] = useState<any[]>([]);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [isLoadingPages, setIsLoadingPages] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [popularSearches, setPopularSearches] = useState<string[]>([]);
   const [publicSettings, setPublicSettings] = useState<any>({});
   const scrollContainerRefPages = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const isDesktopDropdownOpen = showDropdown && !isMobileSearchActive;
 
@@ -584,7 +594,7 @@ export default function Home() {
 
           {isLoadingPages ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {[...Array(10)].map((_, idx) => (
+              {[...Array(isMobile ? 4 : 10)].map((_, idx) => (
                 <div key={idx} className="flex flex-col bg-white p-5 rounded-2xl border border-slate-200/80 animate-pulse">
                   <div className="flex items-center gap-3.5 mb-4">
                     <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
@@ -605,7 +615,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {recentPages.slice(0, 10).map((page) => {
+              {recentPages.slice(0, isMobile ? 4 : 10).map((page) => {
                 const letter = page.current_name
                   ? page.current_name.charAt(0).toUpperCase()
                   : "F";
@@ -670,7 +680,7 @@ export default function Home() {
 
           {isLoadingReviews ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, idx) => (
+              {[...Array(isMobile ? 4 : 8)].map((_, idx) => (
                 <div key={idx} className="flex flex-col bg-white border border-slate-200/80 rounded-2xl p-5 animate-pulse">
                   <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -700,7 +710,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {recentReviews.slice(0, 8).map((review: any) => {
+              {recentReviews.slice(0, isMobile ? 4 : 8).map((review: any) => {
                 const starRating = parseInt(review.star_rating || "5");
                 const isGood = starRating >= 4;
                 const isCritical = starRating < 3;
