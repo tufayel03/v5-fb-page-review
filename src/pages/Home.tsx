@@ -650,11 +650,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="mt-auto pt-2 flex items-center justify-start">
-                      <span className="inline-flex text-[11px] font-black text-[#f43f5e] bg-rose-50/75 border border-rose-250/20 rounded-lg px-2.5 py-1 tracking-tight">
-                        -100/100
-                      </span>
-                    </div>
                   </Link>
                 );
               })}

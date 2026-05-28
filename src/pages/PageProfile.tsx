@@ -695,14 +695,16 @@ export default function PageProfile() {
               {/* Brand Meta Column */}
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  {page.claim_status === "Claimed" ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Claimed Business
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
-                      Unclaimed Profile
-                    </span>
+                  {page.status_badge !== "Reported as Fraud" && (
+                    page.claim_status === "Claimed" ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Claimed Business
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
+                        Unclaimed Profile
+                      </span>
+                    )
                   )}
 
                   {page.status_badge === "Reported as Fraud" && (

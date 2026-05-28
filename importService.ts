@@ -7,7 +7,7 @@ function normalizeImportNumber(num: any): string {
   if (cleaned.endsWith('.0')) {
     cleaned = cleaned.substring(0, cleaned.length - 2);
   }
-  
+
   // If it's a 10-digit number starting with '1' to '9' (typical for stripped BD mobile numbers, e.g. "1712345678")
   if (/^\d{10}$/.test(cleaned) && /^[1-9]/.test(cleaned)) {
     return '0' + cleaned;
@@ -72,28 +72,28 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
         for (let i = 0; i < chunk.length; i++) {
           const row = chunk[i];
           const rowIndex = currentIndex + i + 1; // +1 for 1-based or header
-          
+
           try {
             const pageName = row['page name'] || row['Page Name'] || row['name'] || '';
             const pageUrl = row['page url'] || row['Page URL'] || row['url'] || '';
-            
+
             const pmRaw = row['payment method'] || row['Payment Method'] || '';
             const contactRaw = row['contact number'] || row['Contact Number'] || row['contact'] || '';
             const detailsRaw = row['page details'] || row['Page Details'] || row['details'] || '';
 
             if (!pageName && !pageUrl) {
-                skipped++;
-                continue;
+              skipped++;
+              continue;
             }
 
             let pageId = Date.now().toString() + Math.floor(Math.random() * 1000) + i;
             const urlParam = pageUrl || null;
             const nameParam = pageName || 'Unknown Page';
-            
+
             const exists = checkPageStmt.get(urlParam, nameParam);
             if (exists) {
               const existingPageId = (exists as any).id;
-              
+
               const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
               const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
 
@@ -158,7 +158,7 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
 
             const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
             const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
-            
+
             let mainContact = '';
             let extraContacts: string[] = [];
             if (contactList.length > 0) {
@@ -180,7 +180,7 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
               trustScore,
               isFraud ? 1 : 0
             );
-            
+
             const addOrUpdateNumber = (num: string, type: string) => {
               const existing: any = getContactStmt.get(num);
               let newStatus = 'Normal';
@@ -246,13 +246,13 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
       // Use public CSV export
       const url = `https://docs.google.com/spreadsheets/d/${settings.spreadsheet_id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(settings.sheet_name)}`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch sheet. Make sure the sheet is public (Anyone with the link can view). Status: ${response.status}`);
       }
 
       const csvText = await response.text();
-      
+
       // Basic CSV parser for the expected format (since xlsx might be overkill or we can use it)
       // Actually xlsx can read CSV too! But we'll just manually parse assuming standard format
       // Or better, let's use the xlsx library which is already imported at the top!
@@ -272,7 +272,7 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
           .run('Completed', JSON.stringify([{ rowIndex: 0, error: 'No data found in sheet' }]), jobId);
         return;
       }
-      
+
       // Ensure all keys are lowercase
       const normalizedData = dataObjects.map((row: any) => {
         const obj: any = {};
@@ -286,7 +286,7 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
       console.log(`Normalized Data sample:`, normalizedData[0]);
 
       processSheetBatches(jobId, importType, normalizedData);
-      
+
     } catch (err: any) {
       db.prepare('UPDATE GoogleSheetSyncLogs SET status = ?, finished_at = CURRENT_TIMESTAMP, error_report = ? WHERE id = ?')
         .run('Failed', err.message, jobId);
@@ -331,7 +331,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
         const finalStatus = failed > 0 ? 'Completed With Errors' : 'Completed';
         db.prepare(`UPDATE GoogleSheetSyncLogs SET status = ?, new_rows_added = ?, existing_rows_skipped = ?, failed_rows = ?, total_rows_checked = ?, error_report = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?`)
           .run(finalStatus, successful, skipped, failed, data.length, JSON.stringify(errorReports), jobId);
-        
+
         db.prepare('UPDATE GoogleSheetSyncSettings SET last_sync_status = ?, last_sync_at = CURRENT_TIMESTAMP WHERE import_type = ?').run(finalStatus, importType);
         return;
       }
@@ -342,14 +342,14 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
         for (let i = 0; i < chunk.length; i++) {
           const row = chunk[i];
           const rowIndex = currentIndex + i + 1; // +1 for header
-          
+
           try {
             const pageName = row['page name'] || row['name'] || '';
             const pageUrl = row['page url'] || row['url'] || '';
-            
+
             if (!pageName && !pageUrl) {
-                skipped++;
-                continue;
+              skipped++;
+              continue;
             }
 
             const uniqueKey = (pageUrl || pageName).toLowerCase().trim();
@@ -436,7 +436,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
             let pageId = Date.now().toString() + Math.floor(Math.random() * 1000) + i;
             const urlParam = pageUrl || null;
             const nameParam = pageName || 'Unknown Page';
-            
+
             const exists = checkPageStmt.get(urlParam, nameParam);
             if (exists) {
               const existingPageId = (exists as any).id;
@@ -515,7 +515,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
 
             const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
             const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
-            
+
             let mainContact = '';
             let extraContacts: string[] = [];
             if (contactList.length > 0) {
@@ -523,7 +523,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
               extraContacts = contactList.slice(1);
             }
 
-            let trustScore = isFraud ? -100 : 0; 
+            let trustScore = isFraud ? -100 : 0;
 
             insertPageStmt.run(
               pageId,
@@ -537,7 +537,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
               trustScore,
               isFraud ? 1 : 0
             );
-            
+
             insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, pageId);
 
             const addOrUpdateNumber = (num: string, type: string) => {
