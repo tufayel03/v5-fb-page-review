@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router";
 import {
   ShieldCheck,
@@ -84,6 +84,36 @@ function TrustpilotStars({
           <Star className={`${starClasses[size]} text-white fill-white`} />
         </div>
       ))}
+    </div>
+  );
+}
+
+
+function AdBanner({ htmlCode }: { htmlCode: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    if (!htmlCode) return;
+
+    try {
+      const range = document.createRange();
+      range.selectNode(containerRef.current);
+      const fragment = range.createContextualFragment(htmlCode);
+      containerRef.current.appendChild(fragment);
+    } catch (e) {
+      console.error("Ad script render error:", e);
+    }
+  }, [htmlCode]);
+
+  if (!htmlCode) {
+    return <div className="hidden" />;
+  }
+
+  return (
+    <div className="w-full flex justify-center py-4 my-2 select-none">
+      <div ref={containerRef} className="ad-container overflow-hidden min-h-[60px]" />
     </div>
   );
 }
@@ -871,8 +901,22 @@ export default function PageProfile() {
       <div className="max-w-[1240px] mx-auto px-4 md:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
           
-          {/* LEFT CONTENT PANEL (8 Columns on desktop) - Flat structure */}
-          <div className="md:col-span-8 space-y-10">
+          {/* 160x600 Skyscraper Vertical Adsterra Banner (Desktop Only - Left Margin Placement) */}
+          {publicSettings.profile_sidebar_adsterra_code && (
+            <div className="hidden lg:block lg:col-span-2 space-y-4">
+              <div className="sticky top-24">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                  Sponsored
+                </div>
+                <div className="flex justify-center border border-slate-100 bg-slate-50/50 p-2 rounded-xl">
+                  <AdBanner htmlCode={publicSettings.profile_sidebar_adsterra_code} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* LEFT CONTENT PANEL (Flat structure) */}
+          <div className={`col-span-1 md:col-span-8 ${publicSettings.profile_sidebar_adsterra_code ? 'lg:col-span-7' : 'lg:col-span-8'} space-y-10`}>
             
             {/* 1. Mobile-only rating summary breakdown */}
             <div className={`md:hidden ${mobileTab === "summary" ? "block" : "hidden"} pb-6 border-b border-slate-200`}>
@@ -1513,7 +1557,8 @@ export default function PageProfile() {
           </div>
 
           {/* RIGHT SIDEBAR COLUMN (4 Columns on desktop) - Separated naturally by thin crisp lines */}
-          <div className="md:col-span-4 pl-0 md:pl-8 border-t md:border-t-0 md:border-l border-slate-200 space-y-8 hidden md:block">
+          {/* RIGHT SIDEBAR COLUMN - Separated naturally by thin crisp lines */}
+          <div className={`md:col-span-4 ${publicSettings.profile_sidebar_adsterra_code ? 'lg:col-span-3' : 'lg:col-span-4'} pl-0 md:pl-8 border-t md:border-t-0 md:border-l border-slate-200 space-y-8 hidden md:block`}>
             <div className="sticky top-24 space-y-8">
               
               {/* Rating Summary Breakdown Panel */}
