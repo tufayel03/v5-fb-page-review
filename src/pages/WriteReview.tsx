@@ -47,10 +47,6 @@ export default function WriteReview() {
         "owner",
         "page_owner",
         "Business Owner",
-        "admin",
-        "Admin",
-        "Super Admin",
-        "Moderator",
       ].includes(user.role)
     ) {
       navigate("/business-dashboard");
@@ -141,6 +137,7 @@ export default function WriteReview() {
       account_email: "",
       account_password: "",
       is_login_mode: false,
+      is_on_behalf: false,
     },
   });
 
@@ -1276,9 +1273,29 @@ export default function WriteReview() {
           </div>
         )}
 
-        {/* Experience Review */}
         {steps[currentStep - 1]?.id === "review" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in text-[#0d2a45]">
+            {isAdmin && (
+              <div className="bg-[#e6fcf0]/40 border border-[#00a859]/20 p-4.5 rounded-2xl flex items-center justify-between shadow-3xs">
+                <div className="pr-4">
+                  <h4 className="font-extrabold text-[#0d2a45] text-sm flex items-center gap-1.5">
+                    👥 Write Review On Behalf
+                  </h4>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5 leading-relaxed">
+                    As an Admin, you can submit this review on behalf of someone else. The name will show as "On behalf" and no review limit is enforced.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    {...register("is_on_behalf")}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00a859]"></div>
+                </label>
+              </div>
+            )}
+
             {/* Experience Type Selection Pills */}
             <div>
               <label className="block text-sm font-extrabold text-[#0d2a45] mb-3">

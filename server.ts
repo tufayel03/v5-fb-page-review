@@ -3574,7 +3574,8 @@ async function startServer() {
   app.get('/api/reviews/recent', (req, res) => {
     const reviews = db.prepare(`
       SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
-             p.current_name, p.facebook_url, u.full_name as reviewer_name
+             p.current_name, p.facebook_url, 
+             CASE WHEN r.is_on_behalf = 1 THEN 'On behalf' ELSE u.full_name END as reviewer_name
       FROM Reviews r
       JOIN FacebookPages p ON r.page_id = p.id
       LEFT JOIN Users u ON r.user_id = u.id
@@ -3674,7 +3675,8 @@ async function startServer() {
 
       const reviewsList = db.prepare(`
         SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
-               o.reply_text as owner_reply, o.created_at as owner_reply_created_at, u.full_name as current_name
+               o.reply_text as owner_reply, o.created_at as owner_reply_created_at, 
+               CASE WHEN r.is_on_behalf = 1 THEN 'On behalf' ELSE u.full_name END as current_name
         ${baseQuery}
         ${orderBy}
         LIMIT ? OFFSET ?
@@ -3735,6 +3737,7 @@ async function startServer() {
     
     // Auth Check
     let user_id = 'anonymous';
+    let is_on_behalf = 0;
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
       try {
@@ -3744,6 +3747,9 @@ async function startServer() {
         // Block business accounts from creating reviews
         if (decoded.role === 'owner' || decoded.role === 'page_owner') {
           return res.status(403).json({ error: 'Business accounts cannot write reviews.' });
+        }
+        if ((decoded.role === 'admin' || decoded.role === 'Super Admin') && req.body.is_on_behalf) {
+          is_on_behalf = 1;
         }
       } catch (e) {}
     }
@@ -3986,7 +3992,7 @@ async function startServer() {
         
         let id;
         let existingReview: any = null;
-        if (user_id !== 'anonymous') {
+        if (user_id !== 'anonymous' && is_on_behalf === 0) {
             const limitOne = db.prepare("SELECT value FROM Settings WHERE key_name = 'limit_one_review_per_page'").get() as any;
             if (!limitOne || limitOne.value === 'true') {
                 existingReview = db.prepare('SELECT id FROM Reviews WHERE page_id = ? AND user_id = ?').get(page_id, user_id) as any;
@@ -4020,9 +4026,9 @@ async function startServer() {
             try {
                 db.prepare(`
                     UPDATE Reviews 
-                    SET review_type = ?, star_rating = ?, title = ?, description = ?, date_of_experience = ?, bkash_number = ?, facebook_post_link = ?, order_amount = ?, proof_image = ?, updated_at = CURRENT_TIMESTAMP
+                    SET review_type = ?, star_rating = ?, title = ?, description = ?, date_of_experience = ?, bkash_number = ?, facebook_post_link = ?, order_amount = ?, proof_image = ?, updated_at = CURRENT_TIMESTAMP, is_on_behalf = ?
                     WHERE id = ?
-                `).run(review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, id);
+                `).run(review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, is_on_behalf, id);
             } catch (err: any) {
                 console.error("Update error:", err);
                 console.error("Failing update review parameters:", {
@@ -4041,9 +4047,9 @@ async function startServer() {
             id = Date.now().toString();
             try {
                 db.prepare(`
-                    INSERT INTO Reviews (id, page_id, user_id, review_type, star_rating, title, description, date_of_experience, bkash_number, facebook_post_link, order_amount, proof_image, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `).run(id, page_id, user_id || 'anonymous', review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, initialStatus);
+                    INSERT INTO Reviews (id, page_id, user_id, review_type, star_rating, title, description, date_of_experience, bkash_number, facebook_post_link, order_amount, proof_image, status, is_on_behalf)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).run(id, page_id, user_id || 'anonymous', review_type, parseInt(star_rating) || 5, title, description, date_of_experience, bkash_number, facebook_post_link || null, order_amount || null, req.body.proof_image || null, initialStatus, is_on_behalf);
             } catch (err: any) {
                 console.error("Insert error:", err);
                 console.error("Failing insert review parameters:", {

@@ -64,6 +64,7 @@ db.exec(`
     status TEXT DEFAULT 'Pending',
     category_id TEXT,
     subcategory_id TEXT,
+    is_on_behalf INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (page_id) REFERENCES FacebookPages(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
@@ -395,6 +396,7 @@ try { db.exec('ALTER TABLE Users ADD COLUMN reset_token_expires DATETIME;'); } c
 try {
   db.exec('ALTER TABLE Reviews ADD COLUMN updated_at DATETIME;');
 } catch (e) {}
+try { db.exec('ALTER TABLE Reviews ADD COLUMN is_on_behalf INTEGER DEFAULT 0;'); } catch (e) {}
 try { db.exec('ALTER TABLE Claims ADD COLUMN updated_at DATETIME;'); } catch (e) {}
 try { db.exec('ALTER TABLE Claims ADD COLUMN admin_note TEXT;'); } catch (e) {}
 

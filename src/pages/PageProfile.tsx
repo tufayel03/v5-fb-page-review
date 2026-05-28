@@ -1280,7 +1280,7 @@ export default function PageProfile() {
                           {review.title}
                         </h3>
                         <p className="text-[14px] text-slate-650 font-normal leading-relaxed mb-3.5 break-words whitespace-pre-line">
-                          {review.description}
+                          {renderClickableText(review.description)}
                         </p>
 
                         {/* Action elements */}
