@@ -185,6 +185,26 @@ function StandardLayout() {
           }
           link.href = data.site_logo;
         }
+
+        // Dynamically inject site ownership head verification snippet/meta tags
+        if (data.head_verification_code) {
+          const existing = document.getElementById("head-verification-block");
+          if (existing) existing.remove();
+
+          const block = document.createElement("div");
+          block.id = "head-verification-block";
+          block.style.display = "none";
+          document.head.appendChild(block);
+
+          try {
+            const range = document.createRange();
+            range.selectNode(block);
+            const fragment = range.createContextualFragment(data.head_verification_code);
+            block.appendChild(fragment);
+          } catch (e) {
+            console.error("Head verification snippet injection failure:", e);
+          }
+        }
       })
       .catch(() => {});
   }, []);

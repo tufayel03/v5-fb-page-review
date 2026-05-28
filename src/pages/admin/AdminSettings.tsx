@@ -682,13 +682,23 @@ export default function AdminSettings() {
 
           {activeTab === "advertising" && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-white border-b border-white/5 pb-4">Advertising Settings</h2>
+                <h2 className="text-xl font-bold text-white border-b border-white/5 pb-4">Advertising & Verification Settings</h2>
                 <p className="text-sm text-slate-400">
-                  Input HTML/JS scripts from Adsterra, Google AdSense, or other networks. These banner ads will display on the homepage underneath the "Report a Fraud" action buttons. If left empty, they will remain completely invisible.
+                  Manage scripts, ads, and verification tags from Google AdSense, Adsterra, or other networks.
                 </p>
                 <div className="grid grid-cols-1 gap-6">
                    <div>
-                     <label className="block text-sm font-bold text-slate-300 mb-1">Adsterra Banner Ad Code (HTML / Script / iframe)</label>
+                     <label className="block text-sm font-bold text-slate-300 mb-1">Verify Site Ownership / Head Code (Google AdSense Code snippet, Ads.txt snippet, Meta tag)</label>
+                     <textarea rows={6} value={getSettingValue('head_verification_code', '')} onChange={e => updateSetting('head_verification_code', e.target.value, 'advertising', 'textarea', 'Verification code snippet / script pasted between <head></head> tags')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script async src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js...'></script> or <meta name='google-site-verification' ... />" />
+                     <p className="text-xs text-slate-500 mt-1">To get your site ready to show ads, copy and paste your AdSense verification code snippet or site ownership meta tags here. It will automatically load on all pages.</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-slate-300 mb-1">Profile Page Left Sidebar Adsterra Banner Ad Code (160x600 Skyscraper)</label>
+                     <textarea rows={6} value={getSettingValue('profile_sidebar_adsterra_code', '')} onChange={e => updateSetting('profile_sidebar_adsterra_code', e.target.value, 'advertising', 'textarea', 'Adsterra vertical skyscraper ad code for the profile page sidebar')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script> or <iframe src='...'></iframe>" />
+                     <p className="text-xs text-slate-500 mt-1">Paste the exact HTML or Javascript snippet (typically 160x600 size) provided by your Adsterra publisher dashboard.</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-slate-300 mb-1">Homepage Adsterra Banner Ad Code (HTML / Script / iframe)</label>
                      <textarea rows={6} value={getSettingValue('homepage_adsterra_code', '')} onChange={e => updateSetting('homepage_adsterra_code', e.target.value, 'advertising', 'textarea', 'Adsterra banner ad code for the homepage')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script> or <iframe src='...'></iframe>" />
                      <p className="text-xs text-slate-500 mt-1">Paste the exact HTML or Javascript snippet provided by your Adsterra publisher dashboard.</p>
                    </div>

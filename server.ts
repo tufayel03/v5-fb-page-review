@@ -615,7 +615,8 @@ async function startServer() {
           'contact_email', 'facebook_page_url',
           'allow_image_proof', 'site_logo',
           'allow_bkash', 'allow_nagad', 'show_publicly', 'mask_numbers',
-          'homepage_adsterra_code', 'homepage_adsense_code'
+          'homepage_adsterra_code', 'homepage_adsense_code',
+          'profile_sidebar_adsterra_code', 'head_verification_code'
       ];
       settings.forEach(s => {
           if (allowedKeys.includes(s.key_name)) {
