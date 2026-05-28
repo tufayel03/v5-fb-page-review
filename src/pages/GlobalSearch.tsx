@@ -95,7 +95,7 @@ export default function GlobalSearch() {
                 type="text" 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search company, brand, or category..."
+                placeholder="Search Facebook Page, brand, or category..."
                 className="w-full py-3.5 pl-4 pr-12 bg-white border border-slate-300 hover:border-slate-400 rounded-full text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium text-lg shadow-sm"
               />
               <button type="submit" className="absolute right-3 p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors">
@@ -127,7 +127,7 @@ export default function GlobalSearch() {
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-20 flex-1 w-full py-8 md:py-12">
         <div className="mb-6 pb-2">
-           <h2 className="text-xl font-bold text-slate-900 mb-1">Companies ({filteredPages.length})</h2>
+           <h2 className="text-xl font-bold text-slate-900 mb-1">Facebook Pages ({filteredPages.length})</h2>
         </div>
 
         {loadingPages ? (
@@ -246,10 +246,10 @@ export default function GlobalSearch() {
             
           </div>
         ) : (
-           <div className="py-12 max-w-2xl">
-             <h3 className="text-xl font-bold text-slate-900 mb-2">No companies found</h3>
+            <div className="py-12 max-w-2xl">
+             <h3 className="text-xl font-bold text-slate-900 mb-2">No Facebook Pages found</h3>
              <p className="text-slate-500 mb-6">
-                We couldn't find any companies matching your search. Try checking your spelling or using different keywords.
+                We couldn't find any Facebook Pages matching your search. Try checking your spelling or using different keywords.
              </p>
           </div>
         )}
@@ -257,13 +257,13 @@ export default function GlobalSearch() {
         {/* Add Company Prompt */}
         {!loadingPages && (
           <div className="mt-16 text-center border-t border-[#dcdce6] pt-12 pb-8">
-             <h3 className="text-[20px] font-bold text-[#1c1c1c] mb-2">Can't find a company?</h3>
+             <h3 className="text-[20px] font-bold text-[#1c1c1c] mb-2">Can't find a Facebook Page?</h3>
              <p className="text-[#1c1c1c] mb-8">It might not be listed on FB Page Review yet. Add it and be the first to write a review.</p>
              <Link
                to="/write-review"
                className="inline-flex px-8 py-3 bg-white border-2 border-[#205cd4] text-[#205cd4] hover:bg-[#f1f1f2] rounded-full font-bold text-[15px] transition-colors"
              >
-               Add company
+               Add Facebook Page
              </Link>
           </div>
         )}
@@ -313,7 +313,7 @@ export default function GlobalSearch() {
 
                {/* Company Status */}
                <div>
-                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">Company status</h3>
+                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">Facebook Page status</h3>
                  <label className="flex items-start gap-3 cursor-pointer group">
                    <div className="flex items-center h-6">
                      <input 
@@ -325,7 +325,7 @@ export default function GlobalSearch() {
                    </div>
                    <div className="flex flex-col">
                      <span className="text-[15px] font-medium text-[#1c1c1c] bg-transparent group-hover:underline">Verified Safe</span>
-                     <span className="text-sm text-[#696969]">Companies that have been verified.</span>
+                     <span className="text-sm text-[#696969]">Facebook Pages that have been verified.</span>
                    </div>
                  </label>
                </div>

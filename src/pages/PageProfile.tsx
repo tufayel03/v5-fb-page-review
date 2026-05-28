@@ -30,6 +30,28 @@ import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "motion/react";
 
+const renderClickableText = (text: string) => {
+  if (!text) return "";
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, idx) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a 
+          key={idx} 
+          href={part} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-[#0fbc6f] hover:underline break-all font-bold"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 function TrustpilotStars({
   rating,
   size = "sm",
@@ -911,7 +933,7 @@ export default function PageProfile() {
               </div>
 
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                {page.page_details || (
+                {page.page_details ? renderClickableText(page.page_details) : (
                   <span className="italic text-slate-400 font-medium">
                     No specific page description provided by the business yet. 
                     This shop has not customized their public registration info.

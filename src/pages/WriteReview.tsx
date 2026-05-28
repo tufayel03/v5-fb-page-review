@@ -1261,13 +1261,13 @@ export default function WriteReview() {
                   {/* Company Page Details */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Company / Page Description (Page details)
+                      Facebook Page Description (Page details)
                     </label>
                     <textarea
                       {...register("page_details")}
                       rows={2}
                       className="w-full bg-white px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/10 outline-none font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 resize-none"
-                      placeholder="Brief details about the company or shop..."
+                      placeholder="Brief details about the Facebook Page or shop..."
                     />
                   </div>
                 </div>
