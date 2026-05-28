@@ -112,10 +112,7 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
                     contact_number = ?,
                     extra_contacts = ?,
                     payment_methods = ?,
-                    page_details = ?,
-                    status_badge = ?,
-                    trust_score = ?,
-                    is_fraud_listed = ?
+                    page_details = ?
                 WHERE id = ?
               `).run(
                 nameParam,
@@ -124,9 +121,6 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
                 extraContacts.length ? JSON.stringify(extraContacts) : null,
                 pmList.length ? JSON.stringify(pmList) : null,
                 detailsRaw || null,
-                defaultStatus,
-                isFraud ? -100 : 0,
-                isFraud ? 1 : 0,
                 existingPageId
               );
 
@@ -388,10 +382,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
                       contact_number = ?,
                       extra_contacts = ?,
                       payment_methods = ?,
-                      page_details = ?,
-                      status_badge = ?,
-                      trust_score = ?,
-                      is_fraud_listed = ?
+                      page_details = ?
                   WHERE id = ?
                 `).run(
                   nameParam,
@@ -400,9 +391,6 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
                   extraContacts.length ? JSON.stringify(extraContacts) : null,
                   pmList.length ? JSON.stringify(pmList) : null,
                   detailsRaw || null,
-                  defaultStatus,
-                  isFraud ? -100 : 0,
-                  isFraud ? 1 : 0,
                   existingPageId
                 );
 
@@ -462,10 +450,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
                     contact_number = ?,
                     extra_contacts = ?,
                     payment_methods = ?,
-                    page_details = ?,
-                    status_badge = ?,
-                    trust_score = ?,
-                    is_fraud_listed = ?
+                    page_details = ?
                 WHERE id = ?
               `).run(
                 nameParam,
@@ -474,9 +459,6 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
                 extraContacts.length ? JSON.stringify(extraContacts) : null,
                 pmList.length ? JSON.stringify(pmList) : null,
                 detailsRaw || null,
-                defaultStatus,
-                isFraud ? -100 : 0,
-                isFraud ? 1 : 0,
                 existingPageId
               );
 
