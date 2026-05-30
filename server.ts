@@ -1308,6 +1308,7 @@ async function startServer() {
       const pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
       const total = pages.length;
       
+      console.log(`[Sync] Found ${total} pages missing profile pictures`);
       if (total === 0) {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
@@ -1320,83 +1321,102 @@ async function startServer() {
         res.write(`data: ${JSON.stringify({ done: false, current, total, pageName: page.current_name, count })}\n\n`);
         
         if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
+          console.log(`[Sync] Page "${page.current_name}" skipped: Invalid or missing URL "${page.facebook_url}"`);
           continue;
         }
         
         try {
-          // Fetch the page content
+          console.log(`[Sync] Fetching HTML for page "${page.current_name}" (${page.facebook_url})...`);
           const fbRes = await fetch(page.facebook_url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept-Language': 'en-US,en;q=0.9',
             }
           });
-          if (fbRes.ok) {
-            const html = await fbRes.text();
-            
-            // Check for roadblock
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-            let title = titleMatch ? titleMatch[1].toLowerCase().trim() : '';
-            // De-escape HTML entities
-            title = title
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#039;/g, "'");
-              
-            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-            const isRoadblocked = !title || 
-                                  nameBlacklist.includes(title) || 
-                                  html.includes("This content isn't available") || 
-                                  html.includes("isn't available at the moment");
-                                  
-            if (!isRoadblocked) {
-              // Find og:image
-              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-              if (ogImageMatch && ogImageMatch[1]) {
-                let ogImageUrl = ogImageMatch[1]
-                  .replace(/&amp;/g, '&')
-                  .replace(/&lt;/g, '<')
-                  .replace(/&gt;/g, '>')
-                  .replace(/&quot;/g, '"')
-                  .replace(/&#039;/g, "'");
-                  
-                const imgRes = await fetch(ogImageUrl, {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  }
-                });
-                if (imgRes.ok) {
-                  const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-                  const timestamp = Date.now();
-                  const filename = `profile-${page.id}-${timestamp}.webp`;
-                  const filepath = path.join(uploadsDir, filename);
-                  
-                  await sharp(imageBuffer)
-                    .resize(300, 300, { fit: 'cover' })
-                    .webp({ quality: 80 })
-                    .toFile(filepath);
-                    
-                  const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
-                  const thumbFilepath = path.join(uploadsDir, thumbFilename);
-                  await sharp(imageBuffer)
-                    .resize(80, 80, { fit: 'cover' })
-                    .webp({ quality: 70 })
-                    .toFile(thumbFilepath);
-                    
-                  const profile_picture = `/uploads/${filename}`;
-                  db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
-                  count++;
-                }
-              }
-            }
+          
+          console.log(`[Sync] Page response status: ${fbRes.status} (${fbRes.statusText})`);
+          if (!fbRes.ok) {
+            console.log(`[Sync] Page skipped: response not OK`);
+            continue;
           }
           
-          await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
-        } catch (innerErr) {
-          console.error(`Failed syncing image for page ${page.current_name}:`, innerErr);
+          const html = await fbRes.text();
+          
+          // Check for roadblock
+          const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          let title = titleMatch ? titleMatch[1].toLowerCase().trim() : '';
+          title = title
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'");
+            
+          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+          const isRoadblocked = !title || 
+                                nameBlacklist.includes(title) || 
+                                html.includes("This content isn't available") || 
+                                html.includes("isn't available at the moment");
+                                
+          console.log(`[Sync] Page title: "${titleMatch ? titleMatch[1] : 'none'}", Roadblocked: ${isRoadblocked}`);
+          if (isRoadblocked) {
+            console.log(`[Sync] Page skipped: Roadblock detected`);
+            continue;
+          }
+          
+          const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+          console.log(`[Sync] og:image meta tag matched: ${!!ogImageMatch}`);
+          if (!ogImageMatch || !ogImageMatch[1]) {
+            console.log(`[Sync] Page skipped: og:image meta tag not found in HTML`);
+            continue;
+          }
+          
+          let ogImageUrl = ogImageMatch[1]
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'");
+            
+          console.log(`[Sync] Fetching profile picture from CDN...`);
+          const imgRes = await fetch(ogImageUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+          });
+          
+          console.log(`[Sync] CDN response status: ${imgRes.status} (${imgRes.statusText})`);
+          if (!imgRes.ok) {
+            console.log(`[Sync] Page skipped: CDN fetch not OK`);
+            continue;
+          }
+          
+          const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+          const timestamp = Date.now();
+          const filename = `profile-${page.id}-${timestamp}.webp`;
+          const filepath = path.join(uploadsDir, filename);
+          
+          await sharp(imageBuffer)
+            .resize(300, 300, { fit: 'cover' })
+            .webp({ quality: 80 })
+            .toFile(filepath);
+            
+          const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
+          const thumbFilepath = path.join(uploadsDir, thumbFilename);
+          await sharp(imageBuffer)
+            .resize(80, 80, { fit: 'cover' })
+            .webp({ quality: 70 })
+            .toFile(thumbFilepath);
+            
+          const profile_picture = `/uploads/${filename}`;
+          db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
+          count++;
+          console.log(`[Sync] SUCCESS: Saved WebP profile picture for page "${page.current_name}"`);
+        } catch (innerErr: any) {
+          console.error(`[Sync] ERROR for page "${page.current_name}":`, innerErr);
         }
+        
+        await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
       }
       
       res.write(`data: ${JSON.stringify({ done: true, total, count })}\n\n`);
