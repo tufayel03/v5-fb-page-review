@@ -710,12 +710,12 @@ export default function PageProfile() {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
               {/* Distinct Brand Avatar Block */}
               <div className="h-24 w-24 rounded-full ring-4 ring-slate-100 bg-slate-50 p-1 shrink-0 select-none flex items-center justify-center overflow-hidden">
-                <div className="h-full w-full rounded-full bg-slate-100 flex items-center justify-center font-black text-3xl text-slate-800">
+                <div className="h-full w-full rounded-full bg-slate-100 flex items-center justify-center font-black text-3xl text-slate-800 overflow-hidden">
                   {page.profile_picture ? (
                     <img
                       src={page.profile_picture}
                       alt={page.current_name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover scale-105"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
