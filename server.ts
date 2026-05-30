@@ -2039,7 +2039,7 @@ function getFacebookPageId(url: string): string | null {
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
-        'Connection': 'connection'
+        'Connection': 'keep-alive'
       };
 
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
