@@ -655,12 +655,17 @@ export default function Home() {
                         </div>
                       )}
 
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-extrabold text-slate-850 text-[13.5px] truncate leading-tight group-hover:text-[#f43f5e] transition-colors">
                           {page.current_name}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-bold truncate mt-0.5">
-                          {listedDate}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[11px] text-slate-400 font-bold truncate">
+                            {listedDate}
+                          </span>
+                          <span className="shrink-0 bg-rose-50 text-[#f43f5e] border border-rose-100/85 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
+                            Fraud
+                          </span>
                         </div>
                       </div>
                     </div>
