@@ -585,9 +585,6 @@ export default function Home() {
               <h2 className="text-[16px] sm:text-[18px] lg:text-[21px] font-black tracking-tight text-slate-900 leading-none">
                 Recently Blacklisted Fraud Pages
               </h2>
-              <span className="hidden sm:inline-flex bg-rose-50 text-rose-600 text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-rose-100">
-                Live Database
-              </span>
             </div>
             <Link
               to="/fraud-pages"
@@ -769,18 +766,25 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Score stamp right aligned */}
-                      <span
-                        className={`shrink-0 inline-flex text-[11px] font-black px-2 py-0.5 rounded-full select-none ${
-                          isGood
-                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            : isCritical
-                              ? "bg-rose-50 text-rose-600 border border-rose-100"
-                              : "bg-amber-50 text-amber-600 border border-amber-100"
-                        }`}
-                      >
-                        {starRating.toFixed(1)}/5
-                      </span>
+                      {/* Star rating icons instead of text */}
+                      <div className="flex items-center gap-[3px] select-none shrink-0">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className={`h-4.5 w-4.5 rounded-[3px] flex items-center justify-center ${
+                              i <= starRating
+                                ? starRating >= 4
+                                  ? "bg-[#00b67a]"
+                                  : starRating === 3
+                                    ? "bg-[#ffb600]"
+                                    : "bg-[#ff3722]"
+                                : "bg-[#e5e5eb]"
+                            }`}
+                          >
+                            <Star className="h-3 w-3 text-white fill-white" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <p className="text-slate-600 text-[13px] font-medium leading-relaxed mb-6 line-clamp-3">
@@ -788,9 +792,22 @@ export default function Home() {
                     </p>
 
                     <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-2.5 shrink-0">
-                      <div className="h-7 w-7 rounded-lg shrink-0 flex items-center justify-center font-extrabold text-xs uppercase bg-[#e6f7ef] text-[#0fbc6f]">
-                        {(review.current_name || "F").charAt(0)}
-                      </div>
+                      {review.profile_picture ? (
+                        <div className="w-7 h-7 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                          <img
+                            referrerPolicy="no-referrer"
+                            src={review.profile_picture}
+                            alt=""
+                            width="28"
+                            height="28"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-7 w-7 rounded-lg shrink-0 flex items-center justify-center font-extrabold text-xs uppercase bg-[#e6f7ef] text-[#0fbc6f]">
+                          {(review.current_name || "F").charAt(0)}
+                        </div>
+                      )}
                       <span className="font-extrabold text-[12.5px] text-slate-800 truncate group-hover:text-[#0fbc6f] transition-colors leading-none">
                         {review.current_name || "Facebook Page"}
                       </span>

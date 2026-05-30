@@ -4783,7 +4783,7 @@ function normalizeName(str: string): string {
   app.get('/api/reviews/recent', (req, res) => {
     const reviews = db.prepare(`
       SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
-             p.current_name, p.facebook_url, 
+             p.current_name, p.facebook_url, p.profile_picture,
              CASE WHEN r.is_on_behalf = 1 THEN COALESCE(NULLIF(r.on_behalf_name, ''), 'On behalf') ELSE u.full_name END as reviewer_name
       FROM Reviews r
       JOIN FacebookPages p ON r.page_id = p.id
