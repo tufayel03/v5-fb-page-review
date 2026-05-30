@@ -208,6 +208,7 @@ export default function AdminBulkImport() {
               >
                 <option value="Facebook Pages">Facebook Pages</option>
                 <option value="Fraud Pages">Fraud Pages</option>
+                <option value="Contact Numbers">Contact Numbers</option>
               </select>
             </div>
 
@@ -259,7 +260,12 @@ export default function AdminBulkImport() {
               <button
                 type="button"
                 onClick={() => {
-                  window.open('/api/admin/pages/export?template=true&token=' + localStorage.getItem('token'), '_blank');
+                  const token = localStorage.getItem('token');
+                  if (importType === 'Contact Numbers') {
+                    window.open(`/api/admin/contact-numbers/export?template=true&token=${token}`, '_blank');
+                  } else {
+                    window.open(`/api/admin/pages/export?template=true&token=${token}`, '_blank');
+                  }
                 }}
                 disabled={importProgress !== null}
                 className={`text-sm font-bold flex items-center gap-1 transition-colors ${importProgress !== null ? 'text-slate-500 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}

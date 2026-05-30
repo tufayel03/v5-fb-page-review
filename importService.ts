@@ -77,6 +77,42 @@ function processExcelBatches(jobId: string, importType: string, data: any[]) {
           const rowIndex = currentIndex + i + 1; // +1 for 1-based or header
 
           try {
+            if (importType === 'Contact Numbers') {
+              const contactRaw = row['number'] || row['Number'] || row['phone'] || row['Phone'] || row['contact'] || '';
+              const cleanedNumber = normalizeImportNumber(contactRaw);
+              if (!cleanedNumber) {
+                skipped++;
+                continue;
+              }
+
+              const typeParam = row['type'] || row['Type'] || 'bKash';
+              const accountTypeParam = row['account type'] || row['Account Type'] || row['account_type'] || 'Personal';
+              const displayNameParam = row['display name'] || row['Display Name'] || row['name'] || row['Name'] || '';
+              const statusParam = row['status'] || row['Status'] || 'Normal';
+              const adminNoteParam = row['admin note'] || row['Admin Note'] || row['note'] || row['Note'] || null;
+
+              const existingContact: any = getContactStmt.get(cleanedNumber);
+              if (existingContact) {
+                db.prepare(`
+                  UPDATE ContactNumbers
+                  SET type = ?,
+                      account_type = ?,
+                      display_name = ?,
+                      status = ?,
+                      admin_note = ?,
+                      updated_at = CURRENT_TIMESTAMP
+                  WHERE id = ?
+                `).run(typeParam, accountTypeParam, displayNameParam, statusParam, adminNoteParam, existingContact.id);
+              } else {
+                db.prepare(`
+                  INSERT INTO ContactNumbers (id, number, type, account_type, display_name, status, admin_note, added_by)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')
+                `).run(crypto.randomUUID(), cleanedNumber, typeParam, accountTypeParam, displayNameParam, statusParam, adminNoteParam);
+              }
+              successful++;
+              continue;
+            }
+
             const pageName = row['page name'] || row['Page Name'] || row['name'] || '';
             const pageUrl = row['page url'] || row['Page URL'] || row['url'] || '';
 

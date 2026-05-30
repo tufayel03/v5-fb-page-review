@@ -1569,6 +1569,13 @@ function normalizeName(str: string): string {
             console.log(`[Redirect REST] Page was roadblocked for "${page.current_name}". Fetching sk=about page fallback...`);
             try {
               const fallbackUrl = getFacebookAboutUrl(resolvedUrl);
+              const humanHeaders = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              };
               const fbAboutRes = await fetch(fallbackUrl, {
                 redirect: 'follow',
                 headers: humanHeaders,
@@ -1972,6 +1979,17 @@ function normalizeName(str: string): string {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
     
+    let clientConnected = true;
+    const safeWrite = (data: string) => {
+      if (!clientConnected) return;
+      try {
+        res.write(data);
+      } catch (writeErr) {
+        clientConnected = false;
+        console.log('[Sync] Client disconnected from progress stream. Loop will continue running safely in the background...');
+      }
+    };
+
     try {
       let pages = [];
       const idsParam = req.query.ids as string;
@@ -1991,18 +2009,6 @@ function normalizeName(str: string): string {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
       }
-
-      // Safe write helper to allow the loop to run in the background even if client closes the tab
-      let clientConnected = true;
-      const safeWrite = (data: string) => {
-        if (!clientConnected) return;
-        try {
-          res.write(data);
-        } catch (writeErr) {
-          clientConnected = false;
-          console.log('[Sync] Client disconnected from progress stream. Loop will continue running safely in the background...');
-        }
-      };
       
       let count = 0;
       let current = 0;
@@ -3277,6 +3283,35 @@ function normalizeName(str: string): string {
 
   app.get('/api/admin/contact-numbers/export', requireAdmin, (req, res) => {
     try {
+      if (req.query.template === 'true') {
+        const templateData = [
+          {
+            'Number': '01711223344',
+            'Type': 'bKash',
+            'Account Type': 'Personal',
+            'Display Name': 'Sample Store Name',
+            'Status': 'Normal',
+            'Admin Note': 'Example note about number'
+          },
+          {
+            'Number': '01911223344',
+            'Type': 'Nagad',
+            'Account Type': 'Agent',
+            'Display Name': 'Sample Nagad Shop',
+            'Status': 'Suspicious',
+            'Admin Note': 'Flagged for investigation'
+          }
+        ];
+        const worksheet = xlsx.utils.json_to_sheet(templateData);
+        const workbook = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(workbook, worksheet, "Template");
+        const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="contact-numbers-template.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        return res.send(buffer);
+      }
+
       const ids = typeof req.query.ids === 'string' ? req.query.ids.split(',').filter(Boolean) : [];
       let numbers = [];
 

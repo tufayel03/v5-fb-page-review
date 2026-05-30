@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
+import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 
 export default function AdminPages() {
   const [pages, setPages] = useState<any[]>([]);
@@ -25,6 +25,77 @@ export default function AdminPages() {
   const [bulkStatusValue, setBulkStatusValue] = useState("Under Review");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+
+  // Import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importProgress, setImportProgress] = useState<number | null>(null);
+  const [importJobId, setImportJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let interval: any;
+    if (importJobId) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/admin/bulk-imports/${importJobId}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          });
+          const data = await res.json();
+          if (data && data.total_rows > 0) {
+            const processed = data.successful_rows + data.failed_rows;
+            const pct = Math.min(99, Math.round((processed / data.total_rows) * 100));
+            setImportProgress(pct);
+            
+            if (data.status === 'Completed' || data.status === 'Completed With Errors' || data.status === 'Failed') {
+              clearInterval(interval);
+              setImportProgress(100);
+              setTimeout(() => {
+                setImportProgress(null);
+                setImportJobId(null);
+                alert(`Import ${data.status}! Added: ${data.successful_rows}, Failed: ${data.failed_rows}`);
+                setShowImportModal(false);
+                setImportFile(null);
+                fetchPages();
+              }, 500);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [importJobId]);
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return alert("Please select an Excel file first.");
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+    formData.append('import_type', 'Facebook Pages');
+
+    setImportProgress(0);
+
+    try {
+      const res = await fetch('/api/admin/pages/import', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.jobId) {
+        setImportJobId(data.jobId);
+        setImportProgress(5);
+      } else {
+        alert("Import failed: " + (data.error || "Unknown error"));
+        setImportProgress(null);
+      }
+    } catch (err) {
+      alert("Network error occurred during import.");
+      setImportProgress(null);
+    }
+  };
 
   // Redirect check states
   const [redirectModalOpen, setRedirectModalOpen] = useState(false);
@@ -594,6 +665,9 @@ export default function AdminPages() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <button onClick={() => setShowImportModal(true)} className="bg-sky-600/15 hover:bg-sky-600/25 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
+            <Upload className="h-4 w-4" /> Import Excel
+          </button>
           <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-[#131d36] text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
             <FileDown className="h-4 w-4" /> Export Excel
           </button>
@@ -1141,6 +1215,99 @@ export default function AdminPages() {
               </div>
            </div>
         </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-[#050b18]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in animate-duration-150">
+          <div className="bg-[#091124] border border-white/5 rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#050b18]/40">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Upload className="h-5 w-5 text-sky-400" />
+                Import Facebook Pages
+              </h3>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportProgress(null);
+                }}
+                className="text-slate-400 hover:text-white text-lg font-bold p-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <form onSubmit={handleImportSubmit} className="p-5 space-y-4">
+              <div className={`border-2 ${importProgress !== null ? 'border-sky-500/30 bg-sky-900/10' : 'border-dashed border-white/10'} rounded-xl p-6 text-center hover:bg-white/[0.01] transition-colors relative overflow-hidden`}>
+                {importProgress !== null ? (
+                  <div className="flex flex-col items-center justify-center p-2">
+                    <div className="w-full bg-white/10 rounded-full h-3 mb-3">
+                      <div className="bg-sky-500 h-3 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
+                    </div>
+                    <div className="text-lg font-extrabold text-sky-400 mb-1">{importProgress}%</div>
+                    <div className="text-xs text-slate-400 font-semibold">Processing file, please do not close...</div>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+                    <div className="text-xs font-bold text-slate-200 mb-1">
+                      Drag & drop your Excel file here or click below
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3">
+                      Supports XLSX sheets only (Max 10MB)
+                    </p>
+                    <input
+                      type="file"
+                      required
+                      accept=".xlsx"
+                      onChange={(e) => setImportFile(e.target.files ? e.target.files[0] : null)}
+                      className="text-xs text-slate-350 mx-auto block max-w-[200px]"
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open('/api/admin/pages/export?template=true&token=' + localStorage.getItem('token'), '_blank');
+                  }}
+                  disabled={importProgress !== null}
+                  className={`text-xs font-bold flex items-center gap-1 transition-colors ${importProgress !== null ? 'text-slate-500 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}
+                >
+                  <FileDown className="h-4 w-4" /> Download Sample Template
+                </button>
+                
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportFile(null);
+                    }}
+                    disabled={importProgress !== null}
+                    className="px-3 py-1.5 text-xs text-slate-300 hover:text-white font-bold cursor-pointer disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={importProgress !== null || !importFile}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-extrabold text-[#050b18] cursor-pointer flex items-center gap-1.5 transition-all ${
+                      importProgress !== null || !importFile
+                        ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                        : 'bg-sky-400 hover:bg-sky-500 shadow-md shadow-sky-500/10'
+                    }`}
+                  >
+                    {importProgress !== null ? 'Importing...' : 'Upload & Import'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
