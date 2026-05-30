@@ -798,7 +798,7 @@ export default function PageProfile() {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-semibold text-slate-500">
                   {fraudCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-100 font-bold">
-                      <ShieldAlert className="h-3.5 w-3.5 text-rose-500" /> {fraudCount} Risk Flag{fraudCount > 1 ? "s" : ""}
+                      <ShieldAlert className="h-3.5 w-3.5 text-rose-500" /> {fraudCount} Fraud Report{fraudCount > 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
