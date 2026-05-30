@@ -1403,8 +1403,21 @@ function getFacebookPageId(url: string): string | null {
           }
 
           const newPageId = getFacebookPageId(resolvedUrl);
-          const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
-          const nameChanged = scrapedName && !isRoadblocked && page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
+
+          const systemKeywords = ["login", "checkpoint", "home", "groups", "pages", "settings", "help", "policies", "profile.php", "business", "privacy"];
+          const isSystemPage = resolvedUrl.toLowerCase().includes('/login') || 
+                               resolvedUrl.toLowerCase().includes('/checkpoint') ||
+                               resolvedUrl.toLowerCase().includes('login.php') ||
+                               (newPageId && systemKeywords.includes(newPageId.toLowerCase()));
+
+          const usernameChanged = newPageId && 
+                                  !isSystemPage && 
+                                  oldPageId.toLowerCase() !== newPageId.toLowerCase();
+          
+          const nameChanged = scrapedName && 
+                              !isRoadblocked && 
+                              !isSystemPage &&
+                              page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
 
           if (usernameChanged || nameChanged) {
             results.push({
