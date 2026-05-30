@@ -128,6 +128,70 @@ setInterval(() => {
   }
 }, 300000);
 
+// Advanced Database Scraping Protection Firewall (Anti-Scrape / Anti-Bot Shield)
+function antiScrapeShield() {
+  return (req: any, res: any, next: any) => {
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    
+    // 1. Block Common Scraper Tools & Libraries (zero exceptions for bulk query scrapers)
+    const scraperLibraries = [
+      'python', 'requests', 'axios', 'got', 'node-fetch', 'postman', 'curl', 'wget', 
+      'http.client', 'scrappy', 'selenium', 'puppeteer', 'playwright', 'headless',
+      'beautifulsoup', 'urllib', 'httpx', 'scrapy', 'phantomjs', 'zgrab', 'masscan', 
+      'nmap', 'sqlmap', 'nikto', 'dirbuster'
+    ];
+    
+    const isBot = scraperLibraries.some(agent => userAgent.includes(agent));
+    
+    // Whitelist legitimate search engines ONLY for SEO ranking index purposes
+    const isAllowedSearchEngine = userAgent.includes('googlebot') || 
+                                  userAgent.includes('bingbot') || 
+                                  userAgent.includes('duckduckbot') || 
+                                  userAgent.includes('yandexbot');
+                                  
+    if (isBot && !isAllowedSearchEngine) {
+      console.warn(`[SECURITY FIREWALL] Blocked automated bot scraper: "${userAgent}" from IP: ${ip} attempting: ${req.url}`);
+      return res.status(403).json({ error: 'Access Denied: Automated database scraping and bot requests are strictly prohibited on fbpagereview.com to protect our proprietary data.' });
+    }
+
+    // 2. Strict Rate Limiting on public bulk search and directory queries (Max 25 queries per minute)
+    const path = req.path;
+    if (path.includes('/api/pages/fraud-directory') || path.includes('/api/pages/search') || path.includes('/api/pages/trusted-search')) {
+      const key = `${ip}:anti_scrape_dir:${path}`;
+      const now = Date.now();
+      const record = rateLimitStore.get(key);
+      if (!record || now > record.resetAt) {
+        rateLimitStore.set(key, { count: 1, resetAt: now + 60000 });
+      } else {
+        record.count++;
+        if (record.count > 25) {
+          console.warn(`[SECURITY FIREWALL] Query Rate Limit Exceeded by IP: ${ip} on API endpoint: ${path}`);
+          return res.status(429).json({ error: 'Rate limit exceeded. Search & Directory listings are restricted to 25 queries per minute to protect our intellectual property. Please try again in 1 minute.' });
+        }
+      }
+    }
+
+    // 3. Strict rate limiting on single page profiles detail extraction (Max 40 detail views per minute)
+    if (path.startsWith('/api/pages/') && !path.includes('recent-fraud') && !path.includes('fraud-directory') && !path.includes('search')) {
+      const key = `${ip}:anti_scrape_details:${path}`;
+      const now = Date.now();
+      const record = rateLimitStore.get(key);
+      if (!record || now > record.resetAt) {
+        rateLimitStore.set(key, { count: 1, resetAt: now + 60000 });
+      } else {
+        record.count++;
+        if (record.count > 40) {
+          console.warn(`[SECURITY FIREWALL] Profile detail extraction Rate Limit Exceeded by IP: ${ip} on endpoint: ${path}`);
+          return res.status(429).json({ error: 'Rate limit exceeded. Profiling detail requests are limited to 40 views per minute. Please try again in 1 minute.' });
+        }
+      }
+    }
+
+    next();
+  };
+}
+
 async function startServer() {
   const app = express();
 
@@ -192,6 +256,9 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
   app.use('/uploads', express.static(uploadsDir));
+
+  // Protect all Facebook Pages data endpoints from automated scrapers and high-frequency crawling
+  app.use('/api/pages', antiScrapeShield());
 
   setupFraudEndpoints(app, db);
   setupBusinessEndpoints(app, db);
@@ -4255,7 +4322,7 @@ function normalizeName(str: string): string {
       const sort = typeof req.query.sort === 'string' ? req.query.sort.trim() : 'recently_listed';
       
       const page = Math.max(1, Number(req.query.page) || 1);
-      const limit = Math.max(1, Number(req.query.limit) || 20);
+      const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
       let whereClauses = ['p.is_fraud_listed = 1'];
