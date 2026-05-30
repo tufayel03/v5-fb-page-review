@@ -619,6 +619,7 @@ export default function AdminPages() {
               <option value="Verified Marketplace Seller">⭐ Verified Seller</option>
               <option value="Under Review">🔍 Under Review</option>
               <option value="Old/Dead Page">💀 Old/Dead Pages</option>
+              <option value="Old/Dead Reported Page">💀🚩 Old/Dead Reported Pages</option>
               <option value="clean">🛡️ Clean (Not Fraud)</option>
             </select>
           </div>

@@ -1234,11 +1234,13 @@ async function startServer() {
 
       if (status !== 'all') {
         if (status === 'fraud' || status === 'Reported as Fraud') {
-          whereClauses.push("status_badge LIKE '%Reported as Fraud%'");
+          whereClauses.push("status_badge LIKE '%Reported as Fraud%' AND status_badge NOT LIKE 'Old/Dead Page%'");
         } else if (status === 'clean') {
           whereClauses.push("status_badge NOT LIKE '%Reported as Fraud%'");
         } else if (status === 'Old/Dead Page') {
-          whereClauses.push("status_badge LIKE 'Old/Dead Page%'");
+          whereClauses.push("status_badge LIKE 'Old/Dead Page%' AND status_badge NOT LIKE '%Reported as Fraud%'");
+        } else if (status === 'Old/Dead Reported Page') {
+          whereClauses.push("status_badge LIKE 'Old/Dead Page%' AND status_badge LIKE '%Reported as Fraud%'");
         } else {
           whereClauses.push("(status_badge = ? OR status_badge LIKE ?)");
           params.push(status);
@@ -2048,11 +2050,13 @@ function getFacebookPageId(url: string): string | null {
           }
           if (status !== 'all') {
             if (status === 'fraud' || status === 'Reported as Fraud') {
-              whereClauses.push("status_badge LIKE '%Reported as Fraud%'");
+              whereClauses.push("status_badge LIKE '%Reported as Fraud%' AND status_badge NOT LIKE 'Old/Dead Page%'");
             } else if (status === 'clean') {
               whereClauses.push("status_badge NOT LIKE '%Reported as Fraud%'");
             } else if (status === 'Old/Dead Page') {
-              whereClauses.push("status_badge LIKE 'Old/Dead Page%'");
+              whereClauses.push("status_badge LIKE 'Old/Dead Page%' AND status_badge NOT LIKE '%Reported as Fraud%'");
+            } else if (status === 'Old/Dead Reported Page') {
+              whereClauses.push("status_badge LIKE 'Old/Dead Page%' AND status_badge LIKE '%Reported as Fraud%'");
             } else {
               whereClauses.push("(status_badge = ? OR status_badge LIKE ?)");
               params.push(status);
