@@ -35,8 +35,13 @@ export default function AdminPages() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
 
-  const handleSyncPictures = () => {
-    if (!window.confirm("Are you sure you want to auto-fetch and optimize profile pictures for pages that do not have one? This will run in the background on the VPS.")) {
+  const handleSyncPictures = (ids?: string[]) => {
+    const isBulk = Array.isArray(ids) && ids.length > 0;
+    const confirmMsg = isBulk 
+      ? `Are you sure you want to auto-fetch and optimize profile pictures for the ${ids.length} selected page(s)?`
+      : "Are you sure you want to auto-fetch and optimize profile pictures for pages that do not have one? This will run in the background on the VPS.";
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
     
@@ -44,7 +49,11 @@ export default function AdminPages() {
     setSyncProgress({ current: 0, total: 0, pageName: "Initializing...", count: 0 });
     
     const token = localStorage.getItem("token") || "";
-    const eventSource = new EventSource(`/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}`);
+    let url = `/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}`;
+    if (isBulk) {
+      url += `&ids=${encodeURIComponent(ids.join(','))}`;
+    }
+    const eventSource = new EventSource(url);
     
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -58,6 +67,7 @@ export default function AdminPages() {
         eventSource.close();
         setIsSyncing(false);
         setSyncProgress(null);
+        setSelectedPageIds([]);
         fetchPages();
       } else {
         setSyncProgress({
@@ -329,6 +339,12 @@ export default function AdminPages() {
       return;
     }
 
+    if (bulkAction === 'sync_pictures') {
+      handleSyncPictures(selectedPageIds);
+      setBulkAction("");
+      return;
+    }
+
     if (bulkAction === 'export') {
       handleExportExcel();
       setSelectedPageIds([]);
@@ -552,9 +568,6 @@ export default function AdminPages() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <button onClick={handleSyncPictures} disabled={isSyncing} className="bg-sky-600/15 hover:bg-sky-600/25 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-            <Image className="h-4 w-4" /> {isSyncing ? (syncProgress && syncProgress.total > 0 ? `Syncing (${Math.round((syncProgress.current / syncProgress.total) * 100)}%)` : "Syncing...") : "Auto-Fetch Pictures"}
-          </button>
           <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-[#131d36] text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
             <FileDown className="h-4 w-4" /> Export Excel
           </button>
@@ -784,6 +797,7 @@ export default function AdminPages() {
               <option value="clear_fraud">Bulk Clear Fraud (Under Review)</option>
               <option value="change_status">Bulk Change Status Badge...</option>
               <option value="check_redirects">🔍 Check Name/URL Redirects</option>
+              <option value="sync_pictures">🖼️ Auto-Fetch Profile Pictures</option>
               <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>

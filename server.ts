@@ -1822,10 +1822,20 @@ function getFacebookPageId(url: string): string | null {
     res.flushHeaders();
     
     try {
-      const pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
+      let pages = [];
+      const idsParam = req.query.ids as string;
+      if (idsParam) {
+        const idList = idsParam.split(',').filter(Boolean);
+        if (idList.length > 0) {
+          const placeholders = idList.map(() => '?').join(',');
+          pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages WHERE id IN (${placeholders})`).all(...idList) as any[];
+        }
+      } else {
+        pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
+      }
+
       const total = pages.length;
-      
-      console.log(`[Sync] Found ${total} pages missing profile pictures`);
+      console.log(`[Sync] Starting sync for ${total} pages`);
       if (total === 0) {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
