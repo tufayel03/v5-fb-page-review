@@ -100,49 +100,6 @@ function normalizeName(str) {
     .trim();
 }
 
-function areNamesSimilar(name1, name2) {
-  const norm1 = normalizeName(name1);
-  const norm2 = normalizeName(name2);
-  if (norm1 === norm2) return true;
-
-  const getWords = (str) => {
-    return str
-      .split(/[^a-z0-9]/)
-      .filter(w => w.length >= 2);
-  };
-
-  const words1 = getWords(norm1);
-  const words2 = getWords(norm2);
-
-  if (words1.length === 0 || words2.length === 0) return norm1 === norm2;
-
-  const set1 = new Set(words1);
-  const set2 = new Set(words2);
-
-  const ignorableWords = new Set(['shop', 'store', 'bd', 'official', 'collection', 'fashion', 'group', 'page', 'boutique', 'gallery']);
-
-  const filteredWords1 = words1.filter(w => !ignorableWords.has(w));
-  const filteredWords2 = words2.filter(w => !ignorableWords.has(w));
-
-  const filteredSet1 = new Set(filteredWords1);
-  const filteredSet2 = new Set(filteredWords2);
-
-  if (filteredWords1.length > 0 && filteredWords2.length > 0) {
-    let filteredMatch = 0;
-    for (const w of filteredSet2) {
-      if (filteredSet1.has(w)) filteredMatch++;
-    }
-    if (filteredMatch === filteredSet1.size && filteredMatch === filteredSet2.size) {
-      return true;
-    }
-    if (filteredMatch === Math.min(filteredSet1.size, filteredSet2.size) && Math.min(filteredSet1.size, filteredSet2.size) >= 2) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 async function fetchWithRetry(url, options = {}, retries = 1) {
   for (let i = 0; i <= retries; i++) {
     try {
@@ -295,7 +252,7 @@ async function main() {
       const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
       const nameChanged = scrapedPageName && 
                           scrapedPageName !== '[Private, Deleted or Roadblocked]' && 
-                          !areNamesSimilar(name, scrapedPageName);
+                          normalizeName(name) !== normalizeName(scrapedPageName);
 
       if (usernameChanged || nameChanged) {
         let changeType = "CHANGED";
