@@ -21,10 +21,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   const paymentMethods = document.getElementById('paymentMethods');
   const pageDetails = document.getElementById('pageDetails');
   
+  // Scraper Actions Buttons
   const addVerifiedBtn = document.getElementById('addVerifiedBtn');
-  const addFraudBtn = document.getElementById('addFraudBtn');
+  const addGoldBtn = document.getElementById('addGoldBtn');
   const addReviewBtn = document.getElementById('addReviewBtn');
+  const addSuspiciousBtn = document.getElementById('addSuspiciousBtn');
+  const addFraudBtn = document.getElementById('addFraudBtn');
   const alertBox = document.getElementById('alertBox');
+
+  // Tab Elements
+  const tabScraperBtn = document.getElementById('tabScraperBtn');
+  const tabReviewBtn = document.getElementById('tabReviewBtn');
+  const tabScraperContent = document.getElementById('tabScraperContent');
+  const tabReviewContent = document.getElementById('tabReviewContent');
+
+  // Review Form Elements
+  const expPillGood = document.getElementById('expPillGood');
+  const expPillBad = document.getElementById('expPillBad');
+  const expPillFraud = document.getElementById('expPillFraud');
+  const starsRatingContainer = document.getElementById('starsRatingContainer');
+  const reviewTitle = document.getElementById('reviewTitle');
+  const reviewDate = document.getElementById('reviewDate');
+  const reviewDesc = document.getElementById('reviewDesc');
+  const reviewBkash = document.getElementById('reviewBkash');
+  const reviewPostLink = document.getElementById('reviewPostLink');
+  const reviewOnBehalf = document.getElementById('reviewOnBehalf');
+  const submitReviewBtn = document.getElementById('submitReviewBtn');
 
   // Globals
   let currentScrapedData = null;
@@ -32,6 +54,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     serverUrl: 'https://fbpagereview.com',
     token: ''
   };
+  let selectedReviewType = 'Good';
+  let selectedRating = 5;
+
+  // Set review date default to today
+  const today = new Date().toISOString().split('T')[0];
+  reviewDate.value = today;
+  reviewDate.max = today;
 
   // Helper: Show Alert Message
   const showAlert = (message, type = 'success') => {
@@ -63,6 +92,67 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   await loadSettings();
+
+  // Navigation: Tabs switching
+  tabScraperBtn.addEventListener('click', () => {
+    tabReviewBtn.classList.remove('active');
+    tabScraperBtn.classList.add('active');
+    tabReviewContent.style.display = 'none';
+    tabScraperContent.style.display = 'block';
+  });
+
+  tabReviewBtn.addEventListener('click', () => {
+    tabScraperBtn.classList.remove('active');
+    tabReviewBtn.classList.add('active');
+    tabScraperContent.style.display = 'none';
+    tabReviewContent.style.display = 'block';
+  });
+
+  // Review Form Pill Selection
+  const pills = [expPillGood, expPillBad, expPillFraud];
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('selected'));
+      pill.classList.add('selected');
+      selectedReviewType = pill.getAttribute('data-type');
+
+      // Fraud Report locks rating to 1 or 2 stars maximum
+      if (selectedReviewType === 'Fraud Report') {
+        if (selectedRating > 2) {
+          selectedRating = 2;
+          updateStarsUI();
+        }
+      }
+    });
+  });
+
+  // Star Rating Interactive Selection
+  const starButtons = Array.from(starsRatingContainer.children);
+  starButtons.forEach(star => {
+    star.addEventListener('click', () => {
+      const rating = parseInt(star.getAttribute('data-rating'));
+      
+      // Fraud report limits star rating to max 2
+      if (selectedReviewType === 'Fraud Report' && rating > 2) {
+        showAlert('Fraud reports are limited to 1 or 2 stars', 'danger');
+        return;
+      }
+
+      selectedRating = rating;
+      updateStarsUI();
+    });
+  });
+
+  const updateStarsUI = () => {
+    starButtons.forEach(star => {
+      const rating = parseInt(star.getAttribute('data-rating'));
+      if (rating <= selectedRating) {
+        star.classList.add('active');
+      } else {
+        star.classList.remove('active');
+      }
+    });
+  };
 
   // Navigation: Go to Settings Screen
   settingsBtn.addEventListener('click', () => {
@@ -257,39 +347,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if (data.page.status === 'Reported as Fraud') {
             dbStatusBadge.textContent = '🛑 ALREADY LISTED: FRAUD';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.15); margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addGoldBtn.textContent = '🏆 Change to Gold';
             addReviewBtn.textContent = '🔍 Change to Under Review';
+            addSuspiciousBtn.textContent = '⚠️ Change to Suspicious';
             addFraudBtn.textContent = '🛑 Update Fraud Details';
           } else if (data.page.status === 'Gold Seller') {
             dbStatusBadge.textContent = '🏆 ALREADY LISTED: GOLD SELLER';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addGoldBtn.textContent = '🏆 Update Gold Details';
             addReviewBtn.textContent = '🔍 Change to Under Review';
+            addSuspiciousBtn.textContent = '⚠️ Change to Suspicious';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else if (data.page.status === 'Verified Marketplace Seller') {
             dbStatusBadge.textContent = '⭐ ALREADY LISTED: VERIFIED SELLER';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Update Verified';
+            addGoldBtn.textContent = '🏆 Change to Gold';
             addReviewBtn.textContent = '🔍 Change to Under Review';
+            addSuspiciousBtn.textContent = '⚠️ Change to Suspicious';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else if (data.page.status === 'Suspicious') {
             dbStatusBadge.textContent = '⚠️ ALREADY LISTED: SUSPICIOUS';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addGoldBtn.textContent = '🏆 Change to Gold';
             addReviewBtn.textContent = '🔍 Change to Under Review';
+            addSuspiciousBtn.textContent = '⚠️ Update Suspicious';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else {
             dbStatusBadge.textContent = '🔍 ALREADY LISTED: UNDER REVIEW';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addGoldBtn.textContent = '🏆 Change to Gold';
             addReviewBtn.textContent = '🔍 Update Under Review';
+            addSuspiciousBtn.textContent = '⚠️ Change to Suspicious';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           }
         } else {
           dbStatusBadge.style.display = 'none';
           addVerifiedBtn.textContent = '⭐ Verified Seller';
+          addGoldBtn.textContent = '🏆 Gold Seller';
           addReviewBtn.textContent = '🔍 Under Review';
+          addSuspiciousBtn.textContent = '⚠️ Suspicious';
           addFraudBtn.textContent = '🛑 Report as FRAUD';
         }
       }
@@ -317,9 +419,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       pageDetails: pageDetails.value.trim()
     };
 
-    const targetBtn = status === 'Reported as Fraud' 
-      ? addFraudBtn 
-      : (status === 'Verified Marketplace Seller' ? addVerifiedBtn : addReviewBtn);
+    let targetBtn = addReviewBtn;
+    if (status === 'Reported as Fraud') targetBtn = addFraudBtn;
+    else if (status === 'Verified Marketplace Seller') targetBtn = addVerifiedBtn;
+    else if (status === 'Gold Seller') targetBtn = addGoldBtn;
+    else if (status === 'Suspicious') targetBtn = addSuspiciousBtn;
+
     const originalText = targetBtn.textContent;
     targetBtn.disabled = true;
     targetBtn.innerHTML = '<span class="spinner"></span> Saving...';
@@ -342,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       showAlert(data.message || 'Page successfully saved!', 'success');
       
-      // Instantly refresh the database status badge and button labels!
+      // Instantly refresh database status indicators!
       if (payload.facebookUrl) {
         checkDatabaseStatus(payload.facebookUrl);
       }
@@ -355,11 +460,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  // Event Listeners for Adding
+  // Submit Review On Behalf
+  submitReviewBtn.addEventListener('click', async () => {
+    if (!connectionSettings.token) {
+      showAlert('Please set up server settings and log in as admin first!', 'danger');
+      settingsView.classList.add('active');
+      mainView.classList.remove('active');
+      return;
+    }
+
+    const title = reviewTitle.value.trim();
+    const dateOfExp = reviewDate.value;
+    const description = reviewDesc.value.trim();
+
+    if (!title || !dateOfExp || !description) {
+      showAlert('Please fill in all required review fields (Title, Date, Description)!', 'danger');
+      return;
+    }
+
+    submitReviewBtn.disabled = true;
+    submitReviewBtn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+    const payload = {
+      page_name: currentScrapedData ? currentScrapedData.name : pageName.textContent,
+      page_url: currentScrapedData ? currentScrapedData.url : pageUrl.textContent,
+      profile_picture: currentScrapedData ? currentScrapedData.profilePicUrl : '',
+      review_type: selectedReviewType,
+      star_rating: selectedRating,
+      title: title,
+      description: description,
+      date_of_experience: dateOfExp,
+      bkash_number: reviewBkash.value.trim(),
+      facebook_post_link: reviewPostLink.value.trim(),
+      is_on_behalf: reviewOnBehalf.checked
+    };
+
+    try {
+      const res = await fetch(`${connectionSettings.serverUrl}/api/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${connectionSettings.token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Server error submitting review');
+      }
+
+      showAlert('Review successfully submitted on behalf!', 'success');
+      
+      // Reset Review Form fields
+      reviewTitle.value = '';
+      reviewDesc.value = '';
+      reviewBkash.value = '';
+      reviewPostLink.value = '';
+      reviewDate.value = today;
+      selectedRating = 5;
+      updateStarsUI();
+
+    } catch (err) {
+      showAlert(err.message, 'danger');
+    } finally {
+      submitReviewBtn.disabled = false;
+      submitReviewBtn.textContent = '🚀 Submit Review';
+    }
+  });
+
+  // Event Listeners for Page Scraper Statuses
   addVerifiedBtn.addEventListener('click', () => submitPage('Verified Marketplace Seller'));
+  addGoldBtn.addEventListener('click', () => submitPage('Gold Seller'));
   addReviewBtn.addEventListener('click', () => submitPage('Under Review'));
+  addSuspiciousBtn.addEventListener('click', () => submitPage('Suspicious'));
   addFraudBtn.addEventListener('click', () => submitPage('Reported as Fraud'));
 
-  // Initialize
+  // Initialize Scraper
   await initializeScraper();
 });
