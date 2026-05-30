@@ -1299,7 +1299,7 @@ async function startServer() {
   app.post('/api/admin/pages/sync-pictures', requireModerator, async (req, res) => {
     try {
       // Find all Facebook pages that do not have a profile picture set
-      const pages = db.prepare('SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ""').all() as any[];
+      const pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
       
       let count = 0;
       for (const page of pages) {
