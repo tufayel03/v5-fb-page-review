@@ -1351,10 +1351,6 @@ function getFacebookPageId(url: string): string | null {
           const timeoutId = setTimeout(() => controller.abort(), 6000);
 
           const response = await fetch(url, {
-            headers: {
-              'User-Agent': USER_AGENT,
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
             redirect: 'follow',
             signal: controller.signal
           });
