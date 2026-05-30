@@ -16,6 +16,7 @@ import {
   SquarePen,
   MessageSquare,
   AlertTriangle,
+  Trophy,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
@@ -355,23 +356,27 @@ export default function Home() {
                               <h4 className="font-bold text-slate-900 truncate max-w-full">
                                 {page.current_name}
                               </h4>
-                              {page.business_verification_status &&
-                                page.business_verification_status !==
-                                  "Normal" && (
-                                  <span className="inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 bg-slate-950 text-white rounded-[4px] text-[10px] font-bold shadow-sm">
-                                    {page.business_verification_status ===
-                                      "Official Business" && "✅ Official"}
-                                    {page.business_verification_status ===
-                                      "Reputable Business" && "🏆 Reputable"}
-                                    {page.business_verification_status ===
-                                      "Long-Term Trusted Seller" &&
-                                      "🛡️ Long-Term Trusted"}
-                                    {page.business_verification_status ===
-                                      "Verified Marketplace Seller" &&
-                                      "⭐ Verified Seller"}
-                                  </span>
-                                )}
-                              {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
+                              {page.status_badge === 'Verified Marketplace Seller' && (
+                                <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  <ShieldCheck className="w-3 h-3" /> Verified Seller
+                                </span>
+                              )}
+                              {page.status_badge === 'Gold Seller' && (
+                                <span className="shrink-0 bg-amber-50 text-amber-700 border border-amber-300/60 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  <Trophy className="w-3 h-3 text-amber-500 fill-amber-500" /> Gold Seller
+                                </span>
+                              )}
+                              {page.status_badge === 'Suspicious' && (
+                                <span className="shrink-0 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  ⚠️ Suspicious
+                                </span>
+                              )}
+                              {page.status_badge === 'Under Review' && (
+                                <span className="shrink-0 bg-blue-50 text-[#205cd4] border border-blue-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  🔍 Under Review
+                                </span>
+                              )}
+                              {page.status_badge && page.status_badge.includes('Reported as Fraud') && (
                                 <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-250 text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
                                   <ShieldAlert className="h-3 w-3" /> Fraud
                                 </span>
