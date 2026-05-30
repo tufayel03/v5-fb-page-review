@@ -1337,6 +1337,143 @@ async function startServer() {
     }
   });
 
+  app.post('/api/admin/chrome-extension/add-page', requireModerator, async (req, res) => {
+    try {
+      const { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails } = req.body;
+
+      if (!facebookUrl) {
+        return res.status(400).json({ error: 'Facebook URL is required' });
+      }
+
+      const urlParam = facebookUrl.trim();
+      const decodedName = decodeHTMLEntities(name || '').trim();
+      const nameParam = decodedName || 'Unknown Page';
+      const statusParam = status === 'Reported as Fraud' ? 'Reported as Fraud' : 'Under Review';
+      const isFraud = statusParam === 'Reported as Fraud';
+      const trustScore = isFraud ? -100 : 0;
+
+      // Extract details
+      const pmList = paymentMethods ? String(paymentMethods).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];
+      const contactList = contactNumber ? String(contactNumber).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];
+      let mainContact = '';
+      let extraContacts: string[] = [];
+      if (contactList.length > 0) {
+        mainContact = contactList[0];
+        extraContacts = contactList.slice(1);
+      }
+
+      // Check if page already exists
+      const exists = db.prepare('SELECT id, current_name, profile_picture FROM FacebookPages WHERE facebook_url = ? OR current_name = ?').get(urlParam, nameParam) as any;
+
+      // Helper function to download and optimize profile picture
+      const downloadAndOptimize = async (imgUrl: string, pId: string) => {
+        try {
+          const imgRes = await fetch(imgUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            }
+          });
+          if (imgRes.ok) {
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const timestamp = Date.now();
+            const filename = `profile-${pId}-${timestamp}.webp`;
+            const filepath = path.join(uploadsDir, filename);
+
+            await sharp(buffer)
+              .resize(300, 300, { fit: 'cover' })
+              .webp({ quality: 80 })
+              .toFile(filepath);
+
+            const thumbFilename = `profile-thumb-${pId}-${timestamp}.webp`;
+            const thumbFilepath = path.join(uploadsDir, thumbFilename);
+            await sharp(buffer)
+              .resize(80, 80, { fit: 'cover' })
+              .webp({ quality: 70 })
+              .toFile(thumbFilepath);
+
+            return `/uploads/${filename}`;
+          }
+        } catch (imgErr) {
+          console.error('[Chrome Extension] Profile picture optimization failed:', imgErr);
+        }
+        return null;
+      };
+
+      if (exists) {
+        const pageId = exists.id;
+        let profilePicPath = exists.profile_picture;
+
+        // If the profile picture is missing or failed, and the extension provided a new one, download/optimize it!
+        if ((!profilePicPath || profilePicPath === 'failed') && profilePictureUrl) {
+          const optPic = await downloadAndOptimize(profilePictureUrl, pageId);
+          if (optPic) profilePicPath = optPic;
+        }
+
+        // Update the existing page
+        db.prepare(`
+          UPDATE FacebookPages 
+          SET current_name = COALESCE(?, current_name),
+              facebook_url = COALESCE(?, facebook_url),
+              status_badge = ?,
+              trust_score = ?,
+              is_fraud_listed = ?,
+              fraud_listed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE fraud_listed_at END,
+              contact_number = COALESCE(?, contact_number),
+              extra_contacts = COALESCE(?, extra_contacts),
+              payment_methods = COALESCE(?, payment_methods),
+              page_details = COALESCE(?, page_details),
+              profile_picture = ?
+          WHERE id = ?
+        `).run(
+          nameParam === 'Unknown Page' ? null : nameParam,
+          urlParam,
+          statusParam,
+          trustScore,
+          isFraud ? 1 : 0,
+          isFraud ? 1 : 0,
+          mainContact || null,
+          extraContacts.length ? JSON.stringify(extraContacts) : null,
+          pmList.length ? JSON.stringify(pmList) : null,
+          pageDetails || null,
+          profilePicPath,
+          pageId
+        );
+
+        return res.json({ success: true, message: 'Page details updated successfully!', id: pageId });
+      }
+
+      // Completely new page
+      const pageId = Date.now().toString() + Math.floor(Math.random() * 1000);
+      let profilePicPath = null;
+      if (profilePictureUrl) {
+        profilePicPath = await downloadAndOptimize(profilePictureUrl, pageId);
+      }
+
+      db.prepare(`
+        INSERT INTO FacebookPages (
+          id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed, added_by, profile_picture
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin', ?)
+      `).run(
+        pageId,
+        nameParam,
+        urlParam,
+        mainContact || null,
+        extraContacts.length ? JSON.stringify(extraContacts) : null,
+        pmList.length ? JSON.stringify(pmList) : null,
+        pageDetails || null,
+        statusParam,
+        trustScore,
+        isFraud ? 1 : 0,
+        profilePicPath
+      );
+
+      return res.json({ success: true, message: 'Page successfully added to database!', id: pageId });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: 'Server error adding page: ' + e.message });
+    }
+  });
+
   app.get('/api/admin/pages/sync-pictures-progress', requireModerator, async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
