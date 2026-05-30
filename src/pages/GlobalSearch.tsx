@@ -79,7 +79,7 @@ export default function GlobalSearch() {
     if (activeReviewsNum === '500+' && reviewCount < 500) return false;
 
     // Status filter
-    if (activeStatus && page.status_badge !== 'Verified Safe') return false;
+    if (activeStatus && page.status_badge !== 'Verified Marketplace Seller') return false;
 
     return true;
   });
@@ -158,7 +158,7 @@ export default function GlobalSearch() {
                         <h3 className="text-[20px] font-bold text-[#1c1c1c] leading-tight group-hover:underline">
                           {page.current_name}
                         </h3>
-                        {page.status_badge === 'Verified Safe' && (
+                        {page.status_badge === 'Verified Marketplace Seller' && (
                           <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
                         )}
                         {page.status_badge && page.status_badge.includes('Reported as Fraud') && (
@@ -324,7 +324,7 @@ export default function GlobalSearch() {
                      />
                    </div>
                    <div className="flex flex-col">
-                     <span className="text-[15px] font-medium text-[#1c1c1c] bg-transparent group-hover:underline">Verified Safe</span>
+                     <span className="text-[15px] font-medium text-[#1c1c1c] bg-transparent group-hover:underline">Verified Seller</span>
                      <span className="text-sm text-[#696969]">Facebook Pages that have been verified.</span>
                    </div>
                  </label>

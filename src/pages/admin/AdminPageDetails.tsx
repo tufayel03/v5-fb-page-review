@@ -569,7 +569,7 @@ export default function AdminPageDetails() {
                       className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                     >
                       <option value="Under Review">Under Review</option>
-                      <option value="Verified Safe">Verified Safe</option>
+                      <option value="Verified Marketplace Seller">Verified Seller</option>
                       <option value="Reported as Fraud">Reported as Fraud</option>
                       <option value="Suspicious">Suspicious</option>
                     </select>

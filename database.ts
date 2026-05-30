@@ -348,6 +348,11 @@ try { db.exec('ALTER TABLE OwnerReplies ADD COLUMN status TEXT DEFAULT "Public";
 try { db.exec('ALTER TABLE OwnerReplies ADD COLUMN updated_at DATETIME;'); } catch (e) {}
 try { db.exec('ALTER TABLE OwnerReplies ADD COLUMN page_id TEXT;'); } catch (e) {}
 
+// Migrate legacy 'Verified Safe' status badges to 'Verified Marketplace Seller'
+try {
+  db.prepare("UPDATE FacebookPages SET status_badge = 'Verified Marketplace Seller' WHERE status_badge = 'Verified Safe'").run();
+} catch (e) {}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS BusinessProfileUpdates (
     id TEXT PRIMARY KEY,

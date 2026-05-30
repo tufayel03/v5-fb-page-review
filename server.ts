@@ -2709,7 +2709,7 @@ function normalizeName(str: string): string {
 
       // Recalculate status badge based on new score
       let new_badge = "Under Review";
-      if (total_score >= 80) new_badge = "Verified Safe";
+      if (total_score >= 80) new_badge = "Verified Marketplace Seller";
       else if (total_score < 0) new_badge = "Reported as Fraud";
       else if (total_score < 50) new_badge = "Suspicious";
 
@@ -2761,7 +2761,7 @@ function normalizeName(str: string): string {
           }
 
           let new_badge = "Under Review";
-          if (total_score >= 80) new_badge = "Verified Safe";
+          if (total_score >= 80) new_badge = "Verified Marketplace Seller";
           else if (total_score < 0) new_badge = "Reported as Fraud";
           else if (total_score < 50) new_badge = "Suspicious";
 
