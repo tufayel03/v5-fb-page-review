@@ -139,11 +139,13 @@ export default function WriteReview() {
       account_password: "",
       is_login_mode: false,
       is_on_behalf: false,
+      on_behalf_name: "",
     },
   });
 
   const reviewType = watch("review_type");
   const pageUrl = watch("page_url");
+  const isOnBehalf = watch("is_on_behalf");
 
   const steps = React.useMemo(() => {
     const s = [];
@@ -388,6 +390,7 @@ export default function WriteReview() {
               order_amount: data.order_amount || "",
               facebook_post_link: data.facebook_post_link || "",
               is_on_behalf: data.is_on_behalf === 1,
+              on_behalf_name: data.on_behalf_name || "",
             });
             setIsSearchingPage(false);
           }
@@ -414,6 +417,7 @@ export default function WriteReview() {
                 order_amount: data.order_amount || "",
                 facebook_post_link: data.facebook_post_link || "",
                 is_on_behalf: data.is_on_behalf === 1,
+                on_behalf_name: data.on_behalf_name || "",
               });
             }
           })
@@ -1305,23 +1309,42 @@ export default function WriteReview() {
         {steps[currentStep - 1]?.id === "review" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in text-[#0d2a45]">
             {isAdmin && (
-              <div className="bg-[#e6fcf0]/40 border border-[#00a859]/20 p-4.5 rounded-2xl flex items-center justify-between shadow-3xs">
-                <div className="pr-4">
-                  <h4 className="font-extrabold text-[#0d2a45] text-sm flex items-center gap-1.5">
-                    👥 Write Review On Behalf
-                  </h4>
-                  <p className="text-xs text-slate-500 font-semibold mt-0.5 leading-relaxed">
-                    As an Admin, you can submit this review on behalf of someone else. The name will show as "On behalf" and no review limit is enforced.
-                  </p>
+              <div className="space-y-4">
+                <div className="bg-[#e6fcf0]/40 border border-[#00a859]/20 p-4.5 rounded-2xl flex items-center justify-between shadow-3xs">
+                  <div className="pr-4">
+                    <h4 className="font-extrabold text-[#0d2a45] text-sm flex items-center gap-1.5">
+                      👥 Write Review On Behalf
+                    </h4>
+                    <p className="text-xs text-slate-500 font-semibold mt-0.5 leading-relaxed">
+                      As an Admin, you can submit this review on behalf of someone else. The name will show as "On behalf" and no review limit is enforced.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                    <input
+                      type="checkbox"
+                      {...register("is_on_behalf")}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00a859]"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                  <input
-                    type="checkbox"
-                    {...register("is_on_behalf")}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00a859]"></div>
-                </label>
+                
+                {isOnBehalf && (
+                  <div className="bg-[#e6fcf0]/20 border border-[#00a859]/10 p-4.5 rounded-2xl animate-fade-in space-y-3">
+                    <label className="block text-sm font-bold text-[#0d2a45]">
+                      Custom Reviewer Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      {...register("on_behalf_name")}
+                      className="w-full bg-white px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/10 outline-none font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400"
+                      placeholder="Enter custom reviewer name (e.g. John Doe). If empty, defaults to 'On behalf'..."
+                    />
+                    <p className="text-[10px] text-slate-400 font-semibold">
+                      * If provided, the review will display this custom reviewer name on the public directory instead of "On behalf".
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

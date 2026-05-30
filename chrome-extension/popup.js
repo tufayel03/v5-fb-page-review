@@ -46,7 +46,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const reviewBkash = document.getElementById('reviewBkash');
   const reviewPostLink = document.getElementById('reviewPostLink');
   const reviewOnBehalf = document.getElementById('reviewOnBehalf');
+  const onBehalfName = document.getElementById('onBehalfName');
+  const onBehalfNameGroup = document.getElementById('onBehalfNameGroup');
   const submitReviewBtn = document.getElementById('submitReviewBtn');
+
+  reviewOnBehalf.addEventListener('change', () => {
+    onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+  });
 
   // Globals
   let currentScrapedData = null;
@@ -492,7 +498,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       date_of_experience: dateOfExp,
       bkash_number: reviewBkash.value.trim(),
       facebook_post_link: reviewPostLink.value.trim(),
-      is_on_behalf: reviewOnBehalf.checked
+      is_on_behalf: reviewOnBehalf.checked,
+      on_behalf_name: reviewOnBehalf.checked ? onBehalfName.value.trim() : ''
     };
 
     try {
@@ -517,6 +524,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       reviewDesc.value = '';
       reviewBkash.value = '';
       reviewPostLink.value = '';
+      onBehalfName.value = '';
       reviewDate.value = today;
       selectedRating = 5;
       updateStarsUI();
