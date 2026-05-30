@@ -57,10 +57,10 @@ function VisitTracker() {
 
     // Dynamic SEO Titles mapping
     const path = location.pathname;
-    let title = "FB Page Review - Trusted Facebook Page & bKash Checker";
+    let title = "FB Page Review | Verify Online Sellers & Avoid bKash Scams";
     
     if (path === "/") {
-      title = "FB Page Review - Check Trust Score & Facebook Fraud Pages";
+      title = "FB Page Review | Verify Online Sellers & Avoid bKash Scams";
     } else if (path.startsWith("/fraud-pages")) {
       title = "Detected Fraud Pages Directory - Safe Online Buying Guide | FB Page Review";
     } else if (path === "/blog") {
