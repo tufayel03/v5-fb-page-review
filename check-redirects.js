@@ -6,22 +6,42 @@ const XLSX = XLSXModule.readFile ? XLSXModule : (XLSXModule.default || XLSXModul
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 
-function extractFacebookUsername(url) {
+function getFacebookPageId(url) {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    let pathname = parsed.pathname.replace(/^\/|\/$/g, ''); // strip leading/trailing slashes
     
-    if (pathname.includes('profile.php')) {
+    // 1. Check profile.php?id=X
+    if (parsed.pathname.includes('profile.php')) {
       const id = parsed.searchParams.get('id');
-      if (id) return `profile.php?id=${id}`;
+      if (id) return id;
     }
     
-    const parts = pathname.split('/');
+    // 2. Check path segments
+    let pathname = parsed.pathname.replace(/^\/|\/$/g, ''); // strip slashes
+    const parts = pathname.split('/').filter(Boolean);
+    
     if (parts.length > 0) {
+      // If path is people/name/ID or pages/name/ID or groups/name/ID
       if (['pages', 'people', 'groups'].includes(parts[0])) {
-        if (parts.length > 1) return parts[1];
+        // If there's a third segment (numeric ID), that is the true unique ID!
+        if (parts.length >= 3 && /^\d+$/.test(parts[2])) {
+          return parts[2];
+        }
+        // If the second segment is numeric, it is the ID!
+        if (parts.length >= 2) {
+          if (/^\d+$/.test(parts[1])) {
+            return parts[1];
+          }
+          return parts[1];
+        }
       }
+      
+      const lastSegment = parts[parts.length - 1];
+      if (/^\d+$/.test(lastSegment)) {
+        return lastSegment;
+      }
+      
       return parts[0];
     }
   } catch (e) {}
@@ -68,6 +88,17 @@ async function checkFacebookUrl(url) {
     // De-escape HTML entities in title if any (e.g. &amp; -> &)
     if (title) {
       title = decodeHtmlEntities(title);
+    }
+    
+    // Check if we hit Facebook rate-limiting or a guest login roadblock page
+    const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+    const isRoadblocked = !title || 
+                          nameBlacklist.includes(title.toLowerCase().trim()) || 
+                          html.includes("This content isn't available") ||
+                          html.includes("isn't available at the moment");
+                          
+    if (isRoadblocked) {
+      title = "[Private, Deleted or Roadblocked]";
     }
     
     let resolvedUrl = finalUrl;
@@ -212,12 +243,15 @@ async function main() {
   console.log("----------------------------------------------------------------------");
   
   const changes = [];
-  const CONCURRENCY = 15;
+  const CONCURRENCY = 8;
   let activeIndex = 0;
+  
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   
   async function worker() {
     while (activeIndex < rows.length) {
       const index = activeIndex++;
+      await sleep(100 + Math.random() * 300);
       const row = rows[index];
       const name = row[nameCol] || 'Unknown';
       const url = row[urlCol] || '';
@@ -227,9 +261,9 @@ async function main() {
         continue;
       }
       
-      const oldUsername = extractFacebookUsername(url);
-      if (!oldUsername) {
-        console.log(`\x1b[33m${name.substring(0, 30).padEnd(30)}\x1b[0m | SKIP       | Could not parse username from URL.`);
+      const oldPageId = getFacebookPageId(url);
+      if (!oldPageId) {
+        console.log(`\x1b[33m${name.substring(0, 30).padEnd(30)}\x1b[0m | SKIP       | Could not parse unique ID from URL.`);
         continue;
       }
       
@@ -240,11 +274,24 @@ async function main() {
       }
       
       const destinationUrl = result.url;
-      const newPageName = result.title;
-      const newUsername = extractFacebookUsername(destinationUrl);
+      const scrapedPageName = result.title;
+      const newPageName = scrapedPageName === '[Private, Deleted or Roadblocked]' ? name : scrapedPageName;
+      const newPageId = getFacebookPageId(destinationUrl);
       
-      if (newUsername && oldUsername.toLowerCase() !== newUsername.toLowerCase()) {
-        console.log(`\x1b[32m${name.substring(0, 30).padEnd(30)}\x1b[0m | CHANGED    | ${oldUsername} ➜ ${newUsername}`);
+      const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
+      const nameChanged = scrapedPageName && scrapedPageName !== '[Private, Deleted or Roadblocked]' && name.trim().toLowerCase() !== scrapedPageName.trim().toLowerCase();
+      
+      if (usernameChanged || nameChanged) {
+        let changeType = "CHANGED";
+        if (usernameChanged && nameChanged) {
+          changeType = "BOTH CHANGED";
+        } else if (usernameChanged) {
+          changeType = "URL CHANGED";
+        } else if (nameChanged) {
+          changeType = "NAME CHANGED";
+        }
+        
+        console.log(`\x1b[32m${name.substring(0, 30).padEnd(30)}\x1b[0m | ${changeType.padEnd(10)} | ${oldPageId} ➜ ${newPageId}`);
         console.log(`  ↳ Old Name: ${name}`);
         console.log(`  ↳ New Name: ${newPageName}`);
         console.log(`  ↳ Old URL:  ${url}`);
@@ -254,8 +301,9 @@ async function main() {
           "New Page Name": newPageName,
           "Old URL": url,
           "New URL": destinationUrl,
-          "Old Username": oldUsername,
-          "New Username": newUsername
+          "Old Username": oldPageId,
+          "New Username": newPageId,
+          "Change Type": changeType
         });
       } else {
         console.log(`${name.substring(0, 30).padEnd(30)} | OK         | Live Name: ${newPageName}`);
@@ -275,7 +323,7 @@ async function main() {
     console.log("🌟 DETECTED PAGE NAME & URL CHANGES:");
     console.log("======================================================================");
     changes.forEach((c, idx) => {
-      console.log(`\x1b[32m${idx + 1}. Original Name: ${c["Original Page Name"]}\x1b[0m`);
+      console.log(`\x1b[32m${idx + 1}. Original Name: ${c["Original Page Name"]} \x1b[33m[${c["Change Type"]}]\x1b[0m`);
       console.log(`   ➜ New Name:      ${c["New Page Name"]}`);
       console.log(`   ↳ Old URL:       ${c["Old URL"]}`);
       console.log(`   ↳ New URL:       ${c["New URL"]}`);
