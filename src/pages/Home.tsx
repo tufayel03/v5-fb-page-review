@@ -371,7 +371,7 @@ export default function Home() {
                                       "⭐ Verified Seller"}
                                   </span>
                                 )}
-                              {page.status_badge === "Reported as Fraud" && (
+                              {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
                                 <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-250 text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
                                   <ShieldAlert className="h-3 w-3" /> Fraud
                                 </span>

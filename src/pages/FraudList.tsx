@@ -241,7 +241,7 @@ export default function FraudList() {
                                       let isReported = item.status?.toLowerCase() === 'reported';
                                       let linked = [];
                                       try { linked = JSON.parse(item.linked_pages); } catch(e){}
-                                      let hasFraudPage = linked.some((p: any) => p.status_badge === 'Reported as Fraud');
+                                      let hasFraudPage = linked.some((p: any) => p.status_badge && p.status_badge.includes('Reported as Fraud'));
                                       let isFraud = isReported || hasFraudPage;
                                       return isFraud ? (
                                         <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">

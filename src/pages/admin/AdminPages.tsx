@@ -899,7 +899,7 @@ export default function AdminPages() {
                 </tr>
               ) : (
                 pages.map((page, index) => {
-                  const isFraud = page.status_badge === "Reported as Fraud";
+                  const isFraud = page.status_badge && page.status_badge.includes("Reported as Fraud");
                   const isClaimed = page.claim_status === "Claimed";
                   const isSelected = selectedPageIds.includes(page.id);
                   return (

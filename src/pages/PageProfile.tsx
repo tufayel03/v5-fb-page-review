@@ -727,7 +727,7 @@ export default function PageProfile() {
               {/* Brand Meta Column */}
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  {page.status_badge !== "Reported as Fraud" && (
+                  {(!page.status_badge || !page.status_badge.includes("Reported as Fraud")) && (
                     page.claim_status === "Claimed" ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
                         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Claimed Business
@@ -739,9 +739,15 @@ export default function PageProfile() {
                     )
                   )}
 
-                  {page.status_badge === "Reported as Fraud" && (
+                  {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
                       <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
+                    </span>
+                  )}
+
+                  {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      💀 Old/Dead Page
                     </span>
                   )}
 
@@ -824,9 +830,9 @@ export default function PageProfile() {
           </div>
 
           {/* Warning Flag Box rendered Flat */}
-          {(page.status_badge === "Reported as Fraud" || fraudCount > 0) && (
+          {(page.status_badge && page.status_badge.includes("Reported as Fraud") || fraudCount > 0) && (
             <div className="mt-8 animate-fade-in">
-              {page.status_badge === "Reported as Fraud" ? (
+              {page.status_badge && page.status_badge.includes("Reported as Fraud") ? (
                 <div className="bg-rose-50 border border-rose-100 rounded-lg p-5 flex items-start gap-4">
                   <div className="p-2 rounded bg-rose-100 text-rose-600 shrink-0 mt-0.5">
                     <ShieldAlert className="h-5 w-5" />

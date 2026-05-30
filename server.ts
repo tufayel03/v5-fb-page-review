@@ -824,7 +824,7 @@ async function startServer() {
       const claimsDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM Claims WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
       const disputesDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM Disputes WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
       const fraudReportsDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM Reviews WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND review_type = 'Fraud Report' GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
-      const fraudPagesDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM FacebookPages WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND status_badge = 'Reported as Fraud' GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
+      const fraudPagesDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM FacebookPages WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND status_badge LIKE '%Reported as Fraud%' GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
       const reportedContactsDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM ContactNumbers WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND status IN ('Reported', 'Suspicious') GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
       const claimedPagesDaily = db.prepare(`SELECT date(created_at) as date, COUNT(DISTINCT page_id) as count FROM Claims WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND status = 'Approved' GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
       const paymentMethodsDaily = db.prepare(`SELECT date(created_at) as date, COUNT(*) as count FROM ContactNumbers WHERE date(created_at) >= date(?) AND date(created_at) <= date(?) AND type = 'Payment Method' GROUP BY date(created_at)`).all(resolvedStartDate, resolvedEndDate) as any[];
@@ -892,7 +892,7 @@ async function startServer() {
       const valTotalPages = (db.prepare('SELECT COUNT(*) as count FROM FacebookPages').get() as any).count;
       const valTotalReviews = (db.prepare('SELECT COUNT(*) as count FROM Reviews').get() as any).count;
       const valTotalUsers = (db.prepare('SELECT COUNT(*) as count FROM Users').get() as any).count;
-      const valTotalFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE status_badge = 'Reported as Fraud'").get() as any).count;
+      const valTotalFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE status_badge LIKE '%Reported as Fraud%'").get() as any).count;
       const valReportedContacts = (db.prepare("SELECT COUNT(*) as count FROM ContactNumbers WHERE status IN ('Reported', 'Suspicious')").get() as any).count;
       const valClaimedPages = (db.prepare("SELECT COUNT(DISTINCT page_id) as count FROM Claims WHERE status = 'Approved'").get() as any).count;
       const valPaymentMethods = (db.prepare("SELECT COUNT(*) as count FROM ContactNumbers WHERE type = 'Payment Method'").get() as any).count;
@@ -1129,7 +1129,7 @@ async function startServer() {
       const totalFraudReports = (db.prepare("SELECT COUNT(*) as count FROM Reviews WHERE review_type = 'Fraud Report'").get() as any).count;
       const pendingClaims = (db.prepare("SELECT COUNT(*) as count FROM Claims WHERE status = 'Pending Verification'").get() as any).count;
       const totalClaimedPages = (db.prepare("SELECT COUNT(DISTINCT page_id) as count FROM Claims WHERE status = 'Approved'").get() as any).count;
-      const totalFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE status_badge = 'Reported as Fraud'").get() as any).count;
+      const totalFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE status_badge LIKE '%Reported as Fraud%'").get() as any).count;
       const totalPaymentMethods = (db.prepare("SELECT COUNT(*) as count FROM ContactNumbers WHERE type = 'Payment Method'").get() as any).count;
       const openDisputes = (db.prepare("SELECT COUNT(*) as count FROM Disputes WHERE status = 'Open'").get() as any).count;
       const totalContactNumbers = (db.prepare("SELECT COUNT(*) as count FROM ContactNumbers").get() as any).count;
@@ -1233,13 +1233,16 @@ async function startServer() {
       }
 
       if (status !== 'all') {
-        if (status === 'fraud') {
-          whereClauses.push("status_badge = 'Reported as Fraud'");
+        if (status === 'fraud' || status === 'Reported as Fraud') {
+          whereClauses.push("status_badge LIKE '%Reported as Fraud%'");
         } else if (status === 'clean') {
-          whereClauses.push("status_badge != 'Reported as Fraud'");
+          whereClauses.push("status_badge NOT LIKE '%Reported as Fraud%'");
+        } else if (status === 'Old/Dead Page') {
+          whereClauses.push("status_badge LIKE 'Old/Dead Page%'");
         } else {
-          whereClauses.push("status_badge = ?");
+          whereClauses.push("(status_badge = ? OR status_badge LIKE ?)");
           params.push(status);
+          params.push('%' + status);
         }
       }
 
@@ -1455,16 +1458,25 @@ function getFacebookPageId(url: string): string | null {
         const oldPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(id) as any;
         if (!oldPage) continue;
 
+        let newStatus = 'Old/Dead Page';
+        if (oldPage.status_badge && oldPage.status_badge !== 'Old/Dead Page') {
+          if (!oldPage.status_badge.startsWith('Old/Dead Page - ')) {
+            newStatus = `Old/Dead Page - ${oldPage.status_badge}`;
+          } else {
+            newStatus = oldPage.status_badge;
+          }
+        }
+
         const existingNewPage = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ?').get(scrapedUrl) as any;
         if (existingNewPage) {
-          db.prepare("UPDATE FacebookPages SET status_badge = 'Old/Dead Page' WHERE id = ?").run(id);
+          db.prepare("UPDATE FacebookPages SET status_badge = ? WHERE id = ?").run(newStatus, id);
           continue;
         }
 
-        db.prepare("UPDATE FacebookPages SET status_badge = 'Old/Dead Page' WHERE id = ?").run(id);
+        db.prepare("UPDATE FacebookPages SET status_badge = ? WHERE id = ?").run(newStatus, id);
 
         const newPageId = crypto.randomUUID();
-        const newDetails = `[System Redirect]: Active replacement page for "${oldPage.current_name}" (${oldPage.facebook_url}).\n\nOriginal Details:\n${oldPage.page_details || ''}`;
+        const newDetails = `Old Page Name: ${oldPage.current_name}\nOld Page URL: ${oldPage.facebook_url}\n\nOriginal Details:\n${oldPage.page_details || ''}`;
         
         db.prepare(`
           INSERT INTO FacebookPages (
@@ -1974,13 +1986,16 @@ function getFacebookPageId(url: string): string | null {
             }
           }
           if (status !== 'all') {
-            if (status === 'fraud') {
-              whereClauses.push("status_badge = 'Reported as Fraud'");
+            if (status === 'fraud' || status === 'Reported as Fraud') {
+              whereClauses.push("status_badge LIKE '%Reported as Fraud%'");
             } else if (status === 'clean') {
-              whereClauses.push("status_badge != 'Reported as Fraud'");
+              whereClauses.push("status_badge NOT LIKE '%Reported as Fraud%'");
+            } else if (status === 'Old/Dead Page') {
+              whereClauses.push("status_badge LIKE 'Old/Dead Page%'");
             } else {
-              whereClauses.push("status_badge = ?");
+              whereClauses.push("(status_badge = ? OR status_badge LIKE ?)");
               params.push(status);
+              params.push('%' + status);
             }
           }
           if (claimStatus !== 'all') {
