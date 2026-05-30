@@ -1350,17 +1350,85 @@ function getFacebookPageId(url: string): string | null {
         if (!oldPageId) continue;
 
         try {
+          let resolvedUrl = url;
+          let currentUrl = url;
+          let redirectCount = 0;
+          const maxRedirects = 5;
+
+          while (redirectCount < maxRedirects) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            
+            const response = await fetch(currentUrl, {
+              redirect: 'manual',
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            const loc = response.headers.get('location');
+            if (response.status >= 300 && response.status < 400 && loc) {
+              let nextUrl = loc;
+              if (loc.startsWith('/')) {
+                nextUrl = 'https://www.facebook.com' + loc;
+              } else if (!loc.startsWith('http')) {
+                nextUrl = 'https://www.facebook.com/' + loc;
+              }
+              
+              const isLoginRedirect = nextUrl.toLowerCase().includes('/login') || 
+                                     nextUrl.toLowerCase().includes('/checkpoint') || 
+                                     nextUrl.toLowerCase().includes('login.php');
+              
+              if (isLoginRedirect) {
+                try {
+                  const parsedLoc = new URL(nextUrl);
+                  const nextParam = parsedLoc.searchParams.get('next');
+                  if (nextParam && nextParam.includes('facebook.com') && !nextParam.toLowerCase().includes('/login')) {
+                    resolvedUrl = nextParam;
+                  }
+                } catch(e) {}
+                break;
+              }
+
+              resolvedUrl = nextUrl;
+              currentUrl = nextUrl;
+              redirectCount++;
+            } else {
+              break;
+            }
+          }
+
+          // Fetch the page HTML to get title/metadata
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-          const response = await fetch(url, {
+          const response = await fetch(resolvedUrl, {
             redirect: 'follow',
             signal: controller.signal
           });
           clearTimeout(timeoutId);
 
-          const finalUrl = response.url;
           const html = await response.text();
+
+          let canonicalUrl = resolvedUrl;
+          const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
+          if (canonicalMatch && canonicalMatch[1]) {
+            if (canonicalMatch[1].includes('facebook.com')) {
+              canonicalUrl = canonicalMatch[1];
+            }
+          } else {
+            const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
+            if (ogMatch && ogMatch[1]) {
+              if (ogMatch[1].includes('facebook.com')) {
+                canonicalUrl = ogMatch[1];
+              }
+            }
+          }
+
+          const isCanonicalSystem = canonicalUrl.toLowerCase().includes('/login') || 
+                                    canonicalUrl.toLowerCase().includes('/checkpoint') || 
+                                    canonicalUrl.toLowerCase().includes('login.php');
+          if (!isCanonicalSystem) {
+            resolvedUrl = canonicalUrl;
+          }
 
           let title = null;
           const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
@@ -1386,23 +1454,6 @@ function getFacebookPageId(url: string): string | null {
           let scrapedName = title;
           if (isRoadblocked) {
             scrapedName = page.current_name;
-          }
-
-          let resolvedUrl = finalUrl;
-          const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
-          if (canonicalMatch && canonicalMatch[1]) {
-            const canonicalUrl = canonicalMatch[1];
-            if (canonicalUrl.includes('facebook.com')) {
-              resolvedUrl = canonicalUrl;
-            }
-          } else {
-            const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
-            if (ogMatch && ogMatch[1]) {
-              const ogUrl = ogMatch[1];
-              if (ogUrl.includes('facebook.com')) {
-                resolvedUrl = ogUrl;
-              }
-            }
           }
 
           const newPageId = getFacebookPageId(resolvedUrl);
