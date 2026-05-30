@@ -627,7 +627,7 @@ export default function AdminPageDetails() {
                       onChange={(e) => setBusinessVerificationStatus(e.target.value)}
                       className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                     >
-                      <option value="Normal">Normal (No Special Verification)</option>
+                      <option value="Normal">None</option>
                       <option value="Official Business">Official Business</option>
                       <option value="Reputable Business">Reputable Business</option>
                       <option value="Long-Term Trusted Seller">Long-Term Trusted Seller</option>

@@ -739,22 +739,45 @@ export default function PageProfile() {
                     )
                   )}
 
-                  {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
-                    </span>
-                  )}
-
-                  {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      💀 Old/Dead Page
-                    </span>
-                  )}
-
-                  {page.business_verification_status && page.business_verification_status !== "Normal" && (
+                  {page.business_verification_status && 
+                  page.business_verification_status !== "Normal" && 
+                  page.business_verification_status !== "None" && 
+                  page.business_verification_status.trim() !== "" ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
                       🛡️ {page.business_verification_status}
                     </span>
+                  ) : (
+                    <>
+                      {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                          <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
+                        </span>
+                      )}
+
+                      {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                          💀 Old/Dead Page
+                        </span>
+                      )}
+
+                      {page.status_badge === "Verified Marketplace Seller" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                          ⭐ Verified Seller
+                        </span>
+                      )}
+
+                      {page.status_badge === "Under Review" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#205cd4] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                          🔍 Under Review
+                        </span>
+                      )}
+
+                      {page.status_badge === "Suspicious" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-550 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                          ⚠️ Suspicious
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -778,7 +801,6 @@ export default function PageProfile() {
 
                 {/* Direct info links */}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-semibold text-slate-500">
-                  <span className="text-[#0fbc6f] uppercase tracking-wider font-extrabold text-[11px]">Business Profile</span>
                   {fraudCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-100 font-bold">
                       <ShieldAlert className="h-3.5 w-3.5 text-rose-500" /> {fraudCount} Risk Flag{fraudCount > 1 ? "s" : ""}
