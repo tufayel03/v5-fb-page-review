@@ -50,7 +50,7 @@ function getFacebookPageId(url) {
       }
       return parts[0];
     }
-  } catch (e) {}
+  } catch (e) { }
   return null;
 }
 
@@ -70,7 +70,7 @@ function getFacebookAboutUrl(url) {
       }
       return `${origin}/${parts[0]}/about`;
     }
-  } catch (e) {}
+  } catch (e) { }
   return url + '/about';
 }
 
@@ -96,10 +96,10 @@ async function checkFacebookUrl(url) {
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-    
+
     let finalUrl = response.url;
     let html = await response.text();
-    
+
     let canonicalUrl = finalUrl;
     const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
     if (canonicalMatch && canonicalMatch[1]) {
@@ -114,30 +114,30 @@ async function checkFacebookUrl(url) {
         }
       }
     }
-    
-    const isCanonicalSystem = canonicalUrl.toLowerCase().includes('/login') || 
-                              canonicalUrl.toLowerCase().includes('/checkpoint') || 
-                              canonicalUrl.toLowerCase().includes('login.php');
+
+    const isCanonicalSystem = canonicalUrl.toLowerCase().includes('/login') ||
+      canonicalUrl.toLowerCase().includes('/checkpoint') ||
+      canonicalUrl.toLowerCase().includes('login.php');
     if (!isCanonicalSystem) {
       finalUrl = canonicalUrl;
     }
-    
+
     let title = null;
     const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                         html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+      html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
     if (ogTitleMatch && ogTitleMatch[1]) {
       title = ogTitleMatch[1].split('|')[0].trim();
     }
     if (!title) {
       const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-                           html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
       if (twitterTitle && twitterTitle[1]) {
         title = twitterTitle[1].split('|')[0].trim();
       }
     }
     if (!title) {
       const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
-                        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
       if (metaTitle && metaTitle[1]) {
         title = metaTitle[1].split('|')[0].trim();
       }
@@ -148,17 +148,17 @@ async function checkFacebookUrl(url) {
         title = titleMatch[1].split('|')[0].trim();
       }
     }
-    
+
     if (title) {
       title = decodeHtmlEntities(title);
     }
-    
+
     const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-    let isRoadblocked = !title || 
-                        nameBlacklist.includes(title.toLowerCase().trim()) || 
-                        html.includes("This content isn't available") ||
-                        html.includes("isn't available at the moment");
-                        
+    let isRoadblocked = !title ||
+      nameBlacklist.includes(title.toLowerCase().trim()) ||
+      html.includes("This content isn't available") ||
+      html.includes("isn't available at the moment");
+
     if (isRoadblocked) {
       try {
         const fallbackUrl = getFacebookAboutUrl(finalUrl);
@@ -174,7 +174,7 @@ async function checkFacebookUrl(url) {
           const aboutHtml = await fbAboutRes.text();
           let aboutTitle = null;
           const ogAboutTitleMatch = aboutHtml.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                                    aboutHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+            aboutHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
           if (ogAboutTitleMatch && ogAboutTitleMatch[1]) {
             aboutTitle = ogAboutTitleMatch[1].split('|')[0].trim();
           }
@@ -192,13 +192,13 @@ async function checkFacebookUrl(url) {
             }
           }
         }
-      } catch (fallbackErr) {}
+      } catch (fallbackErr) { }
     }
-    
+
     if (isRoadblocked) {
       title = "[Private, Deleted or Roadblocked]";
     }
-    
+
     let profilePicUrl = null;
     if (!isRoadblocked) {
       const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
@@ -206,7 +206,7 @@ async function checkFacebookUrl(url) {
         profilePicUrl = decodeHtmlEntities(ogImageMatch[1]);
       }
     }
-    
+
     return {
       url: finalUrl,
       title: title || 'Unknown Page Name',
@@ -224,15 +224,15 @@ async function downloadProfilePicture(imageUrl, pageName) {
     if (!fs.existsSync(picturesDir)) {
       fs.mkdirSync(picturesDir, { recursive: true });
     }
-    
+
     const safeName = pageName.replace(/[\/\\?%*:|"<>]/g, '_').trim();
     const filePath = path.join(picturesDir, `${safeName}.jpg`);
-    
+
     const response = await fetch(imageUrl, {
       headers: { 'User-Agent': USER_AGENT }
     });
     if (!response.ok) return false;
-    
+
     const buffer = Buffer.from(await response.arrayBuffer());
     await fs.promises.writeFile(filePath, buffer);
     return filePath;
@@ -245,7 +245,7 @@ async function downloadProfilePicture(imageUrl, pageName) {
 function parseCSV(content) {
   const lines = content.split(/\r?\n/);
   if (lines.length === 0) return { fieldnames: [], rows: [] };
-  
+
   const splitCSVLine = (line) => {
     const result = [];
     let current = '';
@@ -264,10 +264,10 @@ function parseCSV(content) {
     result.push(current.trim());
     return result.map(v => v.replace(/^"|"$/g, '').trim());
   };
-  
+
   const fieldnames = splitCSVLine(lines[0]);
   const rows = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
     const values = splitCSVLine(lines[i]);
@@ -277,7 +277,7 @@ function parseCSV(content) {
     });
     rows.push(row);
   }
-  
+
   return { fieldnames, rows };
 }
 
@@ -285,25 +285,25 @@ async function main() {
   console.log("======================================================================");
   console.log("      FACEBOOK PAGE URL & DISPLAY NAME REDIRECTS CHECKER");
   console.log("======================================================================\n");
-  
+
   const files = fs.readdirSync('.').filter(f => {
     const isSheet = f.endsWith('.xlsx') || f.endsWith('.xls') || f.endsWith('.csv');
     const isReport = f.startsWith('url_changes_report');
     return isSheet && !isReport;
   });
-  
+
   let selectedFile = null;
-  
+
   if (files.length === 1) {
     selectedFile = files[0];
   } else if (files.length > 1) {
     console.log("Sheet files found in the current directory:");
     files.forEach((f, idx) => console.log(`  ${idx + 1}. ${f}`));
-    
+
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const answer = await new Promise(resolve => rl.question('\nSelect the file number: ', resolve));
     rl.close();
-    
+
     const idx = parseInt(answer.trim(), 10) - 1;
     selectedFile = files[idx] || files[0];
   } else {
@@ -311,19 +311,19 @@ async function main() {
     console.log("Tip: Please put your downloaded Google Sheet in this folder first.");
     return;
   }
-  
+
   console.log(`Reading: '${selectedFile}'...`);
-  
+
   let rows = [];
   let fieldnames = [];
   const isExcel = selectedFile.endsWith('.xlsx') || selectedFile.endsWith('.xls');
-  
+
   if (isExcel) {
     const workbook = XLSX.readFile(selectedFile);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     rows = XLSX.utils.sheet_to_json(worksheet);
-    
+
     if (rows.length > 0) {
       fieldnames = Object.keys(rows[0]);
     }
@@ -333,32 +333,32 @@ async function main() {
     rows = parsed.rows;
     fieldnames = parsed.fieldnames;
   }
-  
+
   if (rows.length === 0) {
     console.log("❌ Error: No rows or data columns found in the sheet.");
     return;
   }
-  
+
   let nameCol = fieldnames.find(f => f.toLowerCase().includes('name'));
   let urlCol = fieldnames.find(f => f.toLowerCase().includes('url') || f.toLowerCase().includes('facebook') || f.toLowerCase().includes('link'));
-  
+
   if (!nameCol) nameCol = fieldnames[0];
   if (!urlCol) urlCol = fieldnames[1] || fieldnames[0];
-  
+
   console.log(`Using column '${nameCol}' for Page Names`);
   console.log(`Using column '${urlCol}' for Page URLs`);
   console.log("Scanning pages in parallel...\n");
-  
+
   console.log("----------------------------------------------------------------------");
   console.log(`${"PAGE NAME".padEnd(30)} | ${"STATUS".padEnd(10)} | DETAILS`);
   console.log("----------------------------------------------------------------------");
-  
+
   const changes = [];
   const CONCURRENCY = 8;
   let activeIndex = 0;
-  
+
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  
+
   async function worker() {
     while (activeIndex < rows.length) {
       const index = activeIndex++;
@@ -366,37 +366,37 @@ async function main() {
       const row = rows[index];
       const name = row[nameCol] || 'Unknown';
       const url = row[urlCol] || '';
-      
+
       if (!url || !url.includes('facebook.com')) {
         console.log(`\x1b[33m${name.substring(0, 30).padEnd(30)}\x1b[0m | SKIP       | No valid Facebook URL found.`);
         continue;
       }
-      
+
       const oldPageId = getFacebookPageId(url);
       if (!oldPageId) {
         console.log(`\x1b[33m${name.substring(0, 30).padEnd(30)}\x1b[0m | SKIP       | Could not parse unique ID from URL.`);
         continue;
       }
-      
+
       const result = await checkFacebookUrl(url);
       if (!result) {
         console.log(`\x1b[31m${name.substring(0, 30).padEnd(30)}\x1b[0m | FAILED     | Page unreachable or blocked.`);
         continue;
       }
-      
+
       const destinationUrl = result.url;
       const scrapedPageName = result.title;
       const newPageName = scrapedPageName === '[Private, Deleted or Roadblocked]' ? name : scrapedPageName;
       const newPageId = getFacebookPageId(destinationUrl);
-      
+
       if (result.profilePicUrl) {
         const picName = newPageName || name;
         await downloadProfilePicture(result.profilePicUrl, picName);
       }
-      
+
       const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
       const nameChanged = scrapedPageName && scrapedPageName !== '[Private, Deleted or Roadblocked]' && name.trim().toLowerCase() !== scrapedPageName.trim().toLowerCase();
-      
+
       if (usernameChanged || nameChanged) {
         let changeType = "CHANGED";
         if (usernameChanged && nameChanged) {
@@ -406,7 +406,7 @@ async function main() {
         } else if (nameChanged) {
           changeType = "NAME CHANGED";
         }
-        
+
         console.log(`\x1b[32m${name.substring(0, 30).padEnd(30)}\x1b[0m | ${changeType.padEnd(10)} | ${oldPageId} ➜ ${newPageId}`);
         console.log(`  ↳ Old Name: ${name}`);
         if (nameChanged) {
@@ -431,11 +431,11 @@ async function main() {
 
   const workers = Array.from({ length: CONCURRENCY }, worker);
   await Promise.all(workers);
-  
+
   console.log("----------------------------------------------------------------------");
   console.log(`\nScan complete! Checked ${rows.length} pages.`);
   console.log(`Detected ${changes.length} changed Facebook pages.`);
-  
+
   if (changes.length > 0) {
     console.log("\n======================================================================");
     console.log("🌟 DETECTED PAGE NAME & URL CHANGES:");
@@ -461,7 +461,7 @@ async function main() {
     } else {
       const reportFile = "url_changes_report.csv";
       const headerLine = ["Original Page Name", "New Page Name", "Old URL", "New URL", "Old Username", "New Username"].map(f => `"${f}"`).join(',');
-      const rowLines = changes.map(c => 
+      const rowLines = changes.map(c =>
         [c["Original Page Name"], c["New Page Name"], c["Old URL"], c["New URL"], c["Old Username"], c["New Username"]].map(val => `"${val.replace(/"/g, '""')}"`).join(',')
       );
       fs.writeFileSync(reportFile, [headerLine, ...rowLines].join('\n'), 'utf8');

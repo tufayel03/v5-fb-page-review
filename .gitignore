@@ -32,6 +32,9 @@ fix_bkash.cjs
 fix_profile.cjs
 test-delete-logs.ts
 test.xlsx
+url_changes_report.xlsx
+url_changes_report.csv
+facebook-pages-export*.xlsx
 
 # System Overview
 system-overview.txt
