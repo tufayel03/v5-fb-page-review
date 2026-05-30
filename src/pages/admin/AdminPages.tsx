@@ -23,32 +23,49 @@ export default function AdminPages() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [selectingAllMatching, setSelectingAllMatching] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
 
-  const handleSyncPictures = async () => {
+  const handleSyncPictures = () => {
     if (!window.confirm("Are you sure you want to auto-fetch and optimize profile pictures for pages that do not have one? This will run in the background on the VPS.")) {
       return;
     }
+    
     setIsSyncing(true);
-    try {
-      const res = await fetch("/api/admin/pages/sync-pictures", {
-        method: "POST",
-        headers: { 
-          Authorization: `Bearer ${localStorage.getItem("token")}` 
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
+    setSyncProgress({ current: 0, total: 0, pageName: "Initializing...", count: 0 });
+    
+    const token = localStorage.getItem("token") || "";
+    const eventSource = new EventSource(`/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}`);
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.error) {
+        alert("Failed to sync: " + data.error);
+        eventSource.close();
+        setIsSyncing(false);
+        setSyncProgress(null);
+      } else if (data.done) {
         alert(`Successfully fetched and optimized ${data.count} profile pictures!`);
+        eventSource.close();
+        setIsSyncing(false);
+        setSyncProgress(null);
         fetchPages();
       } else {
-        alert("Failed to sync profile pictures: " + (data.error || "Unknown error"));
+        setSyncProgress({
+          current: data.current,
+          total: data.total,
+          pageName: data.pageName,
+          count: data.count
+        });
       }
-    } catch (err) {
-      console.error(err);
-      alert("Error calling sync endpoint");
-    } finally {
+    };
+    
+    eventSource.onerror = (err) => {
+      console.error("SSE connection error:", err);
+      alert("Failed to sync profile pictures: Connection lost or server error");
+      eventSource.close();
       setIsSyncing(false);
-    }
+      setSyncProgress(null);
+    };
   };
 
   useEffect(() => {
@@ -281,7 +298,7 @@ export default function AdminPages() {
         
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <button onClick={handleSyncPictures} disabled={isSyncing} className="bg-sky-600/15 hover:bg-sky-600/25 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-            <Image className="h-4 w-4" /> {isSyncing ? "Syncing..." : "Auto-Fetch Pictures"}
+            <Image className="h-4 w-4" /> {isSyncing ? (syncProgress && syncProgress.total > 0 ? `Syncing (${Math.round((syncProgress.current / syncProgress.total) * 100)}%)` : "Syncing...") : "Auto-Fetch Pictures"}
           </button>
           <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-[#131d36] text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
             <FileDown className="h-4 w-4" /> Export Excel
@@ -291,6 +308,28 @@ export default function AdminPages() {
           </Link>
         </div>
       </div>
+
+      {isSyncing && syncProgress && (
+        <div className="bg-sky-950/20 border border-sky-500/20 rounded-xl p-4 flex flex-col gap-2 backdrop-blur-md">
+          <div className="flex items-center justify-between text-xs text-sky-400 font-bold">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse" />
+              <span>Fetching profile pictures: <strong className="text-white">{syncProgress.pageName}</strong></span>
+            </div>
+            <span>{syncProgress.current} / {syncProgress.total} Pages ({syncProgress.total > 0 ? Math.round((syncProgress.current / syncProgress.total) * 100) : 0}%)</span>
+          </div>
+          <div className="w-full bg-slate-800/50 rounded-full h-2.5 overflow-hidden border border-slate-700/30">
+            <div 
+              className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full transition-all duration-300 rounded-full" 
+              style={{ width: `${syncProgress.total > 0 ? (syncProgress.current / syncProgress.total) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] text-slate-400 mt-0.5">
+            <span>Fetched & optimized {syncProgress.count} profile pictures successfully.</span>
+            <span>Please keep this page open until completion.</span>
+          </div>
+        </div>
+      )}
 
       {/* Advanced Filter Workspace Panel */}
       <div className="bg-[#091124] border border-white/5 rounded-xl p-4 sm:p-5 flex flex-col gap-4">

@@ -1,4 +1,6 @@
 import express from 'express';
+import dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import bcrypt from 'bcryptjs';
@@ -1296,13 +1298,27 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/pages/sync-pictures', requireModerator, async (req, res) => {
+  app.get('/api/admin/pages/sync-pictures-progress', requireModerator, async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    
     try {
-      // Find all Facebook pages that do not have a profile picture set
       const pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
+      const total = pages.length;
+      
+      if (total === 0) {
+        res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
+        return res.end();
+      }
       
       let count = 0;
+      let current = 0;
       for (const page of pages) {
+        current++;
+        res.write(`data: ${JSON.stringify({ done: false, current, total, pageName: page.current_name, count })}\n\n`);
+        
         if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
           continue;
         }
@@ -1315,76 +1331,72 @@ async function startServer() {
               'Accept-Language': 'en-US,en;q=0.9',
             }
           });
-          if (!fbRes.ok) continue;
-          
-          const html = await fbRes.text();
-          
-          // Check for roadblock
-          const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-          const title = titleMatch ? titleMatch[1].toLowerCase() : '';
-          const isRoadblocked = title.includes('facebook') || 
-                                title.includes('error') || 
-                                title.includes('log in') || 
-                                html.includes("This content isn't available") || 
-                                html.includes("isn't available at the moment");
-                                
-          if (isRoadblocked) continue;
-          
-          // Find og:image
-          const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-          if (ogImageMatch && ogImageMatch[1]) {
-            // De-escape HTML entities
-            let ogImageUrl = ogImageMatch[1]
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#039;/g, "'");
-              
-            // Fetch the binary image
-            const imgRes = await fetch(ogImageUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          if (fbRes.ok) {
+            const html = await fbRes.text();
+            
+            // Check for roadblock
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+            const title = titleMatch ? titleMatch[1].toLowerCase() : '';
+            const isRoadblocked = title.includes('facebook') || 
+                                  title.includes('error') || 
+                                  title.includes('log in') || 
+                                  html.includes("This content isn't available") || 
+                                  html.includes("isn't available at the moment");
+                                  
+            if (!isRoadblocked) {
+              // Find og:image
+              const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+              if (ogImageMatch && ogImageMatch[1]) {
+                let ogImageUrl = ogImageMatch[1]
+                  .replace(/&amp;/g, '&')
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#039;/g, "'");
+                  
+                const imgRes = await fetch(ogImageUrl, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  }
+                });
+                if (imgRes.ok) {
+                  const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                  const timestamp = Date.now();
+                  const filename = `profile-${page.id}-${timestamp}.webp`;
+                  const filepath = path.join(uploadsDir, filename);
+                  
+                  await sharp(imageBuffer)
+                    .resize(300, 300, { fit: 'cover' })
+                    .webp({ quality: 80 })
+                    .toFile(filepath);
+                    
+                  const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
+                  const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                  await sharp(imageBuffer)
+                    .resize(80, 80, { fit: 'cover' })
+                    .webp({ quality: 70 })
+                    .toFile(thumbFilepath);
+                    
+                  const profile_picture = `/uploads/${filename}`;
+                  db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
+                  count++;
+                }
               }
-            });
-            if (!imgRes.ok) continue;
-            
-            const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-            const timestamp = Date.now();
-            const filename = `profile-${page.id}-${timestamp}.webp`;
-            const filepath = path.join(uploadsDir, filename);
-            
-            // Convert and optimize to WEBP format!
-            await sharp(imageBuffer)
-              .resize(300, 300, { fit: 'cover' })
-              .webp({ quality: 80 })
-              .toFile(filepath);
-              
-            const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
-            const thumbFilepath = path.join(uploadsDir, thumbFilename);
-            await sharp(imageBuffer)
-              .resize(80, 80, { fit: 'cover' })
-              .webp({ quality: 70 })
-              .toFile(thumbFilepath);
-              
-            const profile_picture = `/uploads/${filename}`;
-            
-            // Save inside database!
-            db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
-            count++;
+            }
           }
           
-          // Sleep slightly between fetches to not hit Facebook's rate limit
           await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
         } catch (innerErr) {
           console.error(`Failed syncing image for page ${page.current_name}:`, innerErr);
         }
       }
       
-      res.json({ success: true, count });
+      res.write(`data: ${JSON.stringify({ done: true, total, count })}\n\n`);
+      res.end();
     } catch (e: any) {
-      console.error('Sync profile pictures failed:', e);
-      res.status(500).json({ error: 'Server error: ' + e.message });
+      console.error('SSE sync failed:', e);
+      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+      res.end();
     }
   });
 
