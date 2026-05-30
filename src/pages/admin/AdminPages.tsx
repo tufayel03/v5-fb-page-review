@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck } from "lucide-react";
+import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image } from "lucide-react";
 
 export default function AdminPages() {
   const [pages, setPages] = useState<any[]>([]);
@@ -22,6 +22,34 @@ export default function AdminPages() {
   const [bulkStatusValue, setBulkStatusValue] = useState("Under Review");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncPictures = async () => {
+    if (!window.confirm("Are you sure you want to auto-fetch and optimize profile pictures for pages that do not have one? This will run in the background on the VPS.")) {
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/admin/pages/sync-pictures", {
+        method: "POST",
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem("token")}` 
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Successfully fetched and optimized ${data.count} profile pictures!`);
+        fetchPages();
+      } else {
+        alert("Failed to sync profile pictures: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error calling sync endpoint");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -252,7 +280,10 @@ export default function AdminPages() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
+          <button onClick={handleSyncPictures} disabled={isSyncing} className="bg-sky-600/15 hover:bg-sky-600/25 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <Image className="h-4 w-4" /> {isSyncing ? "Syncing..." : "Auto-Fetch Pictures"}
+          </button>
+          <button onClick={handleExportExcel} className="bg-indigo-600/15 hover:bg-[#131d36] text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto cursor-pointer">
             <FileDown className="h-4 w-4" /> Export Excel
           </button>
           <Link to="/tufayel/pages/new" className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors whitespace-nowrap w-full sm:w-auto">
