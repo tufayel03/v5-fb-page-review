@@ -1333,6 +1333,26 @@ function getFacebookPageId(url: string): string | null {
   return null;
 }
 
+function getFacebookAboutUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.includes('profile.php')) {
+      parsed.searchParams.set('sk', 'about');
+      return parsed.toString();
+    }
+    let origin = parsed.origin;
+    let pathname = parsed.pathname.replace(/^\/|\/$/g, '');
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      if (['pages', 'people', 'groups'].includes(parts[0])) {
+        return `${origin}/${parts.slice(0, 3).join('/')}/about`;
+      }
+      return `${origin}/${parts[0]}/about`;
+    }
+  } catch (e) {}
+  return url + '/about';
+}
+
   app.post('/api/admin/pages/check-redirects', requireModerator, async (req, res) => {
     try {
       const { ids } = req.body;
@@ -1464,10 +1484,47 @@ function getFacebookPageId(url: string): string | null {
           }
 
           const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-          const isRoadblocked = !title || 
+          let isRoadblocked = !title || 
                                 nameBlacklist.includes(title.toLowerCase().trim()) || 
                                 html.includes("This content isn't available") ||
                                 html.includes("isn't available at the moment");
+
+          if (isRoadblocked) {
+            console.log(`[Redirect REST] Page was roadblocked for "${page.current_name}". Fetching sk=about page fallback...`);
+            try {
+              const fallbackUrl = getFacebookAboutUrl(resolvedUrl);
+              const fbAboutRes = await fetch(fallbackUrl, {
+                redirect: 'follow',
+                headers: humanHeaders,
+                signal: controller.signal
+              });
+              if (fbAboutRes.ok) {
+                const aboutHtml = await fbAboutRes.text();
+                let aboutTitle = null;
+                const ogAboutTitleMatch = aboutHtml.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                          aboutHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+                if (ogAboutTitleMatch && ogAboutTitleMatch[1]) {
+                  aboutTitle = ogAboutTitleMatch[1].split('|')[0].trim();
+                }
+                if (!aboutTitle) {
+                  const aboutTitleMatch = aboutHtml.match(/<title[^>]*>([^<]+)<\/title>/i);
+                  if (aboutTitleMatch && aboutTitleMatch[1]) {
+                    aboutTitle = aboutTitleMatch[1].split('|')[0].trim();
+                  }
+                }
+                if (aboutTitle) {
+                  aboutTitle = decodeHTMLEntities(aboutTitle);
+                  if (!nameBlacklist.includes(aboutTitle.toLowerCase().trim())) {
+                    title = aboutTitle;
+                    isRoadblocked = false;
+                    console.log(`[Redirect REST] Fallback success! Retrieved name: "${title}"`);
+                  }
+                }
+              }
+            } catch (fallbackErr) {
+              console.error(`[Redirect REST] Fallback crawling failed for "${page.current_name}":`, fallbackErr);
+            }
+          }
 
           let scrapedName = title;
           if (isRoadblocked) {
@@ -2206,10 +2263,47 @@ function getFacebookPageId(url: string): string | null {
           }
 
           const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-          const isRoadblocked = !title || 
+          let isRoadblocked = !title || 
                                 nameBlacklist.includes(title.toLowerCase().trim()) || 
                                 html.includes("This content isn't available") ||
                                 html.includes("isn't available at the moment");
+
+          if (isRoadblocked) {
+            console.log(`[Redirect Progress] Profile page roadblocked for "${page.current_name}". Crawling sk=about page fallback...`);
+            try {
+              const fallbackUrl = getFacebookAboutUrl(resolvedUrl);
+              const fbAboutRes = await fetch(fallbackUrl, {
+                redirect: 'follow',
+                headers: humanHeaders,
+                signal: controller.signal
+              });
+              if (fbAboutRes.ok) {
+                const aboutHtml = await fbAboutRes.text();
+                let aboutTitle = null;
+                const ogAboutTitleMatch = aboutHtml.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                          aboutHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+                if (ogAboutTitleMatch && ogAboutTitleMatch[1]) {
+                  aboutTitle = ogAboutTitleMatch[1].split('|')[0].trim();
+                }
+                if (!aboutTitle) {
+                  const aboutTitleMatch = aboutHtml.match(/<title[^>]*>([^<]+)<\/title>/i);
+                  if (aboutTitleMatch && aboutTitleMatch[1]) {
+                    aboutTitle = aboutTitleMatch[1].split('|')[0].trim();
+                  }
+                }
+                if (aboutTitle) {
+                  aboutTitle = decodeHTMLEntities(aboutTitle);
+                  if (!nameBlacklist.includes(aboutTitle.toLowerCase().trim())) {
+                    title = aboutTitle;
+                    isRoadblocked = false;
+                    console.log(`[Redirect Progress] Fallback success! Scraped name: "${title}"`);
+                  }
+                }
+              }
+            } catch (fallbackErr) {
+              console.error(`[Redirect Progress] Fallback about crawl failed for "${page.current_name}":`, fallbackErr);
+            }
+          }
 
           let scrapedName = title;
           if (isRoadblocked) {
