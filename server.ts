@@ -1845,11 +1845,14 @@ function normalizeName(str: string): string {
       const urlParam = facebookUrl.trim();
       const decodedName = decodeHTMLEntities(name || '').trim();
       const nameParam = decodedName || 'Unknown Page';
-      const statusParam = status === 'Reported as Fraud' 
-        ? 'Reported as Fraud' 
-        : (status === 'Verified Marketplace Seller' ? 'Verified Marketplace Seller' : 'Under Review');
+      const validStatuses = ['Reported as Fraud', 'Verified Marketplace Seller', 'Gold Seller', 'Suspicious', 'Under Review'];
+      const statusParam = validStatuses.includes(status) ? status : 'Under Review';
       const isFraud = statusParam === 'Reported as Fraud';
-      const trustScore = isFraud ? -100 : (statusParam === 'Verified Marketplace Seller' ? 100 : 0);
+      
+      let trustScore = 0;
+      if (isFraud) trustScore = -100;
+      else if (statusParam === 'Suspicious') trustScore = -50;
+      else if (statusParam === 'Verified Marketplace Seller' || statusParam === 'Gold Seller') trustScore = 100;
 
       // Extract details
       const pmList = paymentMethods ? String(paymentMethods).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];
