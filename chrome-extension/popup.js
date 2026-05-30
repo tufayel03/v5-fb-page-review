@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Helper: Save form draft to chrome.storage
   const saveDraft = () => {
     const draft = {
+      pageUrl: currentScrapedData ? currentScrapedData.url : pageUrl.textContent,
       contactNumber: contactNumber.value,
       paymentMethods: paymentMethods.value,
       pageDetails: pageDetails.value,
@@ -120,57 +121,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Helper: Load form draft from chrome.storage
   const loadDraft = () => {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['review_draft'], (result) => {
-        if (result && result.review_draft) {
-          const draft = result.review_draft;
-          
-          if (draft.contactNumber !== undefined) contactNumber.value = draft.contactNumber;
-          if (draft.paymentMethods !== undefined) paymentMethods.value = draft.paymentMethods;
-          if (draft.pageDetails !== undefined) pageDetails.value = draft.pageDetails;
-          
-          if (draft.selectedReviewType !== undefined) {
-            selectedReviewType = draft.selectedReviewType;
-            pills.forEach(p => {
-              if (p.getAttribute('data-type') === selectedReviewType) {
-                p.classList.add('selected');
-              } else {
-                p.classList.remove('selected');
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeUrl = (tabs && tabs[0]) ? (tabs[0].url || '') : '';
+        chrome.storage.local.get(['review_draft'], (result) => {
+          if (result && result.review_draft) {
+            const draft = result.review_draft;
+            
+            // Only restore draft if the page URL matches the active tab's URL!
+            if (draft.pageUrl === activeUrl || !activeUrl || !draft.pageUrl) {
+              if (draft.contactNumber !== undefined) contactNumber.value = draft.contactNumber;
+              if (draft.paymentMethods !== undefined) paymentMethods.value = draft.paymentMethods;
+              if (draft.pageDetails !== undefined) pageDetails.value = draft.pageDetails;
+              
+              if (draft.selectedReviewType !== undefined) {
+                selectedReviewType = draft.selectedReviewType;
+                pills.forEach(p => {
+                  if (p.getAttribute('data-type') === selectedReviewType) {
+                    p.classList.add('selected');
+                  } else {
+                    p.classList.remove('selected');
+                  }
+                });
               }
-            });
-          }
-          
-          if (draft.selectedRating !== undefined) {
-            selectedRating = draft.selectedRating;
-            updateStarsUI();
-          }
-          
-          if (draft.reviewTitle !== undefined) reviewTitle.value = draft.reviewTitle;
-          if (draft.reviewDate !== undefined) reviewDate.value = draft.reviewDate;
-          if (draft.reviewDesc !== undefined) reviewDesc.value = draft.reviewDesc;
-          if (draft.reviewBkash !== undefined) reviewBkash.value = draft.reviewBkash;
-          if (draft.reviewPostLink !== undefined) reviewPostLink.value = draft.reviewPostLink;
-          
-          if (draft.reviewOnBehalf !== undefined) {
-            reviewOnBehalf.checked = draft.reviewOnBehalf;
-            if (onBehalfNameGroup) {
-              onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+              
+              if (draft.selectedRating !== undefined) {
+                selectedRating = draft.selectedRating;
+                updateStarsUI();
+              }
+              
+              if (draft.reviewTitle !== undefined) reviewTitle.value = draft.reviewTitle;
+              if (draft.reviewDate !== undefined) reviewDate.value = draft.reviewDate;
+              if (draft.reviewDesc !== undefined) reviewDesc.value = draft.reviewDesc;
+              if (draft.reviewBkash !== undefined) reviewBkash.value = draft.reviewBkash;
+              if (draft.reviewPostLink !== undefined) reviewPostLink.value = draft.reviewPostLink;
+              
+              if (draft.reviewOnBehalf !== undefined) {
+                reviewOnBehalf.checked = draft.reviewOnBehalf;
+                if (onBehalfNameGroup) {
+                  onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+                }
+              }
+              if (draft.onBehalfName !== undefined) onBehalfName.value = draft.onBehalfName;
+              
+              if (draft.activeTab === 'review') {
+                tabScraperBtn.classList.remove('active');
+                tabReviewBtn.classList.add('active');
+                tabScraperContent.style.display = 'none';
+                tabReviewContent.style.display = 'block';
+              } else {
+                tabReviewBtn.classList.remove('active');
+                tabScraperBtn.classList.add('active');
+                tabReviewContent.style.display = 'none';
+                tabScraperContent.style.display = 'block';
+              }
+            } else {
+              // URL mismatch, clear previous draft
+              chrome.storage.local.remove(['review_draft']);
             }
           }
-          if (draft.onBehalfName !== undefined) onBehalfName.value = draft.onBehalfName;
-          
-          if (draft.activeTab === 'review') {
-            tabScraperBtn.classList.remove('active');
-            tabReviewBtn.classList.add('active');
-            tabScraperContent.style.display = 'none';
-            tabReviewContent.style.display = 'block';
-          } else {
-            tabReviewBtn.classList.remove('active');
-            tabScraperBtn.classList.add('active');
-            tabReviewContent.style.display = 'none';
-            tabScraperContent.style.display = 'block';
-          }
-        }
-        resolve();
+          resolve();
+        });
       });
     });
   };
@@ -354,13 +364,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Query Active Tab & Scrape DOM details
   const initializeScraper = async () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs.length === 0) return;
       
       const activeTab = tabs[0];
       const url = activeTab.url || '';
 
       if (url.includes('facebook.com')) {
+        // Reset fields before scraping new page to prevent cross-contamination
+        contactNumber.value = '';
+        paymentMethods.value = '';
+        pageDetails.value = '';
+        reviewTitle.value = '';
+        reviewDesc.value = '';
+        reviewBkash.value = '';
+        reviewPostLink.value = '';
+        onBehalfName.value = '';
+        reviewOnBehalf.checked = false;
+        if (onBehalfNameGroup) onBehalfNameGroup.style.display = 'none';
+        selectedReviewType = 'Good';
+        pills.forEach(p => {
+          if (p.getAttribute('data-type') === 'Good') {
+            p.classList.add('selected');
+          } else {
+            p.classList.remove('selected');
+          }
+        });
+        selectedRating = 5;
+        updateStarsUI();
+
+        // Load new draft if url matches
+        await loadDraft();
+
         facebookContent.style.display = 'block';
         nonFacebookContent.style.display = 'none';
 
@@ -663,4 +698,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load draft and then initialize scraper
   await loadDraft();
   await initializeScraper();
+
+  // Auto-refresh scraper when active tab changes or updates
+  chrome.tabs.onActivated.addListener(() => {
+    initializeScraper();
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+      initializeScraper();
+    }
+  });
 });
