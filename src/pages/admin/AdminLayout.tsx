@@ -151,7 +151,7 @@ export default function AdminLayout() {
       <aside
         className={`
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} 
-        fixed top-0 bottom-0 left-0 h-screen ${isCollapsed ? 'w-20' : 'w-[250px]'} bg-[#060b15] border-r border-white/5 text-slate-300 flex flex-col z-40 transition-all duration-300 overflow-hidden shrink-0
+        md:translate-x-0 fixed top-0 bottom-0 left-0 h-screen ${isCollapsed ? 'w-20' : 'w-[250px]'} bg-[#060b15] border-r border-white/5 text-slate-300 flex flex-col z-40 transition-all duration-300 overflow-hidden shrink-0
       `}
       >
         <div className={`p-6 shrink-0 hidden md:flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} font-bold text-lg text-white`}>
