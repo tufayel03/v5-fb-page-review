@@ -217,30 +217,6 @@ async function checkFacebookUrl(url) {
   }
 }
 
-async function downloadProfilePicture(imageUrl, pageName) {
-  if (!imageUrl) return false;
-  try {
-    const picturesDir = path.join(process.cwd(), 'profile_pictures');
-    if (!fs.existsSync(picturesDir)) {
-      fs.mkdirSync(picturesDir, { recursive: true });
-    }
-
-    const safeName = pageName.replace(/[\/\\?%*:|"<>]/g, '_').trim();
-    const filePath = path.join(picturesDir, `${safeName}.jpg`);
-
-    const response = await fetch(imageUrl, {
-      headers: { 'User-Agent': USER_AGENT }
-    });
-    if (!response.ok) return false;
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.promises.writeFile(filePath, buffer);
-    return filePath;
-  } catch (e) {
-    return false;
-  }
-}
-
 // Minimal CSV parser
 function parseCSV(content) {
   const lines = content.split(/\r?\n/);
@@ -388,11 +364,6 @@ async function main() {
       const scrapedPageName = result.title;
       const newPageName = scrapedPageName === '[Private, Deleted or Roadblocked]' ? name : scrapedPageName;
       const newPageId = getFacebookPageId(destinationUrl);
-
-      if (result.profilePicUrl) {
-        const picName = newPageName || name;
-        await downloadProfilePicture(result.profilePicUrl, picName);
-      }
 
       const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
       const nameChanged = scrapedPageName && scrapedPageName !== '[Private, Deleted or Roadblocked]' && name.trim().toLowerCase() !== scrapedPageName.trim().toLowerCase();
