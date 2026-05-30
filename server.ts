@@ -1384,8 +1384,9 @@ function getFacebookPageId(url: string): string | null {
                                 html.includes("This content isn't available") ||
                                 html.includes("isn't available at the moment");
 
+          let scrapedName = title;
           if (isRoadblocked) {
-            continue;
+            scrapedName = page.current_name;
           }
 
           let resolvedUrl = finalUrl;
@@ -1407,14 +1408,14 @@ function getFacebookPageId(url: string): string | null {
 
           const newPageId = getFacebookPageId(resolvedUrl);
           const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
-          const nameChanged = title && page.current_name.trim().toLowerCase() !== title.trim().toLowerCase();
+          const nameChanged = scrapedName && !isRoadblocked && page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
 
           if (usernameChanged || nameChanged) {
             results.push({
               id: page.id,
               originalName: page.current_name,
               originalUrl: page.facebook_url,
-              scrapedName: title,
+              scrapedName: scrapedName,
               scrapedUrl: resolvedUrl,
               usernameChanged,
               nameChanged,
