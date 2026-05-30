@@ -1337,6 +1337,58 @@ async function startServer() {
     }
   });
 
+  app.get('/api/admin/chrome-extension/check-page', requireModerator, (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url) {
+        return res.status(400).json({ error: 'URL query parameter is required' });
+      }
+
+      const urlParam = String(url).trim();
+      const page = db.prepare('SELECT id, current_name, status_badge, trust_score, contact_number, extra_contacts, payment_methods, page_details FROM FacebookPages WHERE facebook_url = ?').get(urlParam) as any;
+
+      if (page) {
+        let contact = page.contact_number || '';
+        if (page.extra_contacts) {
+          try {
+            const extra = JSON.parse(page.extra_contacts);
+            if (Array.isArray(extra) && extra.length > 0) {
+              contact = [contact, ...extra].filter(Boolean).join(', ');
+            }
+          } catch(e) {}
+        }
+
+        let payments = '';
+        if (page.payment_methods) {
+          try {
+            const pms = JSON.parse(page.payment_methods);
+            if (Array.isArray(pms)) {
+              payments = pms.join(', ');
+            }
+          } catch(e) {}
+        }
+
+        return res.json({
+          exists: true,
+          page: {
+            id: page.id,
+            name: page.current_name,
+            status: page.status_badge,
+            trustScore: page.trust_score,
+            contactNumber: contact,
+            paymentMethods: payments,
+            pageDetails: page.page_details || ''
+          }
+        });
+      }
+
+      return res.json({ exists: false });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: 'Server error checking page status: ' + e.message });
+    }
+  });
+
   app.post('/api/admin/chrome-extension/add-page', requireModerator, async (req, res) => {
     try {
       const { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails } = req.body;

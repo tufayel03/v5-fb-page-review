@@ -16,13 +16,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return alt.includes('profile photo') || 
                alt.includes('profile picture') || 
                alt.includes('প্রোফাইল ছবি') || 
-               alt.includes('প্রোফাইল ফটো');
+               alt.includes('প্রোফাইল ফটো') || 
+               alt.includes('profile pic');
       });
 
       if (profileImg) {
         profilePicUrl = profileImg.src;
-      } else {
-        // Fallback: search for any image in a circle or large container inside the page header
+      }
+
+      // If not found in <img>, look in SVG <image> elements (very common in modern FB profile headers!)
+      if (!profilePicUrl) {
+        const allSvgImages = Array.from(document.querySelectorAll('image'));
+        const headerSvgImage = allSvgImages.find(img => {
+          const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
+          return href.includes('scontent') && (href.includes('/v/') || href.includes('/t') || href.includes('p160x160') || href.includes('p200x200') || href.includes('p320x320') || href.includes('p50x50') || href.includes('p100x100'));
+        });
+        
+        if (headerSvgImage) {
+          profilePicUrl = headerSvgImage.getAttribute('href') || headerSvgImage.getAttribute('xlink:href');
+        }
+      }
+
+      // Fallback: search for any large avatar element or profile image container
+      if (!profilePicUrl) {
         const header = document.querySelector('[role="main"]') || document.body;
         const candidateImg = header.querySelector('img[width="168"], img[width="176"], img[width="132"]');
         if (candidateImg) {
