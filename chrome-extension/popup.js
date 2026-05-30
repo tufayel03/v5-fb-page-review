@@ -257,28 +257,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if (data.page.status === 'Reported as Fraud') {
             dbStatusBadge.textContent = '🛑 ALREADY LISTED: FRAUD';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
-            addVerifiedBtn.textContent = '⭐ Change to Verified Seller';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            addVerifiedBtn.textContent = '⭐ Change to Verified';
             addReviewBtn.textContent = '🔍 Change to Under Review';
             addFraudBtn.textContent = '🛑 Update Fraud Details';
           } else if (data.page.status === 'Verified Marketplace Seller') {
             dbStatusBadge.textContent = '⭐ ALREADY LISTED: VERIFIED SELLER';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
-            addVerifiedBtn.textContent = '⭐ Update Verified Seller Details';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            addVerifiedBtn.textContent = '⭐ Update Verified';
             addReviewBtn.textContent = '🔍 Change to Under Review';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else {
             dbStatusBadge.textContent = '🔍 ALREADY LISTED: UNDER REVIEW';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
-            addVerifiedBtn.textContent = '⭐ Change to Verified Seller';
-            addReviewBtn.textContent = '🔍 Update Under Review Details';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addReviewBtn.textContent = '🔍 Update Under Review';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           }
         } else {
           dbStatusBadge.style.display = 'none';
-          addVerifiedBtn.textContent = '⭐ Verify as MARKETPLACE SELLER';
-          addReviewBtn.textContent = '🔍 Add to Under Review';
-          addFraudBtn.textContent = '🛑 Report & Add as FRAUD';
+          addVerifiedBtn.textContent = '⭐ Verified Seller';
+          addReviewBtn.textContent = '🔍 Under Review';
+          addFraudBtn.textContent = '🛑 Report as FRAUD';
         }
       }
     } catch (err) {

@@ -3,78 +3,83 @@
 <head>
   <meta charset="utf-8">
   <title>FB Page Review Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #090d16;
-      --card-bg: rgba(22, 28, 45, 0.6);
-      --border-color: rgba(255, 255, 255, 0.08);
+      --bg-dark: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.7);
+      --border-color: rgba(255, 255, 255, 0.06);
       --text-main: #f3f4f6;
       --text-muted: #9ca3af;
+      
       --color-primary: #3b82f6;
-      --color-primary-glow: rgba(59, 130, 246, 0.15);
+      --color-primary-glow: rgba(59, 130, 246, 0.2);
       --color-success: #10b981;
+      --color-success-glow: rgba(16, 185, 129, 0.2);
       --color-danger: #ef4444;
-      --color-danger-glow: rgba(239, 68, 68, 0.2);
+      --color-danger-glow: rgba(239, 68, 68, 0.25);
+      --color-warning: #f59e0b;
+      --color-warning-glow: rgba(245, 158, 11, 0.25);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Outfit', sans-serif;
     }
 
     body {
-      width: 360px;
+      width: 380px;
       background: var(--bg-dark);
       color: var(--text-main);
-      overflow-x: hidden;
-      padding: 16px;
-      font-size: 14px;
+      overflow: hidden; /* ABSOLUTELY NO SCROLLBAR */
+      padding: 12px;
+      font-size: 13px;
     }
 
-    /* Glassmorphism containers */
+    /* Glassmorphism main wrapper */
     .container {
       background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      padding: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     }
 
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .logo-container {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .logo-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: var(--color-primary);
-      box-shadow: 0 0 10px var(--color-primary);
+      background: #8b5cf6;
+      box-shadow: 0 0 10px #8b5cf6;
     }
 
     .logo-text {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
-      letter-spacing: -0.025em;
-      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #a78bfa, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
     }
 
     .settings-btn {
@@ -82,12 +87,13 @@
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      font-size: 16px;
-      transition: color 0.2s;
+      font-size: 15px;
+      transition: all 0.2s;
     }
 
     .settings-btn:hover {
       color: var(--text-main);
+      transform: rotate(30deg);
     }
 
     /* Screen Views */
@@ -97,59 +103,66 @@
 
     .view.active {
       display: block;
+      animation: fadeIn 0.25s ease-out;
     }
 
-    /* Form Styles */
+    /* Compact Form Styles */
     .form-group {
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     label {
       display: block;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-weight: 600;
     }
 
-    input, textarea, select {
+    input, textarea {
       width: 100%;
-      background: rgba(10, 15, 30, 0.8);
-      border: 1px solid var(--border-color);
+      background: rgba(10, 15, 30, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       color: var(--text-main);
-      font-size: 13px;
-      transition: all 0.2s;
+      font-size: 12px;
+      transition: all 0.2s ease-in-out;
     }
 
-    input:focus, textarea:focus, select:focus {
+    input:focus, textarea:focus {
       outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px var(--color-primary-glow);
+      border-color: #8b5cf6;
+      background: rgba(10, 15, 30, 0.8);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
     }
 
-    /* Scraped Preview Card */
+    textarea {
+      resize: none;
+    }
+
+    /* High-Fidelity Preview Card */
     .preview-card {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-color);
+      gap: 10px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 14px;
+      padding: 10px;
+      margin-bottom: 10px;
     }
 
     .preview-avatar {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       object-fit: cover;
-      background: #111827;
-      border: 2px solid var(--border-color);
+      background: #0f172a;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     .preview-info {
@@ -167,73 +180,41 @@
     }
 
     .preview-url {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* Action Buttons */
-    .button-group {
+    /* PREMIUM ROW & GRID BUTTON LAYOUT */
+    .button-row {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 18px;
+      gap: 8px;
+      margin-bottom: 8px;
     }
 
     .btn {
-      width: 100%;
       border: none;
-      border-radius: 10px;
-      padding: 12px;
-      font-size: 13px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s ease-in-out;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      color: white;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #60a5fa, #3b82f6);
-      transform: translateY(-1px);
-    }
-
-    .btn-success {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-    }
-
-    .btn-success:hover {
-      background: linear-gradient(135deg, #34d399, #10b981);
-      transform: translateY(-1px);
-    }
-
-    .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: white;
-      box-shadow: 0 4px 12px var(--color-danger-glow);
-    }
-
-    .btn-danger:hover {
-      background: linear-gradient(135deg, #f87171, #ef4444);
-      transform: translateY(-1px);
-    }
-
+    /* Verified Marketplace Button (Gold/Amber Theme) */
     .btn-warning {
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: white;
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+      box-shadow: 0 4px 12px var(--color-warning-glow);
+      flex: 1;
     }
 
     .btn-warning:hover {
@@ -241,44 +222,83 @@
       transform: translateY(-1px);
     }
 
+    /* Under Review Button (Green Theme) */
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 4px 12px var(--color-success-glow);
+      flex: 1;
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      transform: translateY(-1px);
+    }
+
+    /* Fraud Button (Destructive Red Theme - Full Width) */
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 4px 12px var(--color-danger-glow);
+      width: 100%;
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+      transform: translateY(-1px);
+    }
+
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-main);
-      border: 1px solid var(--border-color);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      width: 100%;
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.1);
     }
 
     /* Message Alerts */
     .alert {
-      padding: 10px 12px;
+      padding: 8px 10px;
       border-radius: 8px;
-      margin-bottom: 14px;
-      font-size: 12px;
+      margin-bottom: 10px;
+      font-size: 11px;
       display: none;
-      animation: fadeIn 0.3s;
+      animation: fadeIn 0.25s;
     }
 
     .alert-success {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
       color: #34d399;
       display: block;
     }
 
     .alert-danger {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
       color: #f87171;
       display: block;
     }
 
     /* Custom Loading Spinner */
     .spinner {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border: 2px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
       border-top-color: white;
@@ -296,13 +316,13 @@
 
     .non-facebook-alert {
       text-align: center;
-      padding: 24px 12px;
+      padding: 16px 8px;
     }
 
     .non-facebook-alert p {
       color: var(--text-muted);
-      margin-bottom: 16px;
-      line-height: 1.5;
+      margin-bottom: 12px;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -312,7 +332,7 @@
     <div class="header">
       <div class="logo-container">
         <div class="logo-dot"></div>
-        <div class="logo-text">FB PAGE REVIEW</div>
+        <div class="logo-text">FB Page Assistant</div>
       </div>
       <button id="settingsBtn" class="settings-btn" title="Server Settings">⚙️</button>
     </div>
@@ -324,18 +344,18 @@
     <div id="mainView" class="view active">
       <div id="facebookContent">
         <!-- Database Status Indicator -->
-        <div id="dbStatusBadge" style="display: none; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;"></div>
+        <div id="dbStatusBadge" style="display: none;"></div>
 
         <!-- Preview Card -->
         <div class="preview-card">
-          <img id="pageAvatar" class="preview-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'><circle cx='12' cy='12' r='10'/></svg>">
+          <img id="pageAvatar" class="preview-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='42' height='42' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'><circle cx='12' cy='12' r='10'/></svg>">
           <div class="preview-info">
             <div id="pageName" class="preview-name">Loading Page Name...</div>
             <div id="pageUrl" class="preview-url">Detecting URL...</div>
           </div>
         </div>
 
-        <!-- Optional inputs to review/modify scraped data -->
+        <!-- Inputs to review/modify scraped data -->
         <div class="form-group">
           <label>Phone Number (Scraped/Manual)</label>
           <input type="text" id="contactNumber" placeholder="e.g. +88017XXXXXXXX">
@@ -348,19 +368,24 @@
 
         <div class="form-group">
           <label>Page Details (Notes)</label>
-          <textarea id="pageDetails" rows="2" placeholder="Add custom notes or details..."></textarea>
+          <textarea id="pageDetails" rows="1" placeholder="Add custom notes or details..."></textarea>
         </div>
 
-        <!-- Buttons -->
-        <div class="button-group">
-          <button id="addVerifiedBtn" class="btn btn-warning">
-            ⭐ Verify as MARKETPLACE SELLER
-          </button>
-          <button id="addReviewBtn" class="btn btn-success">
-            🔍 Add to Under Review
-          </button>
+        <!-- Buttons: Optimized Grid Layout to Completely Remove Scrollbar -->
+        <div class="button-group" style="margin-top: 12px;">
+          <!-- Positive Actions (Side-by-Side) -->
+          <div class="button-row">
+            <button id="addVerifiedBtn" class="btn btn-warning">
+              ⭐ Verified Seller
+            </button>
+            <button id="addReviewBtn" class="btn btn-success">
+              🔍 Under Review
+            </button>
+          </div>
+          
+          <!-- Destructive Action (Full Width) -->
           <button id="addFraudBtn" class="btn btn-danger">
-            🛑 Report & Add as FRAUD
+            🛑 Report as FRAUD
           </button>
         </div>
       </div>
@@ -374,7 +399,7 @@
 
     <!-- Screen 2: Server & Authentication Settings -->
     <div id="settingsView" class="view">
-      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Server Connection Settings</h3>
+      <h3 style="font-size: 13px; font-weight: 600; margin-bottom: 10px;">Server Settings</h3>
       
       <div class="form-group">
         <label>Server URL</label>
@@ -391,8 +416,8 @@
         <input type="password" id="adminPass" placeholder="Enter password">
       </div>
 
-      <div class="button-group">
-        <button id="saveSettingsBtn" class="btn btn-primary">Save & Connect</button>
+      <div class="button-group" style="margin-top: 12px;">
+        <button id="saveSettingsBtn" class="btn btn-primary" style="margin-bottom: 8px;">Save & Connect</button>
         <button id="backToMainBtn" class="btn btn-secondary">Back</button>
       </div>
     </div>
