@@ -347,8 +347,10 @@ export default function AdminPages() {
               className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="all">All Statuses</option>
-              <option value="clean">Clean (Not Fraud)</option>
-              <option value="fraud">Fraud Listed</option>
+              <option value="Reported as Fraud">🛑 Reported as Fraud</option>
+              <option value="Verified Marketplace Seller">⭐ Verified Seller</option>
+              <option value="Under Review">🔍 Under Review</option>
+              <option value="clean">🛡️ Clean (Not Fraud)</option>
             </select>
           </div>
 

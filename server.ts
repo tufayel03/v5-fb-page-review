@@ -1213,6 +1213,9 @@ async function startServer() {
           whereClauses.push("status_badge = 'Reported as Fraud'");
         } else if (status === 'clean') {
           whereClauses.push("status_badge != 'Reported as Fraud'");
+        } else {
+          whereClauses.push("status_badge = ?");
+          params.push(status);
         }
       }
 
@@ -1730,6 +1733,9 @@ async function startServer() {
               whereClauses.push("status_badge = 'Reported as Fraud'");
             } else if (status === 'clean') {
               whereClauses.push("status_badge != 'Reported as Fraud'");
+            } else {
+              whereClauses.push("status_badge = ?");
+              params.push(status);
             }
           }
           if (claimStatus !== 'all') {
