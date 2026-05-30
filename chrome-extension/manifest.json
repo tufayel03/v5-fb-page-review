@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "FB Page Review - Admin Assistant",
+  "version": "1.0",
+  "description": "Easily add Facebook pages to your database or report them as fraud directly from Facebook.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.facebook.com/*",
+    "https://*.fbpagereview.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

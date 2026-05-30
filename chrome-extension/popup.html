@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>FB Page Review Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(22, 28, 45, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --color-primary: #3b82f6;
+      --color-primary-glow: rgba(59, 130, 246, 0.15);
+      --color-success: #10b981;
+      --color-danger: #ef4444;
+      --color-danger-glow: rgba(239, 68, 68, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      width: 360px;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      padding: 16px;
+      font-size: 14px;
+    }
+
+    /* Glassmorphism containers */
+    .container {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      box-shadow: 0 0 10px var(--color-primary);
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .settings-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      transition: color 0.2s;
+    }
+
+    .settings-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* Screen Views */
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: rgba(10, 15, 30, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-glow);
+    }
+
+    /* Scraped Preview Card */
+    .preview-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .preview-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #111827;
+      border: 2px solid var(--border-color);
+    }
+
+    .preview-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .preview-name {
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+
+    .preview-url {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Action Buttons */
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      transform: translateY(-1px);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 4px 12px var(--color-danger-glow);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Message Alerts */
+    .alert {
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      display: block;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      display: block;
+    }
+
+    /* Custom Loading Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .non-facebook-alert {
+      text-align: center;
+      padding: 24px 12px;
+    }
+
+    .non-facebook-alert p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-container">
+        <div class="logo-dot"></div>
+        <div class="logo-text">FB PAGE REVIEW</div>
+      </div>
+      <button id="settingsBtn" class="settings-btn" title="Server Settings">⚙️</button>
+    </div>
+
+    <!-- Alert Messages -->
+    <div id="alertBox" class="alert"></div>
+
+    <!-- Screen 1: Active Facebook Scraper View -->
+    <div id="mainView" class="view active">
+      <div id="facebookContent">
+        <!-- Preview Card -->
+        <div class="preview-card">
+          <img id="pageAvatar" class="preview-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'><circle cx='12' cy='12' r='10'/></svg>">
+          <div class="preview-info">
+            <div id="pageName" class="preview-name">Loading Page Name...</div>
+            <div id="pageUrl" class="preview-url">Detecting URL...</div>
+          </div>
+        </div>
+
+        <!-- Optional inputs to review/modify scraped data -->
+        <div class="form-group">
+          <label>Phone Number (Scraped/Manual)</label>
+          <input type="text" id="contactNumber" placeholder="e.g. +88017XXXXXXXX">
+        </div>
+
+        <div class="form-group">
+          <label>Payment Methods (Comma separated)</label>
+          <input type="text" id="paymentMethods" placeholder="e.g. bkash, nagad, rocket">
+        </div>
+
+        <div class="form-group">
+          <label>Page Details (Notes)</label>
+          <textarea id="pageDetails" rows="2" placeholder="Add custom notes or details..."></textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+          <button id="addFraudBtn" class="btn btn-danger">
+            🛑 Report & Add as FRAUD
+          </button>
+          <button id="addReviewBtn" class="btn btn-success">
+            🔍 Add to Under Review
+          </button>
+        </div>
+      </div>
+
+      <!-- Alert if not on a facebook tab -->
+      <div id="nonFacebookContent" style="display: none;" class="non-facebook-alert">
+        <p>Please open a Facebook Page tab (e.g. facebook.com/pagename) to use the scraper assistant!</p>
+        <button id="openFbBtn" class="btn btn-primary">Open Facebook</button>
+      </div>
+    </div>
+
+    <!-- Screen 2: Server & Authentication Settings -->
+    <div id="settingsView" class="view">
+      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Server Connection Settings</h3>
+      
+      <div class="form-group">
+        <label>Server URL</label>
+        <input type="url" id="serverUrl" value="https://fbpagereview.com">
+      </div>
+
+      <div class="form-group">
+        <label>Admin Username / Email</label>
+        <input type="text" id="adminUser" placeholder="Enter username or email">
+      </div>
+
+      <div class="form-group">
+        <label>Admin Password</label>
+        <input type="password" id="adminPass" placeholder="Enter password">
+      </div>
+
+      <div class="button-group">
+        <button id="saveSettingsBtn" class="btn btn-primary">Save & Connect</button>
+        <button id="backToMainBtn" class="btn btn-secondary">Back</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
