@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image } from "lucide-react";
+import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
 
 export default function AdminPages() {
   const [pages, setPages] = useState<any[]>([]);
@@ -25,6 +25,13 @@ export default function AdminPages() {
   const [bulkStatusValue, setBulkStatusValue] = useState("Under Review");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [selectingAllMatching, setSelectingAllMatching] = useState(false);
+
+  // Redirect check states
+  const [redirectModalOpen, setRedirectModalOpen] = useState(false);
+  const [redirectChecking, setRedirectChecking] = useState(false);
+  const [redirectResults, setRedirectResults] = useState<any[]>([]);
+  const [selectedRedirects, setSelectedRedirects] = useState<string[]>([]);
+  const [applyingRedirects, setApplyingRedirects] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
 
@@ -242,10 +249,83 @@ export default function AdminPages() {
     }
   };
 
+  const handleCheckRedirects = async () => {
+    setRedirectModalOpen(true);
+    setRedirectChecking(true);
+    setRedirectResults([]);
+    setSelectedRedirects([]);
+    
+    try {
+      const res = await fetch('/api/admin/pages/check-redirects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ ids: selectedPageIds })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.results)) {
+        setRedirectResults(data.results);
+        setSelectedRedirects(data.results.map((r: any) => r.id));
+      } else {
+        alert(data.error || 'Failed to check page redirects.');
+        setRedirectModalOpen(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'An error occurred while checking redirects.');
+      setRedirectModalOpen(false);
+    } finally {
+      setRedirectChecking(false);
+    }
+  };
+
+  const handleApplyRedirects = async () => {
+    if (selectedRedirects.length === 0) {
+      alert("Please select at least one redirect to list.");
+      return;
+    }
+
+    const itemsToApply = redirectResults.filter((r: any) => selectedRedirects.includes(r.id));
+    setApplyingRedirects(true);
+
+    try {
+      const res = await fetch('/api/admin/pages/apply-redirects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ redirects: itemsToApply })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Selected redirects applied successfully! New replacement pages listed, and old pages marked as Old/Dead.");
+        setRedirectModalOpen(false);
+        setSelectedPageIds([]);
+        setBulkAction("");
+        fetchPages();
+      } else {
+        alert(data.error || 'Failed to apply redirects.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'An error occurred while applying redirects.');
+    } finally {
+      setApplyingRedirects(false);
+    }
+  };
+
   const executeBulkAction = async () => {
     if (selectedPageIds.length === 0) return;
     if (!bulkAction) {
       alert("Please select a valid bulk action.");
+      return;
+    }
+
+    if (bulkAction === 'check_redirects') {
+      handleCheckRedirects();
       return;
     }
 
@@ -362,6 +442,7 @@ export default function AdminPages() {
               <option value="Reported as Fraud">🛑 Reported as Fraud</option>
               <option value="Verified Marketplace Seller">⭐ Verified Seller</option>
               <option value="Under Review">🔍 Under Review</option>
+              <option value="Old/Dead Page">💀 Old/Dead Pages</option>
               <option value="clean">🛡️ Clean (Not Fraud)</option>
             </select>
           </div>
@@ -539,6 +620,7 @@ export default function AdminPages() {
               <option value="mark_fraud">Bulk Mark as Fraud (-100 Score)</option>
               <option value="clear_fraud">Bulk Clear Fraud (Under Review)</option>
               <option value="change_status">Bulk Change Status Badge...</option>
+              <option value="check_redirects">🔍 Check Name/URL Redirects</option>
               <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>
@@ -551,11 +633,9 @@ export default function AdminPages() {
               >
                 <option value="Under Review">Under Review</option>
                 <option value="Reported as Fraud">Reported as Fraud</option>
-                <option value="Trusted">Trusted</option>
-                <option value="Suspicious">Suspicious</option>
-                <option value="Safe">Safe</option>
-                <option value="Verifying">Verifying</option>
-                <option value="Verified Vendor">Verified Vendor</option>
+                <option value="Verified Marketplace Seller">Verified Marketplace Seller</option>
+                <option value="Old/Dead Page">Old/Dead Page</option>
+                <option value="Clean">Clean</option>
               </select>
             )}
 
@@ -840,6 +920,160 @@ export default function AdminPages() {
               </div>
            </div>
         </div>
+
+      {/* Redirect Redirection Verification Modal */}
+      {redirectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050b18]/85 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-3xl bg-[#091124] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-white/5 flex items-center justify-between bg-[#050b18]/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <RefreshCw className="h-5 w-5 animate-spin" style={{ animationDuration: redirectChecking ? '3s' : '0s' }} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Live Facebook Page Redirection Checker</h3>
+                  <p className="text-xs text-slate-400">Scrapes and traces name changes and username/URL relocations on the live platform.</p>
+                </div>
+              </div>
+              {!redirectChecking && !applyingRedirects && (
+                <button
+                  onClick={() => setRedirectModalOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all cursor-pointer font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {redirectChecking ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+                    <Search className="h-5 w-5 text-emerald-400 absolute inset-0 m-auto animate-pulse" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-bold text-slate-200">Analyzing live Facebook pages...</p>
+                    <p className="text-xs text-slate-500">Checking for canonical URL forwards, username updates, and branding revisions.</p>
+                  </div>
+                </div>
+              ) : redirectResults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                  <div className="p-3 rounded-full bg-slate-800/40 text-slate-550">
+                    <CheckCircle className="h-8 w-8 text-emerald-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-black text-slate-200">No URL or Page Name Changes Detected</p>
+                    <p className="text-xs text-slate-400">All scanned profiles are pointing to their original recorded usernames and names.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                    <p className="text-xs text-emerald-300 font-medium">
+                      Found <strong>{redirectResults.length}</strong> pages with live updates. Check the ones you wish to record in the database. Scraped pages will be listed as active, and original pages will be kept and marked as <strong>Old/Dead Page</strong>.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {redirectResults.map((result: any) => {
+                      const isSelected = selectedRedirects.includes(result.id);
+                      return (
+                        <div 
+                          key={result.id}
+                          className={`p-4 border rounded-xl transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none ${
+                            isSelected 
+                              ? 'bg-emerald-950/20 border-emerald-500/30' 
+                              : 'bg-slate-900/30 border-white/5 opacity-70 hover:opacity-100'
+                          }`}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedRedirects(prev => prev.filter(id => id !== result.id));
+                            } else {
+                              setSelectedRedirects(prev => [...prev, result.id]);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input 
+                              type="checkbox"
+                              checked={isSelected}
+                              readOnly
+                              className="mt-1 h-4 w-4 rounded border-white/10 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20"
+                            />
+                            <div className="space-y-2">
+                              <span className="inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                {result.changeType}
+                              </span>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                                <div>
+                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Original / Old</span>
+                                  <strong className="text-xs text-slate-300 block">{result.originalName}</strong>
+                                  <a href={result.originalUrl} target="_blank" rel="noreferrer" className="text-[11px] text-sky-400 hover:underline line-clamp-1">{result.originalUrl}</a>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-emerald-400 uppercase tracking-wider block">Live Scraped / New</span>
+                                  <strong className="text-xs text-emerald-400 block">{result.scrapedName}</strong>
+                                  <a href={result.scrapedUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-500 hover:underline line-clamp-1">{result.scrapedUrl}</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-white/5 bg-[#050b18]/50 flex items-center justify-between">
+              <div>
+                {!redirectChecking && redirectResults.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedRedirects.length === redirectResults.length) {
+                        setSelectedRedirects([]);
+                      } else {
+                        setSelectedRedirects(redirectResults.map((r: any) => r.id));
+                      }
+                    }}
+                    className="text-xs text-slate-400 hover:text-white transition-all font-semibold"
+                  >
+                    {selectedRedirects.length === redirectResults.length ? "Deselect All" : "Select All"}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={redirectChecking || applyingRedirects}
+                  onClick={() => setRedirectModalOpen(false)}
+                  className="bg-white/5 hover:bg-white/10 text-slate-300 px-4 py-2 rounded-lg text-sm transition-all cursor-pointer font-bold disabled:opacity-30"
+                >
+                  Cancel
+                </button>
+                {!redirectChecking && redirectResults.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={applyingRedirects || selectedRedirects.length === 0}
+                    onClick={handleApplyRedirects}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-[#050b18] px-5 py-2 rounded-lg text-sm transition-all cursor-pointer font-black disabled:opacity-30 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/10"
+                  >
+                    {applyingRedirects ? "Applying Changes..." : `Apply & List ${selectedRedirects.length} New Pages`}
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

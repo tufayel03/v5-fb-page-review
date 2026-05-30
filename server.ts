@@ -1296,6 +1296,193 @@ async function startServer() {
     }
   });
 
+function getFacebookPageId(url: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.includes('profile.php')) {
+      const id = parsed.searchParams.get('id');
+      if (id) return id;
+    }
+    let pathname = parsed.pathname.replace(/^\/|\/$/g, '');
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      if (['pages', 'people', 'groups'].includes(parts[0])) {
+        if (parts.length >= 3 && /^\d+$/.test(parts[2])) {
+          return parts[2];
+        }
+        if (parts.length >= 2) {
+          if (/^\d+$/.test(parts[1])) {
+            return parts[1];
+          }
+          return parts[1];
+        }
+      }
+      const lastSegment = parts[parts.length - 1];
+      if (/^\d+$/.test(lastSegment)) {
+        return lastSegment;
+      }
+      return parts[0];
+    }
+  } catch (e) {}
+  return null;
+}
+
+  app.post('/api/admin/pages/check-redirects', requireModerator, async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'No page IDs selected.' });
+      }
+
+      const placeholders = ids.map(() => '?').join(',');
+      const pages = db.prepare(`SELECT * FROM FacebookPages WHERE id IN (${placeholders})`).all(...ids) as any[];
+
+      const results = [];
+      const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+      for (const page of pages) {
+        const url = page.facebook_url;
+        const oldPageId = getFacebookPageId(url);
+        if (!oldPageId) continue;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': USER_AGENT,
+              'Accept-Language': 'en-US,en;q=0.9',
+            },
+            redirect: 'follow',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          const finalUrl = response.url;
+          const html = await response.text();
+
+          let title = null;
+          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          if (ogTitleMatch && ogTitleMatch[1]) {
+            title = ogTitleMatch[1].split('|')[0].trim();
+          } else {
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+            if (titleMatch && titleMatch[1]) {
+              title = titleMatch[1].split('|')[0].trim();
+            }
+          }
+
+          if (title) {
+            title = decodeHTMLEntities(title);
+          }
+
+          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+          const isRoadblocked = !title || 
+                                nameBlacklist.includes(title.toLowerCase().trim()) || 
+                                html.includes("This content isn't available") ||
+                                html.includes("isn't available at the moment");
+
+          if (isRoadblocked) {
+            continue;
+          }
+
+          let resolvedUrl = finalUrl;
+          const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
+          if (canonicalMatch && canonicalMatch[1]) {
+            const canonicalUrl = canonicalMatch[1];
+            if (canonicalUrl.includes('facebook.com')) {
+              resolvedUrl = canonicalUrl;
+            }
+          } else {
+            const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
+            if (ogMatch && ogMatch[1]) {
+              const ogUrl = ogMatch[1];
+              if (ogUrl.includes('facebook.com')) {
+                resolvedUrl = ogUrl;
+              }
+            }
+          }
+
+          const newPageId = getFacebookPageId(resolvedUrl);
+          const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
+          const nameChanged = title && page.current_name.trim().toLowerCase() !== title.trim().toLowerCase();
+
+          if (usernameChanged || nameChanged) {
+            results.push({
+              id: page.id,
+              originalName: page.current_name,
+              originalUrl: page.facebook_url,
+              scrapedName: title,
+              scrapedUrl: resolvedUrl,
+              usernameChanged,
+              nameChanged,
+              changeType: usernameChanged && nameChanged ? "BOTH CHANGED" : (usernameChanged ? "URL CHANGED" : "NAME CHANGED")
+            });
+          }
+        } catch (e) {
+          console.error(`Failed to check redirect for page ${url}:`, e);
+        }
+      }
+
+      res.json({ success: true, results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  });
+
+  app.post('/api/admin/pages/apply-redirects', requireModerator, async (req, res) => {
+    try {
+      const { redirects } = req.body;
+      if (!Array.isArray(redirects) || redirects.length === 0) {
+        return res.status(400).json({ error: 'No redirects provided.' });
+      }
+
+      for (const item of redirects) {
+        const { id, scrapedName, scrapedUrl } = item;
+
+        const oldPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(id) as any;
+        if (!oldPage) continue;
+
+        const existingNewPage = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ?').get(scrapedUrl) as any;
+        if (existingNewPage) {
+          db.prepare("UPDATE FacebookPages SET status_badge = 'Old/Dead Page' WHERE id = ?").run(id);
+          continue;
+        }
+
+        db.prepare("UPDATE FacebookPages SET status_badge = 'Old/Dead Page' WHERE id = ?").run(id);
+
+        const newPageId = crypto.randomUUID();
+        const newDetails = `[System Redirect]: Active replacement page for "${oldPage.current_name}" (${oldPage.facebook_url}).\n\nOriginal Details:\n${oldPage.page_details || ''}`;
+        
+        db.prepare(`
+          INSERT INTO FacebookPages (
+            id, current_name, facebook_url, contact_number, extra_contacts, 
+            payment_methods, page_details, status_badge, trust_score, 
+            is_fraud_listed, profile_picture
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          newPageId,
+          scrapedName,
+          scrapedUrl,
+          oldPage.contact_number || '',
+          oldPage.extra_contacts || '',
+          oldPage.payment_methods || '',
+          newDetails,
+          oldPage.status_badge,
+          oldPage.trust_score,
+          oldPage.is_fraud_listed,
+          ''
+        );
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  });
+
   app.post('/api/admin/pages/bulk', requireModerator, (req, res) => {
     try {
       const { ids, action, value } = req.body;
