@@ -1329,7 +1329,7 @@ async function startServer() {
           console.log(`[Sync] Fetching HTML for page "${page.current_name}" (${page.facebook_url})...`);
           const fbRes = await fetch(page.facebook_url, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
               'Accept-Language': 'en-US,en;q=0.9',
             }
           });
@@ -1342,10 +1342,17 @@ async function startServer() {
           
           const html = await fbRes.text();
           
-          // Check for roadblock
-          const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-          let title = titleMatch ? titleMatch[1].toLowerCase().trim() : '';
-          title = title
+          // Extract page title using og:title first, then fallback to title tag
+          let rawTitle = '';
+          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          if (ogTitleMatch && ogTitleMatch[1]) {
+            rawTitle = ogTitleMatch[1].split('|')[0].trim();
+          } else {
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+            rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+          }
+          
+          let title = rawTitle.toLowerCase().trim()
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
@@ -1358,7 +1365,7 @@ async function startServer() {
                                 html.includes("This content isn't available") || 
                                 html.includes("isn't available at the moment");
                                 
-          console.log(`[Sync] Page title: "${titleMatch ? titleMatch[1] : 'none'}", Roadblocked: ${isRoadblocked}`);
+          console.log(`[Sync] Page title: "${rawTitle || 'none'}", Roadblocked: ${isRoadblocked}`);
           if (isRoadblocked) {
             console.log(`[Sync] Page skipped: Roadblock detected`);
             continue;
@@ -1381,7 +1388,7 @@ async function startServer() {
           console.log(`[Sync] Fetching profile picture from CDN...`);
           const imgRes = await fetch(ogImageUrl, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             }
           });
           
