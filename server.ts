@@ -4691,6 +4691,21 @@ async function startServer() {
     });
   }
 
+  // Instant Auto-Migration for HTML entity names
+  try {
+    const pagesWithEntities = db.prepare("SELECT id, current_name FROM FacebookPages WHERE current_name LIKE '%&#%'").all() as any[];
+    console.log(`[Auto-Migration] Found ${pagesWithEntities.length} pages containing HTML entities in their names.`);
+    for (const page of pagesWithEntities) {
+      if (page.current_name && page.current_name.includes('&#')) {
+        const decoded = decodeHTMLEntities(page.current_name);
+        console.log(`[Auto-Migration] Decoding name for page ID ${page.id}: "${page.current_name}" -> "${decoded}"`);
+        db.prepare("UPDATE FacebookPages SET current_name = ? WHERE id = ?").run(decoded, page.id);
+      }
+    }
+  } catch (migErr) {
+    console.error(`[Auto-Migration] Failed decoding existing entity page names:`, migErr);
+  }
+
   app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
