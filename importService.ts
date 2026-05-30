@@ -293,6 +293,20 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
   return jobId;
 }
 
+function decodeHTMLEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 async function crawlPageMetadata(pageId: string, url: string, currentName: string): Promise<{ name: string; profilePic: string | null }> {
   let finalName = currentName || '';
   let profilePicPath: string | null = null;
@@ -319,6 +333,8 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
           const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
           rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
         }
+
+        rawTitle = decodeHTMLEntities(rawTitle);
 
         if (rawTitle) {
           const titleLower = rawTitle.toLowerCase().trim()

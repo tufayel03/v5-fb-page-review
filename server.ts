@@ -16,6 +16,20 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+function decodeHTMLEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 async function optimizeBase64Image(base64Str: string, type: 'profile' | 'proof', id: string) {
   if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
 
@@ -1390,6 +1404,8 @@ async function startServer() {
             const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
             rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
           }
+          
+          rawTitle = decodeHTMLEntities(rawTitle);
           
           let title = rawTitle.toLowerCase().trim()
             .replace(/&amp;/g, '&')
