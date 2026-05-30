@@ -643,6 +643,8 @@ export default function AdminPages() {
               <option value="all">All Statuses</option>
               <option value="Reported as Fraud">🛑 Reported as Fraud</option>
               <option value="Verified Marketplace Seller">⭐ Verified Seller</option>
+              <option value="Gold Seller">🏆 Gold Seller</option>
+              <option value="Suspicious">⚠️ Suspicious</option>
               <option value="Under Review">🔍 Under Review</option>
               <option value="Old/Dead Page">💀 Old/Dead Pages</option>
               <option value="Old/Dead Reported Page">💀🚩 Old/Dead Reported Pages</option>
@@ -838,6 +840,8 @@ export default function AdminPages() {
                 <option value="Under Review">Under Review</option>
                 <option value="Reported as Fraud">Reported as Fraud</option>
                 <option value="Verified Marketplace Seller">Verified Marketplace Seller</option>
+                <option value="Gold Seller">Gold Seller</option>
+                <option value="Suspicious">Suspicious</option>
                 <option value="Old/Dead Page">Old/Dead Page</option>
                 <option value="Clean">Clean</option>
               </select>
@@ -1011,23 +1015,36 @@ export default function AdminPages() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider
-                            ${isFraud 
-                              ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" 
-                              : page.status_badge === "Trusted" || page.status_badge === "Safe" || page.status_badge === "Verified Vendor"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            }
-                          `}
-                        >
-                          {isFraud ? (
-                            <ShieldAlert className="h-2.5 w-2.5" />
-                          ) : page.status_badge === "Trusted" || page.status_badge === "Verified Vendor" ? (
-                            <ShieldCheck className="h-2.5 w-2.5" />
-                          ) : null}
-                          {page.status_badge}
-                        </span>
+                        {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            <ShieldAlert className="h-2.5 w-2.5" /> Fraud
+                          </span>
+                        )}
+                        {page.status_badge === "Verified Marketplace Seller" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <ShieldCheck className="h-2.5 w-2.5" /> Verified Seller
+                          </span>
+                        )}
+                        {page.status_badge === "Gold Seller" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            🏆 Gold Seller
+                          </span>
+                        )}
+                        {page.status_badge === "Under Review" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            🔍 Under Review
+                          </span>
+                        )}
+                        {page.status_badge === "Suspicious" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            ⚠️ Suspicious
+                          </span>
+                        )}
+                        {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-400 border border-slate-500/25">
+                            💀 Old/Dead Page
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
                         <div className="text-slate-300">
