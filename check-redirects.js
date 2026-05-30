@@ -4,31 +4,39 @@ import readline from 'readline';
 import * as XLSXModule from 'xlsx';
 const XLSX = XLSXModule.readFile ? XLSXModule : (XLSXModule.default || XLSXModule);
 
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+const humanHeaders = {
+  'User-Agent': USER_AGENT,
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Cache-Control': 'max-age=0',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Connection': 'keep-alive'
+};
 
 function getFacebookPageId(url) {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    
-    // 1. Check profile.php?id=X
     if (parsed.pathname.includes('profile.php')) {
       const id = parsed.searchParams.get('id');
       if (id) return id;
     }
-    
-    // 2. Check path segments
-    let pathname = parsed.pathname.replace(/^\/|\/$/g, ''); // strip slashes
+    let pathname = parsed.pathname.replace(/^\/|\/$/g, '');
     const parts = pathname.split('/').filter(Boolean);
-    
     if (parts.length > 0) {
-      // If path is people/name/ID or pages/name/ID or groups/name/ID
       if (['pages', 'people', 'groups'].includes(parts[0])) {
-        // If there's a third segment (numeric ID), that is the true unique ID!
         if (parts.length >= 3 && /^\d+$/.test(parts[2])) {
           return parts[2];
         }
-        // If the second segment is numeric, it is the ID!
         if (parts.length >= 2) {
           if (/^\d+$/.test(parts[1])) {
             return parts[1];
@@ -36,16 +44,34 @@ function getFacebookPageId(url) {
           return parts[1];
         }
       }
-      
       const lastSegment = parts[parts.length - 1];
       if (/^\d+$/.test(lastSegment)) {
         return lastSegment;
       }
-      
       return parts[0];
     }
   } catch (e) {}
   return null;
+}
+
+function getFacebookAboutUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.includes('profile.php')) {
+      parsed.searchParams.set('sk', 'about');
+      return parsed.toString();
+    }
+    let origin = parsed.origin;
+    let pathname = parsed.pathname.replace(/^\/|\/$/g, '');
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      if (['pages', 'people', 'groups'].includes(parts[0])) {
+        return `${origin}/${parts.slice(0, 3).join('/')}/about`;
+      }
+      return `${origin}/${parts[0]}/about`;
+    }
+  } catch (e) {}
+  return url + '/about';
 }
 
 function decodeHtmlEntities(str) {
@@ -62,66 +88,117 @@ function decodeHtmlEntities(str) {
 
 async function checkFacebookUrl(url) {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      redirect: 'follow'
+      headers: humanHeaders,
+      redirect: 'follow',
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     
-    const finalUrl = response.url;
-    const html = await response.text();
+    let finalUrl = response.url;
+    let html = await response.text();
     
-    // Extract Page Title/Name and split by | for a clean human-readable name
+    let canonicalUrl = finalUrl;
+    const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
+    if (canonicalMatch && canonicalMatch[1]) {
+      if (canonicalMatch[1].includes('facebook.com')) {
+        canonicalUrl = canonicalMatch[1];
+      }
+    } else {
+      const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
+      if (ogMatch && ogMatch[1]) {
+        if (ogMatch[1].includes('facebook.com')) {
+          canonicalUrl = ogMatch[1];
+        }
+      }
+    }
+    
+    const isCanonicalSystem = canonicalUrl.toLowerCase().includes('/login') || 
+                              canonicalUrl.toLowerCase().includes('/checkpoint') || 
+                              canonicalUrl.toLowerCase().includes('login.php');
+    if (!isCanonicalSystem) {
+      finalUrl = canonicalUrl;
+    }
+    
     let title = null;
-    const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+    const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                         html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
     if (ogTitleMatch && ogTitleMatch[1]) {
       title = ogTitleMatch[1].split('|')[0].trim();
-    } else {
-      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+    }
+    if (!title) {
+      const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                           html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+      if (twitterTitle && twitterTitle[1]) {
+        title = twitterTitle[1].split('|')[0].trim();
+      }
+    }
+    if (!title) {
+      const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+      if (metaTitle && metaTitle[1]) {
+        title = metaTitle[1].split('|')[0].trim();
+      }
+    }
+    if (!title) {
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
       if (titleMatch && titleMatch[1]) {
         title = titleMatch[1].split('|')[0].trim();
       }
     }
     
-    // De-escape HTML entities in title if any (e.g. &amp; -> &)
     if (title) {
       title = decodeHtmlEntities(title);
     }
     
-    // Check if we hit Facebook rate-limiting or a guest login roadblock page
     const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-    const isRoadblocked = !title || 
-                          nameBlacklist.includes(title.toLowerCase().trim()) || 
-                          html.includes("This content isn't available") ||
-                          html.includes("isn't available at the moment");
-                          
+    let isRoadblocked = !title || 
+                        nameBlacklist.includes(title.toLowerCase().trim()) || 
+                        html.includes("This content isn't available") ||
+                        html.includes("isn't available at the moment");
+                        
+    if (isRoadblocked) {
+      try {
+        const fallbackUrl = getFacebookAboutUrl(finalUrl);
+        const fallbackController = new AbortController();
+        const fallbackTimeout = setTimeout(() => fallbackController.abort(), 6000);
+        const fbAboutRes = await fetch(fallbackUrl, {
+          redirect: 'follow',
+          headers: humanHeaders,
+          signal: fallbackController.signal
+        });
+        clearTimeout(fallbackTimeout);
+        if (fbAboutRes.ok) {
+          const aboutHtml = await fbAboutRes.text();
+          let aboutTitle = null;
+          const ogAboutTitleMatch = aboutHtml.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                    aboutHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+          if (ogAboutTitleMatch && ogAboutTitleMatch[1]) {
+            aboutTitle = ogAboutTitleMatch[1].split('|')[0].trim();
+          }
+          if (!aboutTitle) {
+            const aboutTitleMatch = aboutHtml.match(/<title[^>]*>([^<]+)<\/title>/i);
+            if (aboutTitleMatch && aboutTitleMatch[1]) {
+              aboutTitle = aboutTitleMatch[1].split('|')[0].trim();
+            }
+          }
+          if (aboutTitle) {
+            aboutTitle = decodeHtmlEntities(aboutTitle);
+            if (!nameBlacklist.includes(aboutTitle.toLowerCase().trim())) {
+              title = aboutTitle;
+              isRoadblocked = false;
+            }
+          }
+        }
+      } catch (fallbackErr) {}
+    }
+    
     if (isRoadblocked) {
       title = "[Private, Deleted or Roadblocked]";
     }
     
-    let resolvedUrl = finalUrl;
-    
-    // 1. Search for canonical link in HTML
-    const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
-    if (canonicalMatch && canonicalMatch[1]) {
-      const canonicalUrl = canonicalMatch[1];
-      if (canonicalUrl.includes('facebook.com')) {
-        resolvedUrl = canonicalUrl;
-      }
-    } else {
-      // 2. Search for og:url meta tag
-      const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
-      if (ogMatch && ogMatch[1]) {
-        const ogUrl = ogMatch[1];
-        if (ogUrl.includes('facebook.com')) {
-          resolvedUrl = ogUrl;
-        }
-      }
-    }
-    
-    // Extract Page Profile Picture URL from og:image
     let profilePicUrl = null;
     if (!isRoadblocked) {
       const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
@@ -131,7 +208,7 @@ async function checkFacebookUrl(url) {
     }
     
     return {
-      url: resolvedUrl,
+      url: finalUrl,
       title: title || 'Unknown Page Name',
       profilePicUrl: profilePicUrl
     };
