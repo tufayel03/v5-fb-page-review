@@ -8,7 +8,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       // 2. Extract Profile Picture URL
       let profilePicUrl = '';
-      const allImgs = Array.from(document.querySelectorAll('img'));
+      const mainContainer = document.querySelector('[role="main"]') || document.body;
+      const allImgs = Array.from(mainContainer.querySelectorAll('img'));
       
       // Try to find the profile photo by alt text (handles multiple languages like English, Bangla, etc.)
       const profileImg = allImgs.find(img => {
@@ -26,7 +27,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       // If not found in <img>, look in SVG <image> elements (very common in modern FB profile headers!)
       if (!profilePicUrl) {
-        const allSvgImages = Array.from(document.querySelectorAll('image'));
+        const allSvgImages = Array.from(mainContainer.querySelectorAll('image'));
         const headerSvgImage = allSvgImages.find(img => {
           const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
           return href.includes('scontent') && (href.includes('/v/') || href.includes('/t') || href.includes('p160x160') || href.includes('p200x200') || href.includes('p320x320') || href.includes('p50x50') || href.includes('p100x100'));
@@ -39,8 +40,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       // Fallback: search for any large avatar element or profile image container
       if (!profilePicUrl) {
-        const header = document.querySelector('[role="main"]') || document.body;
-        const candidateImg = header.querySelector('img[width="168"], img[width="176"], img[width="132"]');
+        const candidateImg = mainContainer.querySelector('img[width="168"], img[width="176"], img[width="132"]');
         if (candidateImg) {
           profilePicUrl = candidateImg.src;
         }
