@@ -293,6 +293,119 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
   return jobId;
 }
 
+async function crawlPageMetadata(pageId: string, url: string, currentName: string): Promise<{ name: string; profilePic: string | null }> {
+  let finalName = currentName || '';
+  let profilePicPath: string | null = null;
+
+  if (url && url.includes('facebook.com')) {
+    try {
+      console.log(`[Google Sheet Crawler] Crawling metadata for "${currentName || 'Unknown'}" (${url})...`);
+      const fbRes = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Accept-Language': 'en-US,en;q=0.9',
+        }
+      });
+
+      if (fbRes.ok) {
+        const html = await fbRes.text();
+
+        // 1. Crawl Page Name if missing or 'Unknown Page'
+        let rawTitle = '';
+        const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+        if (ogTitleMatch && ogTitleMatch[1]) {
+          rawTitle = ogTitleMatch[1].split('|')[0].trim();
+        } else {
+          const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+        }
+
+        if (rawTitle) {
+          const titleLower = rawTitle.toLowerCase().trim()
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'");
+
+          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+          const isRoadblocked = !titleLower || 
+                                nameBlacklist.includes(titleLower) || 
+                                html.includes("This content isn't available") || 
+                                html.includes("isn't available at the moment");
+
+          if (!isRoadblocked) {
+            if (!finalName || finalName === 'Unknown Page') {
+              finalName = rawTitle;
+              console.log(`[Google Sheet Crawler] Resolved page name: "${finalName}"`);
+            }
+
+            // 2. Crawl Profile Picture
+            const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+            if (ogImageMatch && ogImageMatch[1]) {
+              let ogImageUrl = ogImageMatch[1]
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#039;/g, "'");
+
+              const imgRes = await fetch(ogImageUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                }
+              });
+
+              if (imgRes.ok) {
+                const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                const timestamp = Date.now();
+                const filename = `profile-${pageId}-${timestamp}.webp`;
+                const uploadsDir = path.join(process.cwd(), 'uploads');
+                const filepath = path.join(uploadsDir, filename);
+
+                if (!fs.existsSync(uploadsDir)) {
+                  fs.mkdirSync(uploadsDir, { recursive: true });
+                }
+
+                await sharp(imageBuffer)
+                  .resize(300, 300, { fit: 'cover' })
+                  .webp({ quality: 80 })
+                  .toFile(filepath);
+
+                const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                await sharp(imageBuffer)
+                  .resize(80, 80, { fit: 'cover' })
+                  .webp({ quality: 70 })
+                  .toFile(thumbFilepath);
+
+                profilePicPath = `/uploads/${filename}`;
+                console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
+              }
+            }
+          } else {
+            profilePicPath = 'failed';
+            console.log(`[Google Sheet Crawler] Page is roadblocked/invalid`);
+          }
+        } else {
+          profilePicPath = 'failed';
+          console.log(`[Google Sheet Crawler] No title resolved`);
+        }
+      } else {
+        profilePicPath = 'failed';
+        console.log(`[Google Sheet Crawler] Fetch response not OK: ${fbRes.status}`);
+      }
+    } catch (err) {
+      console.error(`[Google Sheet Crawler] Failed crawling page metadata:`, err);
+    }
+
+    // Polite 1-second delay between crawls
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  return { name: finalName, profilePic: profilePicPath };
+}
+
 async function processSheetBatches(jobId: string, importType: string, data: any[]) {
   // Similar logic to excel but using GoogleSheetRowMap for tracking...
   let currentIndex = 0;
@@ -347,7 +460,7 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
 
           if (alreadyMapped) {
             // Verify if the page still exists in the database
-            const pageExists = db.prepare('SELECT id FROM FacebookPages WHERE id = ?').get(alreadyMapped.database_record_id);
+            const pageExists = db.prepare('SELECT id, current_name, profile_picture FROM FacebookPages WHERE id = ?').get(alreadyMapped.database_record_id) as any;
             if (!pageExists) {
               // The page was manually deleted, so delete the stale mapping to allow re-importing
               db.prepare('DELETE FROM GoogleSheetRowMap WHERE id = ?').run(alreadyMapped.id);
@@ -368,7 +481,22 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
               }
 
               const urlParam = pageUrl || null;
-              const nameParam = pageName || 'Unknown Page';
+              let nameParam = pageName || pageExists.current_name || 'Unknown Page';
+              let profilePicToUpdate = pageExists.profile_picture;
+
+              // If the page doesn't have a valid profile picture OR is currently 'Unknown Page', crawl it!
+              if (
+                (!pageExists.current_name || pageExists.current_name === 'Unknown Page' || !pageName) ||
+                (!pageExists.profile_picture || pageExists.profile_picture === 'failed')
+              ) {
+                const crawled = await crawlPageMetadata(existingPageId, urlParam || '', nameParam);
+                if (crawled.name && (!pageName || pageExists.current_name === 'Unknown Page')) {
+                  nameParam = crawled.name;
+                }
+                if (crawled.profilePic) {
+                  profilePicToUpdate = crawled.profilePic;
+                }
+              }
 
               // Update the existing page in the database
               db.prepare(`
@@ -378,7 +506,8 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
                     contact_number = ?,
                     extra_contacts = ?,
                     payment_methods = ?,
-                    page_details = ?
+                    page_details = ?,
+                    profile_picture = ?
                 WHERE id = ?
               `).run(
                 nameParam,
@@ -387,6 +516,7 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
                 extraContacts.length ? JSON.stringify(extraContacts) : null,
                 pmList.length ? JSON.stringify(pmList) : null,
                 detailsRaw || null,
+                profilePicToUpdate,
                 existingPageId
               );
 
@@ -421,9 +551,9 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
           const urlParam = pageUrl || null;
           const nameParam = pageName || 'Unknown Page';
 
-          const exists = checkPageStmt.get(urlParam, nameParam);
+          const exists = checkPageStmt.get(urlParam, nameParam) as any;
           if (exists) {
-            const existingPageId = (exists as any).id;
+            const existingPageId = exists.id;
             const pmRaw = row['payment method'] || '';
             const contactRaw = row['contact number'] || row['contact'] || '';
             const detailsRaw = row['page details'] || row['details'] || '';
@@ -438,6 +568,23 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
               extraContacts = contactList.slice(1);
             }
 
+            const pageExists = db.prepare('SELECT current_name, profile_picture FROM FacebookPages WHERE id = ?').get(existingPageId) as any;
+            let finalNameParam = pageName || pageExists.current_name || 'Unknown Page';
+            let profilePicToUpdate = pageExists.profile_picture;
+
+            if (
+              (!pageExists.current_name || pageExists.current_name === 'Unknown Page' || !pageName) ||
+              (!pageExists.profile_picture || pageExists.profile_picture === 'failed')
+            ) {
+              const crawled = await crawlPageMetadata(existingPageId, urlParam || '', finalNameParam);
+              if (crawled.name && (!pageName || pageExists.current_name === 'Unknown Page')) {
+                finalNameParam = crawled.name;
+              }
+              if (crawled.profilePic) {
+                profilePicToUpdate = crawled.profilePic;
+              }
+            }
+
             // Update the existing page in the database
             db.prepare(`
               UPDATE FacebookPages 
@@ -446,15 +593,17 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
                   contact_number = ?,
                   extra_contacts = ?,
                   payment_methods = ?,
-                  page_details = ?
+                  page_details = ?,
+                  profile_picture = ?
               WHERE id = ?
             `).run(
-              nameParam,
+              finalNameParam,
               urlParam,
               mainContact,
               extraContacts.length ? JSON.stringify(extraContacts) : null,
               pmList.length ? JSON.stringify(pmList) : null,
               detailsRaw || null,
+              profilePicToUpdate,
               existingPageId
             );
 
