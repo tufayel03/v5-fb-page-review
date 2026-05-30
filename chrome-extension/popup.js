@@ -97,7 +97,107 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   };
 
+  // Helper: Save form draft to chrome.storage
+  const saveDraft = () => {
+    const draft = {
+      contactNumber: contactNumber.value,
+      paymentMethods: paymentMethods.value,
+      pageDetails: pageDetails.value,
+      selectedReviewType: selectedReviewType,
+      selectedRating: selectedRating,
+      reviewTitle: reviewTitle.value,
+      reviewDate: reviewDate.value,
+      reviewDesc: reviewDesc.value,
+      reviewBkash: reviewBkash.value,
+      reviewPostLink: reviewPostLink.value,
+      reviewOnBehalf: reviewOnBehalf.checked,
+      onBehalfName: onBehalfName.value,
+      activeTab: tabScraperBtn.classList.contains('active') ? 'scraper' : 'review'
+    };
+    chrome.storage.local.set({ review_draft: draft });
+  };
+
+  // Helper: Load form draft from chrome.storage
+  const loadDraft = () => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['review_draft'], (result) => {
+        if (result && result.review_draft) {
+          const draft = result.review_draft;
+          
+          if (draft.contactNumber !== undefined) contactNumber.value = draft.contactNumber;
+          if (draft.paymentMethods !== undefined) paymentMethods.value = draft.paymentMethods;
+          if (draft.pageDetails !== undefined) pageDetails.value = draft.pageDetails;
+          
+          if (draft.selectedReviewType !== undefined) {
+            selectedReviewType = draft.selectedReviewType;
+            pills.forEach(p => {
+              if (p.getAttribute('data-type') === selectedReviewType) {
+                p.classList.add('selected');
+              } else {
+                p.classList.remove('selected');
+              }
+            });
+          }
+          
+          if (draft.selectedRating !== undefined) {
+            selectedRating = draft.selectedRating;
+            updateStarsUI();
+          }
+          
+          if (draft.reviewTitle !== undefined) reviewTitle.value = draft.reviewTitle;
+          if (draft.reviewDate !== undefined) reviewDate.value = draft.reviewDate;
+          if (draft.reviewDesc !== undefined) reviewDesc.value = draft.reviewDesc;
+          if (draft.reviewBkash !== undefined) reviewBkash.value = draft.reviewBkash;
+          if (draft.reviewPostLink !== undefined) reviewPostLink.value = draft.reviewPostLink;
+          
+          if (draft.reviewOnBehalf !== undefined) {
+            reviewOnBehalf.checked = draft.reviewOnBehalf;
+            if (onBehalfNameGroup) {
+              onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+            }
+          }
+          if (draft.onBehalfName !== undefined) onBehalfName.value = draft.onBehalfName;
+          
+          if (draft.activeTab === 'review') {
+            tabScraperBtn.classList.remove('active');
+            tabReviewBtn.classList.add('active');
+            tabScraperContent.style.display = 'none';
+            tabReviewContent.style.display = 'block';
+          } else {
+            tabReviewBtn.classList.remove('active');
+            tabScraperBtn.classList.add('active');
+            tabReviewContent.style.display = 'none';
+            tabScraperContent.style.display = 'block';
+          }
+        }
+        resolve();
+      });
+    });
+  };
+
   await loadSettings();
+  await loadDraft();
+
+  // Attach input and change event listeners to auto-save drafts
+  const draftElements = [
+    contactNumber,
+    paymentMethods,
+    pageDetails,
+    reviewTitle,
+    reviewDate,
+    reviewDesc,
+    reviewBkash,
+    reviewPostLink,
+    reviewOnBehalf,
+    onBehalfName
+  ];
+
+  draftElements.forEach(el => {
+    if (el) {
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('change', saveDraft);
+    }
+  });
 
   // Navigation: Tabs switching
   tabScraperBtn.addEventListener('click', () => {
@@ -105,6 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabScraperBtn.classList.add('active');
     tabReviewContent.style.display = 'none';
     tabScraperContent.style.display = 'block';
+    saveDraft();
   });
 
   tabReviewBtn.addEventListener('click', () => {
@@ -112,6 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabReviewBtn.classList.add('active');
     tabScraperContent.style.display = 'none';
     tabReviewContent.style.display = 'block';
+    saveDraft();
   });
 
   // Review Form Pill Selection
@@ -129,6 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           updateStarsUI();
         }
       }
+      saveDraft();
     });
   });
 
@@ -146,6 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       selectedRating = rating;
       updateStarsUI();
+      saveDraft();
     });
   });
 
@@ -307,12 +411,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       pageAvatar.src = data.profilePicUrl;
     }
     
-    if (data.contactNumber) {
+    if (data.contactNumber && !contactNumber.value.trim()) {
       contactNumber.value = data.contactNumber;
+      saveDraft();
     }
     
-    if (data.emailAddress) {
-      pageDetails.value = `Email: ${data.emailAddress}\n`;
+    if (data.emailAddress && !pageDetails.value.includes(data.emailAddress)) {
+      pageDetails.value = `Email: ${data.emailAddress}\n` + pageDetails.value;
+      saveDraft();
     }
 
     // Check if page already exists in database
@@ -340,15 +446,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data.exists && data.page) {
           dbStatusBadge.style.display = 'block';
           
-          // Pre-fill existing data from database
-          if (data.page.contactNumber) {
+          // Pre-fill existing data from database conditionally
+          let updated = false;
+          if (data.page.contactNumber && !contactNumber.value.trim()) {
             contactNumber.value = data.page.contactNumber;
+            updated = true;
           }
-          if (data.page.paymentMethods) {
+          if (data.page.paymentMethods && !paymentMethods.value.trim()) {
             paymentMethods.value = data.page.paymentMethods;
+            updated = true;
           }
-          if (data.page.pageDetails) {
+          if (data.page.pageDetails && !pageDetails.value.trim()) {
             pageDetails.value = data.page.pageDetails;
+            updated = true;
+          }
+          if (updated) {
+            saveDraft();
           }
 
           if (data.page.status === 'Reported as Fraud') {
@@ -457,6 +570,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (payload.facebookUrl) {
         checkDatabaseStatus(payload.facebookUrl);
       }
+      
+      // Clear draft
+      chrome.storage.local.remove(['review_draft']);
 
     } catch (err) {
       showAlert(err.message, 'danger');
@@ -528,6 +644,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       reviewDate.value = today;
       selectedRating = 5;
       updateStarsUI();
+      chrome.storage.local.remove(['review_draft']);
 
     } catch (err) {
       showAlert(err.message, 'danger');
