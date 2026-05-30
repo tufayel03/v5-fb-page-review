@@ -4381,12 +4381,14 @@ function normalizeName(str: string): string {
       const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
       let orderSQL = 'ORDER BY p.fraud_listed_at DESC, p.created_at DESC';
-      if (sort === 'most_fraud_reports') {
+      if (sort === 'oldest_listed') {
+        orderSQL = 'ORDER BY p.fraud_listed_at ASC, p.created_at ASC';
+      } else if (sort === 'report_count' || sort === 'most_fraud_reports') {
         orderSQL = 'ORDER BY fraud_report_count DESC';
+      } else if (sort === 'name_asc' || sort === 'a_z') {
+        orderSQL = 'ORDER BY p.current_name ASC';
       } else if (sort === 'most_suspicious_reports') {
         orderSQL = 'ORDER BY suspicious_report_count DESC';
-      } else if (sort === 'lowest_trust_score') {
-        orderSQL = 'ORDER BY p.trust_score ASC';
       } else if (sort === 'recently_reported') {
         orderSQL = 'ORDER BY last_reported_date DESC';
       } else if (sort === 'highest_severity') {
@@ -4398,8 +4400,6 @@ function normalizeName(str: string): string {
           ELSE 5 END ASC, p.created_at DESC`;
       } else if (sort === 'most_reviewed') {
         orderSQL = 'ORDER BY total_reviews DESC';
-      } else if (sort === 'a_z') {
-        orderSQL = 'ORDER BY p.current_name ASC';
       } else if (sort === 'z_a') {
         orderSQL = 'ORDER BY p.current_name DESC';
       }

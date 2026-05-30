@@ -147,7 +147,7 @@ export default function FraudDirectory() {
         {/* Main Side by Side grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Column Sidebar Filters (Desktop only) */}
-          <div className="hidden lg:block lg:col-span-1 lg:space-y-4">
+          <div className="hidden lg:block lg:col-span-1 lg:space-y-4 lg:sticky lg:top-24 lg:self-start">
             <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
               {/* Header inside Filters box */}
               <div className="flex items-center justify-between pb-4 border-b border-slate-150 mb-5">
@@ -328,7 +328,6 @@ export default function FraudDirectory() {
                     <option value="recently_listed">Sort: Newest</option>
                     <option value="oldest_listed">Sort: Oldest</option>
                     <option value="report_count">Sort: Reports</option>
-                    <option value="trust_score">Sort: Trust Score</option>
                     <option value="name_asc">Sort: A-Z</option>
                   </select>
                 </div>
@@ -449,8 +448,32 @@ export default function FraudDirectory() {
                 </p>
               </div>
             ) : (
-              <div className="md:bg-white md:border md:border-[#e2e8f0] md:rounded-2xl md:shadow-xs overflow-hidden">
-                {/* Desktop View Table: Aligned with the mockup */}
+              <div className="space-y-4">
+                {/* Desktop Results Header & Sort Control */}
+                <div className="hidden md:flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl px-5 py-3.5 shadow-3xs">
+                  <span className="text-xs font-semibold text-slate-500">
+                    Showing <strong className="text-slate-800 font-extrabold">{showingStart} - {showingEnd}</strong> of <strong className="text-slate-800 font-extrabold">{total.toLocaleString()}</strong> blacklisted pages
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Sort By:</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => {
+                        setSort(e.target.value);
+                        setPage(1);
+                      }}
+                      className="bg-slate-50 border border-slate-250 hover:border-slate-350 text-slate-700 text-xs font-extrabold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors"
+                    >
+                      <option value="recently_listed">Newest Listed</option>
+                      <option value="oldest_listed">Oldest Listed</option>
+                      <option value="report_count">Most Reports</option>
+                      <option value="name_asc">A-Z Alphabetical</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="md:bg-white md:border md:border-[#e2e8f0] md:rounded-2xl md:shadow-xs overflow-hidden">
+                  {/* Desktop View Table: Aligned with the mockup */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse table-auto">
                     <thead>
@@ -779,7 +802,8 @@ export default function FraudDirectory() {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
           </div>
         </div>
       </div>
