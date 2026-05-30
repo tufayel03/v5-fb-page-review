@@ -1336,10 +1336,18 @@ async function startServer() {
             
             // Check for roadblock
             const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
-            const title = titleMatch ? titleMatch[1].toLowerCase() : '';
-            const isRoadblocked = title.includes('facebook') || 
-                                  title.includes('error') || 
-                                  title.includes('log in') || 
+            let title = titleMatch ? titleMatch[1].toLowerCase().trim() : '';
+            // De-escape HTML entities
+            title = title
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'");
+              
+            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+            const isRoadblocked = !title || 
+                                  nameBlacklist.includes(title) || 
                                   html.includes("This content isn't available") || 
                                   html.includes("isn't available at the moment");
                                   
