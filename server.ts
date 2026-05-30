@@ -1353,6 +1353,15 @@ function getFacebookAboutUrl(url: string): string {
   return url + '/about';
 }
 
+function normalizeName(str: string): string {
+  if (!str) return '';
+  return str
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
   app.post('/api/admin/pages/check-redirects', requireModerator, async (req, res) => {
     try {
       const { ids } = req.body;
@@ -1546,7 +1555,7 @@ function getFacebookAboutUrl(url: string): string {
           const nameChanged = scrapedName && 
                               !isRoadblocked && 
                               !isSystemPage &&
-                              page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
+                              normalizeName(page.current_name) !== normalizeName(scrapedName);
 
           if (usernameChanged || nameChanged) {
             results.push({
@@ -2325,7 +2334,7 @@ function getFacebookAboutUrl(url: string): string {
           const nameChanged = scrapedName && 
                               !isRoadblocked && 
                               !isSystemPage &&
-                              page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
+                              normalizeName(page.current_name) !== normalizeName(scrapedName);
 
           if (usernameChanged || nameChanged) {
             const resultItem = {

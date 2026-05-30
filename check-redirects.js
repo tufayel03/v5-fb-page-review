@@ -86,6 +86,15 @@ function decodeHtmlEntities(str) {
     .replace(/&#039;/g, "'");
 }
 
+function normalizeName(str) {
+  if (!str) return '';
+  return str
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function checkFacebookUrl(url) {
   try {
     const controller = new AbortController();
@@ -366,7 +375,7 @@ async function main() {
       const newPageId = getFacebookPageId(destinationUrl);
 
       const usernameChanged = newPageId && oldPageId.toLowerCase() !== newPageId.toLowerCase();
-      const nameChanged = scrapedPageName && scrapedPageName !== '[Private, Deleted or Roadblocked]' && name.trim().toLowerCase() !== scrapedPageName.trim().toLowerCase();
+      const nameChanged = scrapedPageName && scrapedPageName !== '[Private, Deleted or Roadblocked]' && normalizeName(name) !== normalizeName(scrapedPageName);
 
       if (usernameChanged || nameChanged) {
         let changeType = "CHANGED";
