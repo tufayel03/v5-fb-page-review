@@ -1433,11 +1433,27 @@ function getFacebookPageId(url: string): string | null {
           }
 
           let title = null;
-          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
           if (ogTitleMatch && ogTitleMatch[1]) {
             title = ogTitleMatch[1].split('|')[0].trim();
-          } else {
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          }
+          if (!title) {
+            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+            if (twitterTitle && twitterTitle[1]) {
+              title = twitterTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!title) {
+            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+            if (metaTitle && metaTitle[1]) {
+              title = metaTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!title) {
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
             if (titleMatch && titleMatch[1]) {
               title = titleMatch[1].split('|')[0].trim();
             }
@@ -1885,13 +1901,29 @@ function getFacebookPageId(url: string): string | null {
           
           const html = await fbRes.text();
           
-          // Extract page title using og:title first, then fallback to title tag
+          // Extract page title using og:title first, then fallback to title tag with robust regex
           let rawTitle = '';
-          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
           if (ogTitleMatch && ogTitleMatch[1]) {
             rawTitle = ogTitleMatch[1].split('|')[0].trim();
-          } else {
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          }
+          if (!rawTitle) {
+            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+            if (twitterTitle && twitterTitle[1]) {
+              rawTitle = twitterTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!rawTitle) {
+            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+            if (metaTitle && metaTitle[1]) {
+              rawTitle = metaTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!rawTitle) {
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
             rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
           }
           
@@ -2143,11 +2175,27 @@ function getFacebookPageId(url: string): string | null {
           }
 
           let title = null;
-          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
           if (ogTitleMatch && ogTitleMatch[1]) {
             title = ogTitleMatch[1].split('|')[0].trim();
-          } else {
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+          }
+          if (!title) {
+            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+            if (twitterTitle && twitterTitle[1]) {
+              title = twitterTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!title) {
+            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+            if (metaTitle && metaTitle[1]) {
+              title = metaTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!title) {
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
             if (titleMatch && titleMatch[1]) {
               title = titleMatch[1].split('|')[0].trim();
             }
