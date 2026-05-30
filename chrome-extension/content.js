@@ -11,21 +11,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const mainContainer = document.querySelector('[role="main"]') || document.body;
       const allImgs = Array.from(mainContainer.querySelectorAll('img'));
       
-      // Try to find the profile photo by alt text (handles multiple languages like English, Bangla, etc.)
-      const profileImg = allImgs.find(img => {
-        const alt = (img.alt || '').toLowerCase();
-        return alt.includes('profile photo') || 
-               alt.includes('profile picture') || 
-               alt.includes('প্রোফাইল ছবি') || 
-               alt.includes('প্রোফাইল ফটো') || 
-               alt.includes('profile pic');
-      });
+      // A. Prioritize finding image whose alt matches/contains the Facebook Page name
+      if (pageName) {
+        const pageNameLower = pageName.toLowerCase();
+        const pageImg = allImgs.find(img => {
+          // Exclude small navigation images or user header icons (width < 60)
+          const width = img.width || 0;
+          if (width > 0 && width < 60) return false;
+          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
 
-      if (profileImg) {
-        profilePicUrl = profileImg.src;
+          const alt = (img.alt || '').toLowerCase();
+          return alt === pageNameLower || alt.includes(pageNameLower);
+        });
+        if (pageImg) {
+          profilePicUrl = pageImg.src;
+        }
       }
 
-      // If not found in <img>, look in SVG <image> elements (very common in modern FB profile headers!)
+      // B. Fallback: Search for any page profile image container (excl. navigation & small avatars)
+      if (!profilePicUrl) {
+        const profileImg = allImgs.find(img => {
+          const width = img.width || 0;
+          if (width > 0 && width < 60) return false;
+          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+
+          const alt = (img.alt || '').toLowerCase();
+          return alt.includes('profile photo') || 
+                 alt.includes('profile picture') || 
+                 alt.includes('প্রোফাইল ছবি') || 
+                 alt.includes('প্রোফাইল ফটো') || 
+                 alt.includes('profile pic');
+        });
+
+        if (profileImg) {
+          profilePicUrl = profileImg.src;
+        }
+      }
+
+      // C. Fallback: look in SVG <image> elements (common in modern FB page headers)
       if (!profilePicUrl) {
         const allSvgImages = Array.from(mainContainer.querySelectorAll('image'));
         const headerSvgImage = allSvgImages.find(img => {
@@ -38,7 +61,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
 
-      // Fallback: search for any large avatar element or profile image container
+      // D. Fallback: search for any large avatar element
       if (!profilePicUrl) {
         const candidateImg = mainContainer.querySelector('img[width="168"], img[width="176"], img[width="132"]');
         if (candidateImg) {

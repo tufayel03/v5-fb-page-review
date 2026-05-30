@@ -699,14 +699,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDraft();
   await initializeScraper();
 
+  let lastScrapedUrl = '';
+
   // Auto-refresh scraper when active tab changes or updates
   chrome.tabs.onActivated.addListener(() => {
     initializeScraper();
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete') {
+    if (changeInfo.status === 'complete' || changeInfo.url) {
       initializeScraper();
+      // If the URL changed, trigger a secondary scrape in 800ms to allow Facebook's SPA to render fully!
+      if (changeInfo.url && changeInfo.url !== lastScrapedUrl) {
+        lastScrapedUrl = changeInfo.url;
+        setTimeout(() => {
+          initializeScraper();
+        }, 800);
+      }
     }
   });
 });
