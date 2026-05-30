@@ -362,6 +362,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.create({ url: 'https://www.facebook.com' });
   });
 
+  // Helper: Verify if URL is an actual Facebook page / profile (and not newsfeed/groups)
+  const isFacebookPageUrl = (urlStr) => {
+    if (!urlStr || !urlStr.includes('facebook.com')) return false;
+    try {
+      const parsed = new URL(urlStr);
+      let path = parsed.pathname;
+      if (path.endsWith('/')) {
+        path = path.slice(0, -1);
+      }
+      path = path.toLowerCase();
+      
+      const ignoredPaths = [
+        '',
+        '/',
+        '/home',
+        '/home.php',
+        '/watch',
+        '/marketplace',
+        '/groups',
+        '/messages',
+        '/notifications',
+        '/friends',
+        '/saved',
+        '/events',
+        '/gaming',
+        '/bookmarks',
+        '/memories',
+        '/ads',
+        '/pages',
+        '/settings'
+      ];
+      
+      if (ignoredPaths.includes(path)) {
+        return false;
+      }
+      
+      const ignoredPrefixes = [
+        '/watch',
+        '/marketplace',
+        '/groups',
+        '/messages',
+        '/notifications',
+        '/friends',
+        '/saved',
+        '/events',
+        '/gaming',
+        '/bookmarks',
+        '/memories',
+        '/ads',
+        '/pages',
+        '/settings'
+      ];
+      
+      if (ignoredPrefixes.some(prefix => path.startsWith(prefix))) {
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
   // Query Active Tab & Scrape DOM details
   const initializeScraper = async () => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
@@ -370,7 +433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const activeTab = tabs[0];
       const url = activeTab.url || '';
 
-      if (url.includes('facebook.com')) {
+      if (isFacebookPageUrl(url)) {
         // Reset fields before scraping new page to prevent cross-contamination
         contactNumber.value = '';
         paymentMethods.value = '';
