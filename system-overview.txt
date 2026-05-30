@@ -1,0 +1,186 @@
+=============================================================================
+             FB PAGE REVIEW SYSTEM - ARCHITECTURE & CODE OVERVIEW
+=============================================================================
+This file provides a comprehensive reference describing the Chrome Extension,
+API routes, database schema, and scraping mechanisms used in this application.
+It acts as the ultimate guide to help developers in future sessions hit the ground
+running without requiring any manual explanation.
+
+-----------------------------------------------------------------------------
+1. SYSTEM ARCHITECTURE & FILE STRUCTURE
+-----------------------------------------------------------------------------
+The project is a Web Application (Vite + React frontend & Node.js + Express backend) 
+integrated with a specialized SQLite database and supported by a custom Chrome Extension 
+for administrative scraping/ fraud monitoring.
+
+Core Files & Roles:
+* /server.ts
+  Contains the backend API server (Express + TypeScript), including routing, 
+  moderator validation middleware, HTML entities decoding, and Image optimization.
+* /database.ts
+  Sets up and manages the SQLite database, handles connection settings, and exposes
+  prepared statements for high-performance WAL-mode transactions.
+* /chrome-extension/
+  * manifest.json: Extension configuration, permissions (activeTab, storage, scripting),
+                   matches facebook.com for the content script, current version (v1.4).
+  * content.js: Scrapes Facebook page name, page URL, and profile picture from the DOM.
+  * popup.html: Compact, high-fidelity dark-mode SaaS UI styled to perfectly match 
+                 the fbpagereview.com website theme (deep blue #050b18 & brand green #0fbc6f).
+  * popup.js: Handles extension authentication, checks database status in real-time,
+              populates input fields, and posts data securely to the backend API.
+* /chrome-extension.zip
+  The packed archive of the extension folder, ready to be extracted and loaded into Chrome.
+
+-----------------------------------------------------------------------------
+2. DATABASE SCHEMA (SQLite in WAL Mode)
+-----------------------------------------------------------------------------
+Table: FacebookPages
+* id (TEXT, Primary Key): Unique identifier of the tracked page.
+* current_name (TEXT): UTF-8 decoded page title (e.g. including Bangla strings).
+* facebook_url (TEXT, Unique): Scraped page URL (canonical identifier).
+* contact_number (TEXT): Main scraped or manual mobile number.
+* extra_contacts (TEXT): Comma-separated alternative contact numbers.
+* payment_methods (TEXT): Comma-separated payment methods (e.g. bkash, nagad, rocket).
+* page_details (TEXT): Page details and custom notes.
+* status_badge (TEXT): The page's current verified status:
+  - 'Reported as Fraud' (Trust Score: -100)
+  - 'Verified Marketplace Seller' (Trust Score: 100)
+  - 'Under Review' (Trust Score: 0)
+* trust_score (INTEGER): Trust indicator between -100 and 100.
+* is_fraud_listed (INTEGER): Boolean flag (1 for fraud, 0 otherwise).
+* profile_picture (TEXT): WebP optimized filename located on the server (e.g. uploads/profile-id.webp).
+
+-----------------------------------------------------------------------------
+3. CHROME EXTENSION SCRAEPR LOGIC (content.js)
+-----------------------------------------------------------------------------
+To avoid capturing the administrator's own top navigation profile avatar (a common FB bug),
+the scraper enforces a strict main container scoping rule:
+
+1. mainContainer Isolation:
+   The script locates `document.querySelector('[role="main"]')` to ensure it only scans the
+   main page content wrapper and completely ignores global header banners, chats, and top bars.
+2. SVG <image> Extraction:
+   Modern Facebook headers render profile avatars within SVG `<image xlink:href>` tags rather than standard `<img>`.
+   The scraper scans the mainContainer for `<image>` elements containing 'scontent' with common profile dimensions
+   (e.g., 'p160x160', 'p200x200', 'p320x320') and falls back to standard images if SVG is not found.
+3. UTF-8 Bangla Decoding:
+   Scraped titles often contain Bangla characters encoded as numeric HTML entities.
+   The backend's `decodeHTMLEntities()` handles converting these safely into standard UTF-8 Bangla text,
+   ensuring names like "ঊর্মি ফ্যাশন গ্যালারী বান্টি বাজার" display natively.
+
+-----------------------------------------------------------------------------
+4. BACKEND API ENDPOINTS FOR CHROME EXTENSION
+-----------------------------------------------------------------------------
+The extension securely communicates with the backend via two main endpoints:
+
+A. GET `/api/admin/chrome-extension/check-page?url=<facebook_url>`
+   - Authenticated with JWT token (`requireModerator` middleware).
+   - Searches the database by the URL to check if the page is already registered.
+   - Returns JSON: { exists: true/false, page: { status, contactNumber, paymentMethods, pageDetails } }.
+   - If the page exists, the extension's popup dynamically updates its UI:
+     * Displays a glowing neon status badge (Red for Fraud, Gold for Verified, Green for Under Review).
+     * Automatically pre-fills all input fields (contact number, payments, notes) with their database state.
+     * Updates button actions (e.g., "⭐ Verified Seller" updates to "⭐ Update Verified", etc.).
+
+B. POST `/api/admin/chrome-extension/add-page`
+   - Authenticated with JWT token (`requireModerator`).
+   - Receives payload: { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails }.
+   - Validates roles: Automatically maps lowercase database roles like `'admin'` to `'Super Admin'`
+     to ensure seamless extension authentication compatibility.
+   - Legacy entity decoder handles converting HTML strings to pristine UTF-8 text.
+   - High-Performance Image Optimization:
+     If the page is new or has a new profilePictureUrl, the server fetches the image and runs
+     `sharp` to resize it to `300x300` and save it directly in `uploads/` as a lightweight WebP image.
+   - Trust score mapping:
+     * 'Reported as Fraud' -> trust_score = -100, status_badge = 'Reported as Fraud'
+     * 'Verified Marketplace Seller' -> trust_score = 100, status_badge = 'Verified Marketplace Seller'
+     * 'Under Review' -> trust_score = 0, status_badge = 'Under Review'
+
+-----------------------------------------------------------------------------
+5. DEPLOYMENT & VPS OPERATIONS
+-----------------------------------------------------------------------------
+* Hosting Platform: Oracle Cloud Ubuntu VPS.
+* Production IP: `168.138.115.223`
+* Systemd Service: `fbpagereview.service`
+* Deployment Commands:
+  To deploy any local code modifications, push changes to the `main` branch.
+  On the VPS, pull the main branch and rebuild Vite assets and server bundles:
+  $ git pull origin main
+  $ npm run build
+  $ sudo systemctl restart fbpagereview.service
+
+* AI-Assistant One-Click VPS Deployment Command:
+  When the user asks the assistant to update or deploy to the VPS, the AI assistant can execute the following bash command directly on the host system to run the full remote build and restart the service in one click:
+  $ ssh -i /home/tufayel/Videos/sshkey.key ubuntu@168.138.115.223 "sudo -u fbpagereview -i -- sh -c 'cd /home/fbpagereview/htdocs/fbpagereview.com && git pull origin main && PATH=/home/fbpagereview/.nvm/versions/node/v22.22.3/bin:\$PATH npm run build' && sudo systemctl restart fbpagereview.service"
+
+-----------------------------------------------------------------------------
+6. UPDATING & TESTING EXTENSION CHANGES
+-----------------------------------------------------------------------------
+1. Extract `/home/tufayel/Videos/fb page review/chrome-extension.zip`.
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. If not already active, toggle "Developer mode" in the top right.
+4. Click "Load unpacked" and select the `chrome-extension/` directory.
+5. If updating an existing version, simply overwrite the unpacked files on your drive
+   and click the circular **Reload (🔄)** icon on the extension's card.
+6. The current version (v1.4) features:
+   - Full layout optimization avoiding any vertical scrollbar.
+   - Side-by-side action buttons for quick marketplace verification & review tracking.
+   - Dedicated `textarea` notes field sized to match spacious typing requirements.
+   - Color styling seamlessly aligned with your main homepage layout.
+
+-----------------------------------------------------------------------------
+7. ADVANCED SEARCH & TIMELINE FILTER SYSTEM
+-----------------------------------------------------------------------------
+* Facebook Pages Filter Criteria:
+  - Specific Status Badge: Filter directly by "Reported as Fraud", "Verified Marketplace Seller", or "Under Review".
+  - Claim Status: Filter claimed or unclaimed pages.
+  - Added Time (Timeline Filters):
+    - Preset intervals: "Last 7 Days", "Last 15 Days", "Last 30 Days", "Last 6 Months".
+    - Dynamic Custom Range: Allows selecting a start date and an end date using inline calendar date pickers.
+* Export Consistency:
+  - All status and timeline date filter choices are automatically preserved and carried over to the Excel export (`/api/admin/pages/export`) to generate custom-tailored reports!
+
+-----------------------------------------------------------------------------
+8. LIVE REDIRECTION CHECK & OLD/DEAD PAGES WORKFLOW
+-----------------------------------------------------------------------------
+* Checking Live Relocations:
+  - Inside the Admin Pages list, select any number of pages and choose the bulk action "🔍 Check Name/URL Redirects".
+  - Click "Apply to Chosen" to trigger the backend scraper (`/api/admin/pages/check-redirects`).
+  - The checker fetches the live Facebook URLs, follows any redirects, and parses the canonical `<link rel="canonical">` or `<meta property="og:url">` along with the live profile name.
+* Tracing URL/Name updates:
+  - If a page has changed its unique Username/URL or display Name, it displays in a high-fidelity modal as "URL CHANGED", "NAME CHANGED", or "BOTH CHANGED".
+* Confirming & Listing Replacements:
+  - Admin confirms and applies changes by clicking "Apply & List New Pages".
+  - The backend:
+    1. Updates the old page's status to 'Old/Dead Page'.
+    2. Lists the new page with its active name & URL while keeping reviews, metadata, and the original status (e.g. Reported as Fraud, Under Review).
+    3. Old pages are preserved in the database (never deleted) and tagged as 'Old/Dead Page'.
+  - Added filter '💀 Old/Dead Pages' in the dashboard status filter to easily view, review, and track them at any time!
+
+-----------------------------------------------------------------------------
+9. LOCAL REDIRECT & NAME CHECKER UTILITIES
+-----------------------------------------------------------------------------
+This system includes two specialized local link and name checkers that run on your local network (where Facebook blocks are less strict) to avoid datacenter IP bans.
+
+UTILITY 1: Local Sheet Link Checker (check-redirects.js)
+* What it does: 
+  Processes a local exported Excel (`.xlsx`) or CSV sheet of Facebook pages. It crawls each page using keep-alive browser-mimicking headers, follows redirects, handles the `/about` guest bypass, detects URL/Name relocations, and outputs a formatted report.
+* How to run:
+  1. Export your tracked pages to an Excel or CSV file from the Admin dashboard.
+  2. Put the exported file inside this project root directory.
+  3. Run the following command:
+     $ node check-redirects.js
+  4. The script will automatically scan the file and save the changes to 'url_changes_report.xlsx' (or .csv).
+
+UTILITY 2: Direct Interactive Database Checker (local-db-checker.js)
+* What it does: 
+  The ultimate automated utility. It automatically connects to your live production VPS using your SSH key, securely downloads the active 'data.db' SQLite file, scans all live pages locally, shows detected changes, prompts you to review them, and then automatically updates the database, uploads it back to the VPS, and restarts the live service in a single click!
+* How to run:
+  1. Ensure your SSH Key is placed at '/home/tufayel/Videos/sshkey.key' (or edit the SSH_KEY_PATH inside the script).
+  2. Run the following command:
+     $ node local-db-checker.js
+  3. Review the reported changes in the terminal.
+  4. Type 'yes' (or 'y') when prompted:
+     "Do you want to apply these changes to the database and upload to VPS? (yes/no): "
+  5. The utility will automatically rewrite the local DB transaction, upload it back, and restart your live VPS site instantly!
+=============================================================================
