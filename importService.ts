@@ -1,5 +1,8 @@
 import { db } from './database.js';
 import crypto from 'crypto';
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
 
 function normalizeImportNumber(num: any): string {
   let cleaned = String(num || '').trim();
@@ -290,7 +293,7 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
   return jobId;
 }
 
-function processSheetBatches(jobId: string, importType: string, data: any[]) {
+async function processSheetBatches(jobId: string, importType: string, data: any[]) {
   // Similar logic to excel but using GoogleSheetRowMap for tracking...
   let currentIndex = 0;
   const batchSize = 500;
@@ -303,12 +306,6 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
   const defaultStatus = isFraud ? 'Reported as Fraud' : 'Under Review';
 
   const checkPageStmt = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ? OR current_name = ?');
-  const insertPageStmt = db.prepare(`
-    INSERT INTO FacebookPages (
-      id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed, added_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin')
-  `);
-
   const checkRowMapStmt = db.prepare('SELECT id, database_record_id FROM GoogleSheetRowMap WHERE import_type = ? AND unique_key = ?');
   const insertRowMapStmt = db.prepare('INSERT INTO GoogleSheetRowMap (id, import_type, external_row_id, sheet_row_number, unique_key, database_record_id) VALUES (?, ?, ?, ?, ?, ?)');
 
@@ -319,7 +316,7 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
     VALUES (?, ?, ?, 'Unknown', ?, ?, 'admin')
   `);
 
-  function nextBatch() {
+  async function nextBatch() {
     try {
       if (currentIndex >= data.length) {
         const finalStatus = failed > 0 ? 'Completed With Errors' : 'Completed';
@@ -332,102 +329,30 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
 
       const chunk = data.slice(currentIndex, currentIndex + batchSize);
 
-      db.transaction(() => {
-        for (let i = 0; i < chunk.length; i++) {
-          const row = chunk[i];
-          const rowIndex = currentIndex + i + 1; // +1 for header
+      for (let i = 0; i < chunk.length; i++) {
+        const row = chunk[i];
+        const rowIndex = currentIndex + i + 1; // +1 for header
 
-          try {
-            const pageName = row['page name'] || row['name'] || '';
-            const pageUrl = row['page url'] || row['url'] || '';
+        try {
+          const pageName = row['page name'] || row['name'] || '';
+          const pageUrl = row['page url'] || row['url'] || '';
 
-            if (!pageName && !pageUrl) {
-              skipped++;
-              continue;
-            }
+          if (!pageName && !pageUrl) {
+            skipped++;
+            continue;
+          }
 
-            const uniqueKey = (pageUrl || pageName).toLowerCase().trim();
-            const alreadyMapped: any = checkRowMapStmt.get(importType, uniqueKey);
+          const uniqueKey = (pageUrl || pageName).toLowerCase().trim();
+          const alreadyMapped: any = checkRowMapStmt.get(importType, uniqueKey);
 
-            if (alreadyMapped) {
-              // Verify if the page still exists in the database
-              const pageExists = db.prepare('SELECT id FROM FacebookPages WHERE id = ?').get(alreadyMapped.database_record_id);
-              if (!pageExists) {
-                // The page was manually deleted, so delete the stale mapping to allow re-importing
-                db.prepare('DELETE FROM GoogleSheetRowMap WHERE id = ?').run(alreadyMapped.id);
-              } else {
-                const existingPageId = alreadyMapped.database_record_id;
-                const pmRaw = row['payment method'] || '';
-                const contactRaw = row['contact number'] || row['contact'] || '';
-                const detailsRaw = row['page details'] || row['details'] || '';
-
-                const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
-                const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
-
-                let mainContact = '';
-                let extraContacts: string[] = [];
-                if (contactList.length > 0) {
-                  mainContact = contactList[0];
-                  extraContacts = contactList.slice(1);
-                }
-
-                const urlParam = pageUrl || null;
-                const nameParam = pageName || 'Unknown Page';
-
-                // Update the existing page in the database
-                db.prepare(`
-                  UPDATE FacebookPages 
-                  SET current_name = COALESCE(?, current_name),
-                      facebook_url = COALESCE(?, facebook_url),
-                      contact_number = ?,
-                      extra_contacts = ?,
-                      payment_methods = ?,
-                      page_details = ?
-                  WHERE id = ?
-                `).run(
-                  nameParam,
-                  urlParam,
-                  mainContact,
-                  extraContacts.length ? JSON.stringify(extraContacts) : null,
-                  pmList.length ? JSON.stringify(pmList) : null,
-                  detailsRaw || null,
-                  existingPageId
-                );
-
-                const addOrUpdateNumber = (num: string, type: string) => {
-                  const existing: any = getContactStmt.get(num);
-                  let newStatus = isFraud ? 'Reported' : 'Normal';
-
-                  if (existing) {
-                    const links = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()) : [];
-                    if (!links.includes(existingPageId)) links.push(existingPageId);
-
-                    let updatedStatus = existing.status || 'Normal';
-                    if (isFraud && existing.status !== 'Suspicious') {
-                      updatedStatus = 'Reported';
-                    }
-
-                    updateContactStmt.run(links.join(','), type, updatedStatus, existing.id);
-                  } else {
-                    insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, existingPageId);
-                  }
-                };
-
-                for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
-                for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
-
-                successful++;
-                continue;
-              }
-            }
-
-            let pageId = Date.now().toString() + Math.floor(Math.random() * 1000) + i;
-            const urlParam = pageUrl || null;
-            const nameParam = pageName || 'Unknown Page';
-
-            const exists = checkPageStmt.get(urlParam, nameParam);
-            if (exists) {
-              const existingPageId = (exists as any).id;
+          if (alreadyMapped) {
+            // Verify if the page still exists in the database
+            const pageExists = db.prepare('SELECT id FROM FacebookPages WHERE id = ?').get(alreadyMapped.database_record_id);
+            if (!pageExists) {
+              // The page was manually deleted, so delete the stale mapping to allow re-importing
+              db.prepare('DELETE FROM GoogleSheetRowMap WHERE id = ?').run(alreadyMapped.id);
+            } else {
+              const existingPageId = alreadyMapped.database_record_id;
               const pmRaw = row['payment method'] || '';
               const contactRaw = row['contact number'] || row['contact'] || '';
               const detailsRaw = row['page details'] || row['details'] || '';
@@ -441,6 +366,9 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
                 mainContact = contactList[0];
                 extraContacts = contactList.slice(1);
               }
+
+              const urlParam = pageUrl || null;
+              const nameParam = pageName || 'Unknown Page';
 
               // Update the existing page in the database
               db.prepare(`
@@ -484,13 +412,18 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
               for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
               for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
 
-              // Register the row mapping
-              insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, existingPageId);
-
               successful++;
               continue;
             }
+          }
 
+          let pageId = Date.now().toString() + Math.floor(Math.random() * 1000) + i;
+          const urlParam = pageUrl || null;
+          const nameParam = pageName || 'Unknown Page';
+
+          const exists = checkPageStmt.get(urlParam, nameParam);
+          if (exists) {
+            const existingPageId = (exists as any).id;
             const pmRaw = row['payment method'] || '';
             const contactRaw = row['contact number'] || row['contact'] || '';
             const detailsRaw = row['page details'] || row['details'] || '';
@@ -505,31 +438,33 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
               extraContacts = contactList.slice(1);
             }
 
-            let trustScore = isFraud ? -100 : 0;
-
-            insertPageStmt.run(
-              pageId,
+            // Update the existing page in the database
+            db.prepare(`
+              UPDATE FacebookPages 
+              SET current_name = COALESCE(?, current_name),
+                  facebook_url = COALESCE(?, facebook_url),
+                  contact_number = ?,
+                  extra_contacts = ?,
+                  payment_methods = ?,
+                  page_details = ?
+              WHERE id = ?
+            `).run(
               nameParam,
               urlParam,
               mainContact,
               extraContacts.length ? JSON.stringify(extraContacts) : null,
               pmList.length ? JSON.stringify(pmList) : null,
               detailsRaw || null,
-              defaultStatus,
-              trustScore,
-              isFraud ? 1 : 0
+              existingPageId
             );
-
-            insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, pageId);
 
             const addOrUpdateNumber = (num: string, type: string) => {
               const existing: any = getContactStmt.get(num);
-              let newStatus = 'Normal';
-              if (isFraud) newStatus = 'Reported';
+              let newStatus = isFraud ? 'Reported' : 'Normal';
 
               if (existing) {
                 const links = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()) : [];
-                if (!links.includes(pageId)) links.push(pageId);
+                if (!links.includes(existingPageId)) links.push(existingPageId);
 
                 let updatedStatus = existing.status || 'Normal';
                 if (isFraud && existing.status !== 'Suspicious') {
@@ -538,27 +473,206 @@ function processSheetBatches(jobId: string, importType: string, data: any[]) {
 
                 updateContactStmt.run(links.join(','), type, updatedStatus, existing.id);
               } else {
-                insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, pageId);
+                insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, existingPageId);
               }
             };
 
             for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
             for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
 
+            // Register the row mapping
+            insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, existingPageId);
+
             successful++;
-          } catch (rowErr: any) {
-            failed++;
-            errorReports.push({ rowIndex, error: rowErr.message });
+            continue;
           }
+
+          const pmRaw = row['payment method'] || '';
+          const contactRaw = row['contact number'] || row['contact'] || '';
+          const detailsRaw = row['page details'] || row['details'] || '';
+
+          const pmList: string[] = pmRaw ? String(pmRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+          const contactList = contactRaw ? String(contactRaw).split(',').map((s) => normalizeImportNumber(s)).filter(Boolean) : [];
+
+          let mainContact = '';
+          let extraContacts: string[] = [];
+          if (contactList.length > 0) {
+            mainContact = contactList[0];
+            extraContacts = contactList.slice(1);
+          }
+
+          let trustScore = isFraud ? -100 : 0;
+
+          // task 1 & 2: Crawl name (if missing) and profile picture for new listings
+          let finalName = pageName || '';
+          let profilePicPath: string | null = null;
+
+          if (urlParam && urlParam.includes('facebook.com')) {
+            try {
+              console.log(`[Google Sheet Crawler] Crawling new page metadata for "${pageName || 'Unknown'}" (${urlParam})...`);
+              const fbRes = await fetch(urlParam, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                  'Accept-Language': 'en-US,en;q=0.9',
+                }
+              });
+
+              if (fbRes.ok) {
+                const html = await fbRes.text();
+
+                // 1. Crawl Page Name if missing
+                let rawTitle = '';
+                const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+                if (ogTitleMatch && ogTitleMatch[1]) {
+                  rawTitle = ogTitleMatch[1].split('|')[0].trim();
+                } else {
+                  const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+                  rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+                }
+
+                if (rawTitle) {
+                  const titleLower = rawTitle.toLowerCase().trim()
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#039;/g, "'");
+
+                  const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+                  const isRoadblocked = !titleLower || 
+                                        nameBlacklist.includes(titleLower) || 
+                                        html.includes("This content isn't available") || 
+                                        html.includes("isn't available at the moment");
+
+                  if (!isRoadblocked) {
+                    if (!finalName || finalName === 'Unknown Page') {
+                      finalName = rawTitle;
+                      console.log(`[Google Sheet Crawler] Retrieved missing name: "${finalName}"`);
+                    }
+
+                    // 2. Crawl Profile Picture
+                    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+                    if (ogImageMatch && ogImageMatch[1]) {
+                      let ogImageUrl = ogImageMatch[1]
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#039;/g, "'");
+
+                      const imgRes = await fetch(ogImageUrl, {
+                        headers: {
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                        }
+                      });
+
+                      if (imgRes.ok) {
+                        const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                        const timestamp = Date.now();
+                        const filename = `profile-${pageId}-${timestamp}.webp`;
+                        const uploadsDir = path.join(process.cwd(), 'uploads');
+                        const filepath = path.join(uploadsDir, filename);
+
+                        if (!fs.existsSync(uploadsDir)) {
+                          fs.mkdirSync(uploadsDir, { recursive: true });
+                        }
+
+                        await sharp(imageBuffer)
+                          .resize(300, 300, { fit: 'cover' })
+                          .webp({ quality: 80 })
+                          .toFile(filepath);
+
+                        const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                        const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                        await sharp(imageBuffer)
+                          .resize(80, 80, { fit: 'cover' })
+                          .webp({ quality: 70 })
+                          .toFile(thumbFilepath);
+
+                        profilePicPath = `/uploads/${filename}`;
+                        console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
+                      }
+                    }
+                  } else {
+                    profilePicPath = 'failed';
+                    console.log(`[Google Sheet Crawler] Page is roadblocked/invalid`);
+                  }
+                } else {
+                  profilePicPath = 'failed';
+                  console.log(`[Google Sheet Crawler] No title resolved`);
+                }
+              } else {
+                profilePicPath = 'failed';
+                console.log(`[Google Sheet Crawler] Fetch response not OK: ${fbRes.status}`);
+              }
+            } catch (err) {
+              console.error(`[Google Sheet Crawler] Failed crawling page metadata:`, err);
+            }
+
+            // Polite 1-second delay between crawls during sheet import
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          if (!finalName) {
+            finalName = 'Unknown Page';
+          }
+
+          db.prepare(`
+            INSERT INTO FacebookPages (
+              id, current_name, facebook_url, contact_number, extra_contacts, payment_methods, page_details, status_badge, trust_score, is_fraud_listed, added_by, profile_picture
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'admin', ?)
+          `).run(
+            pageId,
+            finalName,
+            urlParam,
+            mainContact,
+            extraContacts.length ? JSON.stringify(extraContacts) : null,
+            pmList.length ? JSON.stringify(pmList) : null,
+            detailsRaw || null,
+            defaultStatus,
+            trustScore,
+            isFraud ? 1 : 0,
+            profilePicPath
+          );
+
+          insertRowMapStmt.run(crypto.randomUUID(), importType, null, rowIndex + 1, uniqueKey, pageId);
+
+          const addOrUpdateNumber = (num: string, type: string) => {
+            const existing: any = getContactStmt.get(num);
+            let newStatus = 'Normal';
+            if (isFraud) newStatus = 'Reported';
+
+            if (existing) {
+              const links = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()) : [];
+              if (!links.includes(pageId)) links.push(pageId);
+
+              let updatedStatus = existing.status || 'Normal';
+              if (isFraud && existing.status !== 'Suspicious') {
+                updatedStatus = 'Reported';
+              }
+
+              updateContactStmt.run(links.join(','), type, updatedStatus, existing.id);
+            } else {
+              insertContactStmt.run(crypto.randomUUID(), num, type, newStatus, pageId);
+            }
+          };
+
+          for (const c of contactList) addOrUpdateNumber(c, 'Contact Number');
+          for (const p of pmList) addOrUpdateNumber(p, 'Payment Method');
+
+          successful++;
+        } catch (rowErr: any) {
+          failed++;
+          errorReports.push({ rowIndex, error: rowErr.message });
         }
-      })();
+      }
 
       currentIndex += batchSize;
 
       db.prepare('UPDATE GoogleSheetSyncLogs SET new_rows_added = ?, failed_rows = ?, existing_rows_skipped = ? WHERE id = ?')
         .run(successful, failed, skipped, jobId);
 
-      setTimeout(nextBatch, 0);
+      setTimeout(() => { nextBatch(); }, 0);
     } catch (err: any) {
       db.prepare('UPDATE GoogleSheetSyncLogs SET status = "Failed", error_report = ? WHERE id = ?')
         .run(JSON.stringify([{ rowIndex: -1, error: err.message || 'Fatal error during batch' }]), jobId);
