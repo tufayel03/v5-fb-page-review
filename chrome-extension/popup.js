@@ -176,7 +176,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   await loadSettings();
-  await loadDraft();
 
   // Attach input and change event listeners to auto-save drafts
   const draftElements = [
@@ -661,6 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   addSuspiciousBtn.addEventListener('click', () => submitPage('Suspicious'));
   addFraudBtn.addEventListener('click', () => submitPage('Reported as Fraud'));
 
-  // Initialize Scraper
+  // Load draft and then initialize scraper
+  await loadDraft();
   await initializeScraper();
 });
