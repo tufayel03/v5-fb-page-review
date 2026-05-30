@@ -570,12 +570,13 @@ export default function AdminPageDetails() {
                     >
                       <option value="Under Review">Under Review</option>
                       <option value="Verified Marketplace Seller">Verified Seller</option>
-                      <option value="Reported as Fraud">Reported as Fraud</option>
                       <option value="Suspicious">Suspicious</option>
+                      <option value="Reported as Fraud">Fraud</option>
+                      <option value="Gold Seller">⭐ Gold Seller</option>
                     </select>
                   </div>
 
-                  <div className="pt-1">
+                  <div className="space-y-4 pt-1">
                     <label className="flex items-start gap-3 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -592,53 +593,7 @@ export default function AdminPageDetails() {
                         </span>
                       </div>
                     </label>
-                  </div>
-                </div>
 
-                <div>
-                  <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                    Admin Private Note (Internal)
-                  </label>
-                  <textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    rows={4}
-                    className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-                    placeholder="Internal notes about this seller (not visible to users)..."
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Official Business Verification */}
-            <div className="space-y-4 pt-6">
-              <h3 className={`text-base font-bold flex items-center gap-2 ${cText}`}>
-                <ShieldCheck className="h-5 w-5 text-indigo-500" />
-                Business Verification
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-5">
-                  <div>
-                    <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                      Verification Status
-                    </label>
-                    <select
-                      value={businessVerificationStatus}
-                      onChange={(e) => setBusinessVerificationStatus(e.target.value)}
-                      className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
-                    >
-                      <option value="Normal">None</option>
-                      <option value="Official Business">Official Business</option>
-                      <option value="Reputable Business">Reputable Business</option>
-                      <option value="Long-Term Trusted Seller">Long-Term Trusted Seller</option>
-                      <option value="Verified Marketplace Seller">Verified Marketplace Seller</option>
-                    </select>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                      Displays a verified badge on the public user interface to establish trust.
-                    </p>
-                  </div>
-
-                  <div className="pt-1">
                     <label className="flex items-start gap-3 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -660,18 +615,20 @@ export default function AdminPageDetails() {
 
                 <div>
                   <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                    Verification Details (Internal Note)
+                    Admin Private Note (Internal)
                   </label>
                   <textarea
-                    value={businessVerificationNote}
-                    onChange={(e) => setBusinessVerificationNote(e.target.value)}
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
                     rows={4}
                     className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-                    placeholder="Provide background context on verification (e.g. trade license verified)..."
+                    placeholder="Internal notes about this seller (not visible to users)..."
                   ></textarea>
                 </div>
               </div>
             </div>
+
+
 
             {/* Section 3: Fraud Directory Listing */}
             <div className="space-y-4 pt-6">

@@ -261,10 +261,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             addVerifiedBtn.textContent = '⭐ Change to Verified';
             addReviewBtn.textContent = '🔍 Change to Under Review';
             addFraudBtn.textContent = '🛑 Update Fraud Details';
+          } else if (data.page.status === 'Gold Seller') {
+            dbStatusBadge.textContent = '🏆 ALREADY LISTED: GOLD SELLER';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            addVerifiedBtn.textContent = '⭐ Change to Verified';
+            addReviewBtn.textContent = '🔍 Change to Under Review';
+            addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else if (data.page.status === 'Verified Marketplace Seller') {
             dbStatusBadge.textContent = '⭐ ALREADY LISTED: VERIFIED SELLER';
-            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
             addVerifiedBtn.textContent = '⭐ Update Verified';
+            addReviewBtn.textContent = '🔍 Change to Under Review';
+            addFraudBtn.textContent = '🛑 Change to FRAUD';
+          } else if (data.page.status === 'Suspicious') {
+            dbStatusBadge.textContent = '⚠️ ALREADY LISTED: SUSPICIOUS';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15); margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.25s;';
+            addVerifiedBtn.textContent = '⭐ Change to Verified';
             addReviewBtn.textContent = '🔍 Change to Under Review';
             addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else {

@@ -739,45 +739,40 @@ export default function PageProfile() {
                     )
                   )}
 
-                  {page.business_verification_status && 
-                  page.business_verification_status !== "Normal" && 
-                  page.business_verification_status !== "None" && 
-                  page.business_verification_status.trim() !== "" ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      🛡️ {page.business_verification_status}
+                  {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
                     </span>
-                  ) : (
-                    <>
-                      {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                          <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
-                        </span>
-                      )}
+                  )}
 
-                      {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                          💀 Old/Dead Page
-                        </span>
-                      )}
+                  {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      💀 Old/Dead Page
+                    </span>
+                  )}
 
-                      {page.status_badge === "Verified Marketplace Seller" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                          ⭐ Verified Seller
-                        </span>
-                      )}
+                  {page.status_badge === "Verified Marketplace Seller" && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      ⭐ Verified Seller
+                    </span>
+                  )}
 
-                      {page.status_badge === "Under Review" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#205cd4] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                          🔍 Under Review
-                        </span>
-                      )}
+                  {page.status_badge === "Under Review" && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#205cd4] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      🔍 Under Review
+                    </span>
+                  )}
 
-                      {page.status_badge === "Suspicious" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-550 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                          ⚠️ Suspicious
-                        </span>
-                      )}
-                    </>
+                  {page.status_badge === "Suspicious" && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#d97706] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
+                      ⚠️ Suspicious
+                    </span>
+                  )}
+
+                  {page.status_badge === "Gold Seller" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-white rounded-md text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/25 border border-amber-300/30">
+                      🏆 Gold Seller
+                    </span>
                   )}
                 </div>
 

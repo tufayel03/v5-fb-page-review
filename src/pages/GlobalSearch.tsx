@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Search, ShieldCheck, ShieldAlert, Star, Store, MapPin, SlidersHorizontal, ChevronRight, X } from 'lucide-react';
+import { Search, ShieldCheck, ShieldAlert, Star, Store, MapPin, SlidersHorizontal, ChevronRight, X, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function GlobalSearch() {
@@ -79,7 +79,7 @@ export default function GlobalSearch() {
     if (activeReviewsNum === '500+' && reviewCount < 500) return false;
 
     // Status filter
-    if (activeStatus && page.status_badge !== 'Verified Marketplace Seller') return false;
+    if (activeStatus && page.status_badge !== 'Verified Marketplace Seller' && page.status_badge !== 'Gold Seller') return false;
 
     return true;
   });
@@ -159,10 +159,27 @@ export default function GlobalSearch() {
                           {page.current_name}
                         </h3>
                         {page.status_badge === 'Verified Marketplace Seller' && (
-                          <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                          <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Verified Seller
+                          </span>
+                        )}
+                        {page.status_badge === 'Gold Seller' && (
+                          <span className="shrink-0 bg-amber-50 text-amber-700 border border-amber-300/60 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
+                            <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Gold Seller
+                          </span>
+                        )}
+                        {page.status_badge === 'Suspicious' && (
+                          <span className="shrink-0 bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
+                            ⚠️ Suspicious
+                          </span>
+                        )}
+                        {page.status_badge === 'Under Review' && (
+                          <span className="shrink-0 bg-blue-50 text-[#205cd4] border border-blue-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
+                            🔍 Under Review
+                          </span>
                         )}
                         {page.status_badge && page.status_badge.includes('Reported as Fraud') && (
-                          <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded flex items-center gap-1">
+                          <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
                             <ShieldAlert className="h-3 w-3" /> Fraud
                           </span>
                         )}
