@@ -293,12 +293,14 @@ async function main() {
         
         console.log(`\x1b[32m${name.substring(0, 30).padEnd(30)}\x1b[0m | ${changeType.padEnd(10)} | ${oldPageId} ➜ ${newPageId}`);
         console.log(`  ↳ Old Name: ${name}`);
-        console.log(`  ↳ New Name: ${newPageName}`);
+        if (nameChanged) {
+          console.log(`  ↳ New Name: ${newPageName}`);
+        }
         console.log(`  ↳ Old URL:  ${url}`);
         console.log(`  ↳ New URL:  ${destinationUrl}`);
         changes.push({
           "Original Page Name": name,
-          "New Page Name": newPageName,
+          "New Page Name": nameChanged ? newPageName : "",
           "Old URL": url,
           "New URL": destinationUrl,
           "Old Username": oldPageId,
@@ -324,7 +326,9 @@ async function main() {
     console.log("======================================================================");
     changes.forEach((c, idx) => {
       console.log(`\x1b[32m${idx + 1}. Original Name: ${c["Original Page Name"]} \x1b[33m[${c["Change Type"]}]\x1b[0m`);
-      console.log(`   ➜ New Name:      ${c["New Page Name"]}`);
+      if (c["Change Type"] === "NAME CHANGED" || c["Change Type"] === "BOTH CHANGED") {
+        console.log(`   ➜ New Name:      ${c["New Page Name"]}`);
+      }
       console.log(`   ↳ Old URL:       ${c["Old URL"]}`);
       console.log(`   ↳ New URL:       ${c["New URL"]}`);
       console.log("----------------------------------------------------------------------");
