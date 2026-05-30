@@ -116,6 +116,31 @@ setInterval(() => {
 
 async function startServer() {
   const app = express();
+
+  // Transparently sanitize 'failed' profile pictures for frontend
+  app.use((req: any, res: any, next: any) => {
+    const originalJson = res.json;
+    res.json = function (body: any) {
+      const sanitize = (obj: any): any => {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) {
+          return obj.map(sanitize);
+        }
+        const newObj = { ...obj };
+        for (const key in newObj) {
+          if (key === 'profile_picture' && newObj[key] === 'failed') {
+            newObj[key] = null;
+          } else {
+            newObj[key] = sanitize(newObj[key]);
+          }
+        }
+        return newObj;
+      };
+      return originalJson.call(this, sanitize(body));
+    };
+    next();
+  });
+
   const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   // Global Hardened Security Firewall (Hackerproof Shield)
@@ -1322,6 +1347,7 @@ async function startServer() {
         
         if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
           console.log(`[Sync] Page "${page.current_name}" skipped: Invalid or missing URL "${page.facebook_url}"`);
+          db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
           continue;
         }
         
@@ -1337,6 +1363,7 @@ async function startServer() {
           console.log(`[Sync] Page response status: ${fbRes.status} (${fbRes.statusText})`);
           if (!fbRes.ok) {
             console.log(`[Sync] Page skipped: response not OK`);
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
             continue;
           }
           
@@ -1368,6 +1395,7 @@ async function startServer() {
           console.log(`[Sync] Page title: "${rawTitle || 'none'}", Roadblocked: ${isRoadblocked}`);
           if (isRoadblocked) {
             console.log(`[Sync] Page skipped: Roadblock detected`);
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
             continue;
           }
           
@@ -1375,6 +1403,7 @@ async function startServer() {
           console.log(`[Sync] og:image meta tag matched: ${!!ogImageMatch}`);
           if (!ogImageMatch || !ogImageMatch[1]) {
             console.log(`[Sync] Page skipped: og:image meta tag not found in HTML`);
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
             continue;
           }
           
@@ -1395,6 +1424,7 @@ async function startServer() {
           console.log(`[Sync] CDN response status: ${imgRes.status} (${imgRes.statusText})`);
           if (!imgRes.ok) {
             console.log(`[Sync] Page skipped: CDN fetch not OK`);
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
             continue;
           }
           
