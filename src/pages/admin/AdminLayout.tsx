@@ -151,7 +151,7 @@ export default function AdminLayout() {
       <aside
         className={`
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} 
-        md:translate-x-0 fixed md:sticky top-0 h-screen ${isCollapsed ? 'w-20' : 'w-[250px]'} bg-[#060b15] border-r border-white/5 text-slate-300 flex flex-col z-40 transition-all duration-300 overflow-hidden shrink-0
+        fixed top-0 bottom-0 left-0 h-screen ${isCollapsed ? 'w-20' : 'w-[250px]'} bg-[#060b15] border-r border-white/5 text-slate-300 flex flex-col z-40 transition-all duration-300 overflow-hidden shrink-0
       `}
       >
         <div className={`p-6 shrink-0 hidden md:flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} font-bold text-lg text-white`}>
@@ -188,7 +188,7 @@ export default function AdminLayout() {
         
         {/* System Status Container */}
         {!isCollapsed && (
-          <div className="mx-4 my-2 p-4 bg-[#091124] border border-white/5 rounded-2xl relative overflow-hidden group shrink-0 select-none">
+          <div className="mx-4 my-2 p-4 bg-[#091124] border border-white/5 rounded-2xl relative overflow-hidden group mt-auto shrink-0 select-none">
             {/* Wave sparkline background at the bottom */}
             <div className="absolute bottom-0 left-0 right-0 h-8 opacity-30 select-none pointer-events-none">
               <svg className="w-full h-full animate-pulse" viewBox="0 0 120 40" preserveAspectRatio="none">
@@ -223,7 +223,7 @@ export default function AdminLayout() {
           </div>
         )}
 
-        <div className="p-4 border-t border-white/5 shrink-0 hidden md:block">
+        <div className="p-4 border-t border-white/5 shrink-0 hidden md:block mt-auto">
            <button 
              onClick={() => setIsCollapsed(!isCollapsed)}
              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors text-xs font-semibold"
@@ -235,7 +235,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className={`flex-1 flex flex-col min-h-screen overflow-hidden transition-all duration-300 ${isCollapsed ? 'md:pl-20' : 'md:pl-[250px]'}`}>
         {/* Top Navbar */}
         <header className="bg-[#050b18] border-b border-white/5 h-16 shrink-0 flex items-center justify-between px-6 sticky top-0 z-30">
           <div className="flex-1 max-w-xl hidden sm:flex items-center gap-2 relative">
