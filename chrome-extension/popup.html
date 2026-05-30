@@ -6,20 +6,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0b0f19;
-      --card-bg: rgba(17, 24, 39, 0.7);
-      --border-color: rgba(255, 255, 255, 0.06);
+      --bg-dark: #050b18; /* Official website theme background color */
+      --card-bg: #091124; /* Official website card background color */
+      --border-color: rgba(255, 255, 255, 0.08);
       --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
+      --text-muted: #94a3b8;
       
-      --color-primary: #3b82f6;
-      --color-primary-glow: rgba(59, 130, 246, 0.2);
-      --color-success: #10b981;
-      --color-success-glow: rgba(16, 185, 129, 0.2);
-      --color-danger: #ef4444;
-      --color-danger-glow: rgba(239, 68, 68, 0.25);
-      --color-warning: #f59e0b;
+      --color-brand: #0fbc6f; /* Official website brand emerald green color */
+      --color-brand-glow: rgba(15, 188, 111, 0.25);
+      --color-brand-hover: #0da662;
+      
+      --color-danger: #f43f5e; /* Official website rose red color */
+      --color-danger-glow: rgba(244, 63, 94, 0.3);
+      --color-danger-hover: #e11d48;
+      
+      --color-warning: #f59e0b; /* Golden Amber */
       --color-warning-glow: rgba(245, 158, 11, 0.25);
+      --color-warning-hover: #d97706;
     }
 
     * {
@@ -38,15 +41,13 @@
       font-size: 13px;
     }
 
-    /* Glassmorphism main wrapper */
+    /* Premium glassmorphism container matching homepage theme */
     .container {
       background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 14px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
     }
 
     .header {
@@ -55,7 +56,7 @@
       justify-content: space-between;
       margin-bottom: 12px;
       padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .logo-container {
@@ -68,15 +69,15 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #8b5cf6;
-      box-shadow: 0 0 10px #8b5cf6;
+      background: var(--color-brand);
+      box-shadow: 0 0 10px var(--color-brand);
     }
 
     .logo-text {
       font-size: 14px;
       font-weight: 700;
       letter-spacing: 0.05em;
-      background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+      background: linear-gradient(135deg, #2ae08d, var(--color-brand));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-transform: uppercase;
@@ -118,13 +119,13 @@
       letter-spacing: 0.06em;
       color: var(--text-muted);
       margin-bottom: 4px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     input, textarea {
       width: 100%;
-      background: rgba(10, 15, 30, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(5, 11, 24, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       padding: 8px 10px;
       color: var(--text-main);
@@ -134,13 +135,16 @@
 
     input:focus, textarea:focus {
       outline: none;
-      border-color: #8b5cf6;
-      background: rgba(10, 15, 30, 0.8);
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+      border-color: var(--color-brand);
+      background: rgba(5, 11, 24, 0.9);
+      box-shadow: 0 0 0 3px var(--color-brand-glow);
     }
 
-    textarea {
+    /* Bigger Page Details Field as requested */
+    textarea#pageDetails {
       resize: none;
+      height: 64px; /* Taller area to easily type multi-line comments! */
+      line-height: 1.4;
     }
 
     /* High-Fidelity Preview Card */
@@ -149,7 +153,7 @@
       align-items: center;
       gap: 10px;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 12px;
       padding: 10px;
       margin-bottom: 10px;
@@ -199,52 +203,52 @@
       border-radius: 8px;
       padding: 10px 12px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       transition: all 0.2s ease-in-out;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
     }
 
-    /* Verified Marketplace Button (Gold/Amber Theme) */
+    /* Verified Marketplace Button (Gold Theme) */
     .btn-warning {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg, var(--color-warning), var(--color-warning-hover));
       color: white;
       box-shadow: 0 4px 12px var(--color-warning-glow);
       flex: 1;
     }
 
     .btn-warning:hover {
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      background: linear-gradient(135deg, #fbbf24, var(--color-warning));
       transform: translateY(-1px);
     }
 
-    /* Under Review Button (Green Theme) */
+    /* Under Review Button (Emerald Brand Green Theme) */
     .btn-success {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: linear-gradient(135deg, var(--color-brand), var(--color-brand-hover));
       color: white;
-      box-shadow: 0 4px 12px var(--color-success-glow);
+      box-shadow: 0 4px 12px var(--color-brand-glow);
       flex: 1;
     }
 
     .btn-success:hover {
-      background: linear-gradient(135deg, #34d399, #10b981);
+      background: linear-gradient(135deg, #2ae08d, var(--color-brand));
       transform: translateY(-1px);
     }
 
-    /* Fraud Button (Destructive Red Theme - Full Width) */
+    /* Fraud Button (Destructive Brand Rose Theme) */
     .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
+      background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
       color: white;
       box-shadow: 0 4px 12px var(--color-danger-glow);
       width: 100%;
     }
 
     .btn-danger:hover {
-      background: linear-gradient(135deg, #f87171, #ef4444);
+      background: linear-gradient(135deg, #fb7185, var(--color-danger));
       transform: translateY(-1px);
     }
 
@@ -282,15 +286,15 @@
     }
 
     .alert-success {
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: rgba(15, 188, 111, 0.12);
+      border: 1px solid rgba(15, 188, 111, 0.25);
       color: #34d399;
       display: block;
     }
 
     .alert-danger {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.25);
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.25);
       color: #f87171;
       display: block;
     }
@@ -368,7 +372,7 @@
 
         <div class="form-group">
           <label>Page Details (Notes)</label>
-          <textarea id="pageDetails" rows="1" placeholder="Add custom notes or details..."></textarea>
+          <textarea id="pageDetails" rows="3" placeholder="Add custom notes or details..."></textarea>
         </div>
 
         <!-- Buttons: Optimized Grid Layout to Completely Remove Scrollbar -->
