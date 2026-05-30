@@ -1990,6 +1990,232 @@ function getFacebookPageId(url: string): string | null {
     }
   });
 
+  app.get('/api/admin/pages/check-redirects-progress', requireModerator, async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    try {
+      const idsParam = req.query.ids as string;
+      if (!idsParam) {
+        res.write(`data: ${JSON.stringify({ error: 'No page IDs selected.' })}\n\n`);
+        return res.end();
+      }
+
+      const idList = idsParam.split(',').filter(Boolean);
+      if (idList.length === 0) {
+        res.write(`data: ${JSON.stringify({ error: 'No page IDs selected.' })}\n\n`);
+        return res.end();
+      }
+
+      const placeholders = idList.map(() => '?').join(',');
+      const pages = db.prepare(`SELECT * FROM FacebookPages WHERE id IN (${placeholders})`).all(...idList) as any[];
+
+      const total = pages.length;
+      console.log(`[Redirect] Starting background progress scan for ${total} pages`);
+
+      let clientConnected = true;
+      const safeWrite = (data: string) => {
+        if (!clientConnected) return;
+        try {
+          res.write(data);
+        } catch (writeErr) {
+          clientConnected = false;
+          console.log('[Redirect] Client disconnected from progress stream. Loop will continue running safely in the background...');
+        }
+      };
+
+      const humanHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Connection': 'connection'
+      };
+
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      let current = 0;
+      for (const page of pages) {
+        current++;
+        console.log(`[Redirect] [${current}/${total}] Checking page "${page.current_name}"`);
+        
+        safeWrite(`data: ${JSON.stringify({ current, total, pageName: page.current_name })}\n\n`);
+
+        // Human-like random delay between page scans (1.5 to 3.5 seconds) to prevent flagging
+        const delay = 1500 + Math.floor(Math.random() * 2000);
+        await sleep(delay);
+
+        const url = page.facebook_url;
+        const oldPageId = getFacebookPageId(url);
+        if (!oldPageId) continue;
+
+        try {
+          let resolvedUrl = url;
+          let currentUrl = url;
+          let redirectCount = 0;
+          const maxRedirects = 5;
+
+          while (redirectCount < maxRedirects) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            
+            const response = await fetch(currentUrl, {
+              redirect: 'manual',
+              headers: humanHeaders,
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            const loc = response.headers.get('location');
+            if (response.status >= 300 && response.status < 400 && loc) {
+              let nextUrl = loc;
+              if (loc.startsWith('/')) {
+                nextUrl = 'https://www.facebook.com' + loc;
+              } else if (!loc.startsWith('http')) {
+                nextUrl = 'https://www.facebook.com/' + loc;
+              }
+              
+              const isLoginRedirect = nextUrl.toLowerCase().includes('/login') || 
+                                     nextUrl.toLowerCase().includes('/checkpoint') || 
+                                     nextUrl.toLowerCase().includes('login.php');
+              
+              if (isLoginRedirect) {
+                try {
+                  const parsedLoc = new URL(nextUrl);
+                  const nextParam = parsedLoc.searchParams.get('next');
+                  if (nextParam && nextParam.includes('facebook.com') && !nextParam.toLowerCase().includes('/login')) {
+                    resolvedUrl = nextParam;
+                  }
+                } catch(e) {}
+                break;
+              }
+
+              resolvedUrl = nextUrl;
+              currentUrl = nextUrl;
+              redirectCount++;
+            } else {
+              break;
+            }
+          }
+
+          // Fetch the page HTML to get title/metadata using humanHeaders
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const response = await fetch(resolvedUrl, {
+            redirect: 'follow',
+            headers: humanHeaders,
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          const html = await response.text();
+
+          let canonicalUrl = resolvedUrl;
+          const canonicalMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([^"']+)["']/i);
+          if (canonicalMatch && canonicalMatch[1]) {
+            if (canonicalMatch[1].includes('facebook.com')) {
+              canonicalUrl = canonicalMatch[1];
+            }
+          } else {
+            const ogMatch = html.match(/<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i);
+            if (ogMatch && ogMatch[1]) {
+              if (ogMatch[1].includes('facebook.com')) {
+                canonicalUrl = ogMatch[1];
+              }
+            }
+          }
+
+          const isCanonicalSystem = canonicalUrl.toLowerCase().includes('/login') || 
+                                    canonicalUrl.toLowerCase().includes('/checkpoint') || 
+                                    canonicalUrl.toLowerCase().includes('login.php');
+          if (!isCanonicalSystem) {
+            resolvedUrl = canonicalUrl;
+          }
+
+          let title = null;
+          const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          if (ogTitleMatch && ogTitleMatch[1]) {
+            title = ogTitleMatch[1].split('|')[0].trim();
+          } else {
+            const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+            if (titleMatch && titleMatch[1]) {
+              title = titleMatch[1].split('|')[0].trim();
+            }
+          }
+
+          if (title) {
+            title = decodeHTMLEntities(title);
+          }
+
+          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+          const isRoadblocked = !title || 
+                                nameBlacklist.includes(title.toLowerCase().trim()) || 
+                                html.includes("This content isn't available") ||
+                                html.includes("isn't available at the moment");
+
+          let scrapedName = title;
+          if (isRoadblocked) {
+            scrapedName = page.current_name;
+          }
+
+          const newPageId = getFacebookPageId(resolvedUrl);
+
+          const systemKeywords = ["login", "checkpoint", "home", "groups", "pages", "settings", "help", "policies", "profile.php", "business", "privacy"];
+          const isSystemPage = resolvedUrl.toLowerCase().includes('/login') || 
+                               resolvedUrl.toLowerCase().includes('/checkpoint') ||
+                               resolvedUrl.toLowerCase().includes('login.php') ||
+                               (newPageId && systemKeywords.includes(newPageId.toLowerCase()));
+
+          const usernameChanged = newPageId && 
+                                  !isSystemPage && 
+                                  oldPageId.toLowerCase() !== newPageId.toLowerCase();
+          
+          const nameChanged = scrapedName && 
+                              !isRoadblocked && 
+                              !isSystemPage &&
+                              page.current_name.trim().toLowerCase() !== scrapedName.trim().toLowerCase();
+
+          if (usernameChanged || nameChanged) {
+            const resultItem = {
+              id: page.id,
+              originalName: page.current_name,
+              originalUrl: page.facebook_url,
+              scrapedName: scrapedName,
+              scrapedUrl: resolvedUrl,
+              usernameChanged,
+              nameChanged,
+              changeType: usernameChanged && nameChanged ? "BOTH CHANGED" : (usernameChanged ? "URL CHANGED" : "NAME CHANGED")
+            };
+            console.log(`[Redirect] Live Update Found: "${page.current_name}" -> "${scrapedName}"`);
+            safeWrite(`data: ${JSON.stringify({ result: resultItem })}\n\n`);
+          }
+        } catch (innerErr: any) {
+          console.error(`[Redirect] Error checking page "${page.current_name}":`, innerErr);
+        }
+      }
+
+      console.log(`[Redirect] Scanning complete for session`);
+      safeWrite(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (err: any) {
+      console.error("[Redirect] Major crash in redirect loop:", err);
+      try {
+        res.write(`data: ${JSON.stringify({ error: err.message || 'Server error occurred during scan.' })}\n\n`);
+      } catch(e){}
+      res.end();
+    }
+  });
+
   app.get('/api/admin/pages/export', requireAdmin, (req, res) => {
     try {
       let data = [];

@@ -31,6 +31,7 @@ export default function AdminPages() {
   const [redirectChecking, setRedirectChecking] = useState(false);
   const [redirectResults, setRedirectResults] = useState<any[]>([]);
   const [selectedRedirects, setSelectedRedirects] = useState<string[]>([]);
+  const [redirectProgress, setRedirectProgress] = useState<{ current: number; total: number; pageName: string } | null>(null);
   const [applyingRedirects, setApplyingRedirects] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
@@ -264,31 +265,47 @@ export default function AdminPages() {
     setRedirectChecking(true);
     setRedirectResults([]);
     setSelectedRedirects([]);
+    setRedirectProgress({ current: 0, total: selectedPageIds.length, pageName: "Initializing..." });
     
-    try {
-      const res = await fetch('/api/admin/pages/check-redirects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ ids: selectedPageIds })
-      });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data.results)) {
-        setRedirectResults(data.results);
-        setSelectedRedirects(data.results.map((r: any) => r.id));
-      } else {
-        alert(data.error || 'Failed to check page redirects.');
+    const token = localStorage.getItem("token") || "";
+    const url = `/api/admin/pages/check-redirects-progress?token=${encodeURIComponent(token)}&ids=${encodeURIComponent(selectedPageIds.join(','))}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.error) {
+        alert("Failed to check redirects: " + data.error);
+        eventSource.close();
+        setRedirectChecking(false);
+        setRedirectProgress(null);
         setRedirectModalOpen(false);
+      } else if (data.result) {
+        setRedirectResults(prev => {
+          const exists = prev.some(r => r.id === data.result.id);
+          const next = exists ? prev : [...prev, data.result];
+          setSelectedRedirects(next.map(r => r.id));
+          return next;
+        });
+      } else if (data.done) {
+        eventSource.close();
+        setRedirectChecking(false);
+        setRedirectProgress(null);
+      } else {
+        setRedirectProgress({
+          current: data.current,
+          total: data.total,
+          pageName: data.pageName
+        });
       }
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'An error occurred while checking redirects.');
-      setRedirectModalOpen(false);
-    } finally {
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("SSE Redirect Checker connection error:", err);
+      alert("Lost connection to server or scanning finished.");
+      eventSource.close();
       setRedirectChecking(false);
-    }
+      setRedirectProgress(null);
+    };
   };
 
   const handleApplyRedirects = async () => {
@@ -428,18 +445,27 @@ export default function AdminPages() {
 
         {/* Checker Core Area */}
         <div className="bg-white dark:bg-[#091124] border border-slate-200 dark:border-white/5 rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
-          {redirectChecking ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-                <Search className="h-5 w-5 text-emerald-500 absolute inset-0 m-auto animate-pulse" />
+          {redirectChecking && redirectProgress && (
+            <div className="bg-sky-950/20 border border-sky-500/20 rounded-xl p-5 flex flex-col gap-3 backdrop-blur-md">
+              <div className="flex items-center justify-between text-xs text-sky-400 font-bold">
+                <span>🔄 PROGRESS: {Math.round((redirectProgress.current / redirectProgress.total) * 100)}%</span>
+                <span>{redirectProgress.current} / {redirectProgress.total} Pages</span>
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Analyzing live Facebook pages...</p>
-                <p className="text-xs text-slate-500 dark:text-slate-550">Checking for canonical URL forwards, username updates, and branding revisions.</p>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div 
+                  className="bg-sky-500 h-full rounded-full transition-all duration-300 animate-pulse" 
+                  style={{ width: `${(redirectProgress.current / redirectProgress.total) * 100}%` }}
+                />
               </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mt-1">
+                <div className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+                <span>Checking: <strong className="text-slate-700 dark:text-slate-100">{redirectProgress.pageName}</strong></span>
+              </div>
+              <p className="text-[11px] text-slate-500 italic mt-0.5">Using secure human-mimicking requests with random delays to protect the scraper from Facebook bot checkpoints.</p>
             </div>
-          ) : redirectResults.length === 0 ? (
+          )}
+
+          {!redirectChecking && redirectResults.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
               <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-800/40 text-emerald-500">
                 <CheckCircle className="h-8 w-8 text-emerald-500" />
