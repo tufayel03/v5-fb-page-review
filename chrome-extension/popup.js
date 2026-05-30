@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const paymentMethods = document.getElementById('paymentMethods');
   const pageDetails = document.getElementById('pageDetails');
   
+  const addVerifiedBtn = document.getElementById('addVerifiedBtn');
   const addFraudBtn = document.getElementById('addFraudBtn');
   const addReviewBtn = document.getElementById('addReviewBtn');
   const alertBox = document.getElementById('alertBox');
@@ -257,18 +258,27 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (data.page.status === 'Reported as Fraud') {
             dbStatusBadge.textContent = '🛑 ALREADY LISTED: FRAUD';
             dbStatusBadge.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
-            addFraudBtn.textContent = '🛑 Update Fraud Details';
+            addVerifiedBtn.textContent = '⭐ Change to Verified Seller';
             addReviewBtn.textContent = '🔍 Change to Under Review';
+            addFraudBtn.textContent = '🛑 Update Fraud Details';
+          } else if (data.page.status === 'Verified Marketplace Seller') {
+            dbStatusBadge.textContent = '⭐ ALREADY LISTED: VERIFIED SELLER';
+            dbStatusBadge.style.cssText = 'display: block; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
+            addVerifiedBtn.textContent = '⭐ Update Verified Seller Details';
+            addReviewBtn.textContent = '🔍 Change to Under Review';
+            addFraudBtn.textContent = '🛑 Change to FRAUD';
           } else {
             dbStatusBadge.textContent = '🔍 ALREADY LISTED: UNDER REVIEW';
             dbStatusBadge.style.cssText = 'display: block; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; animation: fadeIn 0.3s;';
-            addFraudBtn.textContent = '🛑 Change to FRAUD';
+            addVerifiedBtn.textContent = '⭐ Change to Verified Seller';
             addReviewBtn.textContent = '🔍 Update Under Review Details';
+            addFraudBtn.textContent = '🛑 Change to FRAUD';
           }
         } else {
           dbStatusBadge.style.display = 'none';
-          addFraudBtn.textContent = '🛑 Report & Add as FRAUD';
+          addVerifiedBtn.textContent = '⭐ Verify as MARKETPLACE SELLER';
           addReviewBtn.textContent = '🔍 Add to Under Review';
+          addFraudBtn.textContent = '🛑 Report & Add as FRAUD';
         }
       }
     } catch (err) {
@@ -295,7 +305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       pageDetails: pageDetails.value.trim()
     };
 
-    const targetBtn = status === 'Reported as Fraud' ? addFraudBtn : addReviewBtn;
+    const targetBtn = status === 'Reported as Fraud' 
+      ? addFraudBtn 
+      : (status === 'Verified Marketplace Seller' ? addVerifiedBtn : addReviewBtn);
     const originalText = targetBtn.textContent;
     targetBtn.disabled = true;
     targetBtn.innerHTML = '<span class="spinner"></span> Saving...';
@@ -332,8 +344,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // Event Listeners for Adding
-  addFraudBtn.addEventListener('click', () => submitPage('Reported as Fraud'));
+  addVerifiedBtn.addEventListener('click', () => submitPage('Verified Marketplace Seller'));
   addReviewBtn.addEventListener('click', () => submitPage('Under Review'));
+  addFraudBtn.addEventListener('click', () => submitPage('Reported as Fraud'));
 
   // Initialize
   await initializeScraper();

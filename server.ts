@@ -1400,9 +1400,11 @@ async function startServer() {
       const urlParam = facebookUrl.trim();
       const decodedName = decodeHTMLEntities(name || '').trim();
       const nameParam = decodedName || 'Unknown Page';
-      const statusParam = status === 'Reported as Fraud' ? 'Reported as Fraud' : 'Under Review';
+      const statusParam = status === 'Reported as Fraud' 
+        ? 'Reported as Fraud' 
+        : (status === 'Verified Marketplace Seller' ? 'Verified Marketplace Seller' : 'Under Review');
       const isFraud = statusParam === 'Reported as Fraud';
-      const trustScore = isFraud ? -100 : 0;
+      const trustScore = isFraud ? -100 : (statusParam === 'Verified Marketplace Seller' ? 100 : 0);
 
       // Extract details
       const pmList = paymentMethods ? String(paymentMethods).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];

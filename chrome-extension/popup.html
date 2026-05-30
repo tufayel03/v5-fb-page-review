@@ -230,6 +230,17 @@
       transform: translateY(-1px);
     }
 
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-warning:hover {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      transform: translateY(-1px);
+    }
+
     .btn-secondary {
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
@@ -342,11 +353,14 @@
 
         <!-- Buttons -->
         <div class="button-group">
-          <button id="addFraudBtn" class="btn btn-danger">
-            🛑 Report & Add as FRAUD
+          <button id="addVerifiedBtn" class="btn btn-warning">
+            ⭐ Verify as MARKETPLACE SELLER
           </button>
           <button id="addReviewBtn" class="btn btn-success">
             🔍 Add to Under Review
+          </button>
+          <button id="addFraudBtn" class="btn btn-danger">
+            🛑 Report & Add as FRAUD
           </button>
         </div>
       </div>
