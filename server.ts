@@ -1338,12 +1338,24 @@ async function startServer() {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
       }
+
+      // Safe write helper to allow the loop to run in the background even if client closes the tab
+      let clientConnected = true;
+      const safeWrite = (data: string) => {
+        if (!clientConnected) return;
+        try {
+          res.write(data);
+        } catch (writeErr) {
+          clientConnected = false;
+          console.log('[Sync] Client disconnected from progress stream. Loop will continue running safely in the background...');
+        }
+      };
       
       let count = 0;
       let current = 0;
       for (const page of pages) {
         current++;
-        res.write(`data: ${JSON.stringify({ done: false, current, total, pageName: page.current_name, count })}\n\n`);
+        safeWrite(`data: ${JSON.stringify({ done: false, current, total, pageName: page.current_name, count })}\n\n`);
         
         if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
           console.log(`[Sync] Page "${page.current_name}" skipped: Invalid or missing URL "${page.facebook_url}"`);
@@ -1453,15 +1465,22 @@ async function startServer() {
           console.error(`[Sync] ERROR for page "${page.current_name}":`, innerErr);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+        // Wait 8-15 seconds per page to act like a real user and guarantee we never get blocked!
+        const slowDelay = 8000 + Math.random() * 7000;
+        console.log(`[Sync] Waiting ${(slowDelay / 1000).toFixed(1)} seconds before crawling next page to ensure absolute safety...`);
+        await new Promise(resolve => setTimeout(resolve, slowDelay));
       }
       
-      res.write(`data: ${JSON.stringify({ done: true, total, count })}\n\n`);
-      res.end();
+      safeWrite(`data: ${JSON.stringify({ done: true, total, count })}\n\n`);
+      if (clientConnected) {
+        res.end();
+      }
     } catch (e: any) {
       console.error('SSE sync failed:', e);
-      res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
-      res.end();
+      safeWrite(`data: ${JSON.stringify({ error: e.message })}\n\n`);
+      if (clientConnected) {
+        res.end();
+      }
     }
   });
 
