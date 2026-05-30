@@ -14,6 +14,9 @@ export default function AdminPages() {
   const [minReviewsFilter, setMinReviewsFilter] = useState("");
   const [minFraudFilter, setMinFraudFilter] = useState("");
   const [addedByFilter, setAddedByFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: "created_at", direction: "desc" });
 
   // Bulk action states
@@ -73,7 +76,7 @@ export default function AdminPages() {
       fetchPages();
     }, 250); // 250ms debounce for admin search actions
     return () => clearTimeout(timer);
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, minFraudFilter, addedByFilter, sortConfig]);
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, minFraudFilter, addedByFilter, dateRangeFilter, startDateFilter, endDateFilter, sortConfig]);
 
   const fetchPages = () => {
     setLoading(true);
@@ -86,6 +89,9 @@ export default function AdminPages() {
       minReviews: minReviewsFilter,
       minFraud: minFraudFilter,
       addedBy: addedByFilter,
+      dateRange: dateRangeFilter,
+      startDate: startDateFilter,
+      endDate: endDateFilter,
     });
 
     if (sortConfig) {
@@ -125,6 +131,9 @@ export default function AdminPages() {
         minReviews: minReviewsFilter,
         minFraud: minFraudFilter,
         addedBy: addedByFilter,
+        dateRange: dateRangeFilter,
+        startDate: startDateFilter,
+        endDate: endDateFilter,
         allIds: "true"
       });
       const res = await fetch(`/api/admin/pages?${queryParams}`, {
@@ -154,6 +163,9 @@ export default function AdminPages() {
       queryParams.append("minReviews", minReviewsFilter);
       queryParams.append("minFraud", minFraudFilter);
       queryParams.append("addedBy", addedByFilter);
+      queryParams.append("dateRange", dateRangeFilter);
+      queryParams.append("startDate", startDateFilter);
+      queryParams.append("endDate", endDateFilter);
     }
 
     const token = localStorage.getItem("token") || "";
@@ -336,7 +348,7 @@ export default function AdminPages() {
         <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2 select-none">
           <Filter className="h-3 w-3 text-emerald-500" /> Search & Advanced Filters
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           
           {/* Page Status Filter */}
           <div className="space-y-1.5">
@@ -382,6 +394,30 @@ export default function AdminPages() {
             </select>
           </div>
 
+          {/* Added Time Filter */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Added Time</label>
+            <select
+              value={dateRangeFilter}
+              onChange={(e) => {
+                setDateRangeFilter(e.target.value);
+                if (e.target.value !== "custom") {
+                  setStartDateFilter("");
+                  setEndDateFilter("");
+                }
+                setCurrentPage(1);
+              }}
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="15days">Last 15 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="6months">Last 6 Months</option>
+              <option value="custom">📅 Custom Range...</option>
+            </select>
+          </div>
+
           {/* Min Reviews Filter */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Min reviews</label>
@@ -424,8 +460,32 @@ export default function AdminPages() {
           </div>
         </div>
 
+        {/* Custom Date Range Picker */}
+        {dateRangeFilter === "custom" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-[#050b18] border border-white/5 rounded-xl transition-all duration-300">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Start Date</label>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => { setStartDateFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">End Date</label>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => { setEndDateFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Clear filter indicator */}
-        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || minFraudFilter !== "" || addedByFilter !== "all" || searchQuery !== "") && (
+        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || minFraudFilter !== "" || addedByFilter !== "all" || dateRangeFilter !== "all" || startDateFilter !== "" || endDateFilter !== "" || searchQuery !== "") && (
           <div className="flex justify-end mt-1">
             <button
               onClick={() => {
@@ -434,6 +494,9 @@ export default function AdminPages() {
                 setMinReviewsFilter("");
                 setMinFraudFilter("");
                 setAddedByFilter("all");
+                setDateRangeFilter("all");
+                setStartDateFilter("");
+                setEndDateFilter("");
                 setSearchQuery("");
                 setCurrentPage(1);
               }}

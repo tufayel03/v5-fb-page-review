@@ -1184,6 +1184,9 @@ async function startServer() {
       const minReviews = Number(req.query.minReviews);
       const minFraud = Number(req.query.minFraud);
       const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
+      const dateRange = typeof req.query.dateRange === 'string' ? req.query.dateRange.trim() : 'all';
+      const startDate = typeof req.query.startDate === 'string' ? req.query.startDate.trim() : '';
+      const endDate = typeof req.query.endDate === 'string' ? req.query.endDate.trim() : '';
       const page = Math.max(1, Number(req.query.page) || 1);
       const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10)); // max limit protection 100 for admin
       const offset = (page - 1) * limit;
@@ -1206,6 +1209,27 @@ async function startServer() {
         whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ?)');
         const likePattern = `%${search}%`;
         params.push(likePattern, likePattern);
+      }
+
+      if (dateRange !== 'all') {
+        if (dateRange === '7days') {
+          whereClauses.push("created_at >= datetime('now', '-7 days')");
+        } else if (dateRange === '15days') {
+          whereClauses.push("created_at >= datetime('now', '-15 days')");
+        } else if (dateRange === '30days') {
+          whereClauses.push("created_at >= datetime('now', '-30 days')");
+        } else if (dateRange === '6months') {
+          whereClauses.push("created_at >= datetime('now', '-6 months')");
+        } else if (dateRange === 'custom') {
+          if (startDate) {
+            whereClauses.push("created_at >= ?");
+            params.push(startDate + ' 00:00:00');
+          }
+          if (endDate) {
+            whereClauses.push("created_at <= ?");
+            params.push(endDate + ' 23:59:59');
+          }
+        }
       }
 
       if (status !== 'all') {
@@ -1719,6 +1743,9 @@ async function startServer() {
           const minReviews = Number(req.query.minReviews);
           const minFraud = Number(req.query.minFraud);
           const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
+          const dateRange = typeof req.query.dateRange === 'string' ? req.query.dateRange.trim() : 'all';
+          const startDate = typeof req.query.startDate === 'string' ? req.query.startDate.trim() : '';
+          const endDate = typeof req.query.endDate === 'string' ? req.query.endDate.trim() : '';
 
           let whereClauses: string[] = [];
           let params: any[] = [];
@@ -1727,6 +1754,27 @@ async function startServer() {
             whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ?)');
             const likePattern = `%${search}%`;
             params.push(likePattern, likePattern);
+          }
+
+          if (dateRange !== 'all') {
+            if (dateRange === '7days') {
+              whereClauses.push("created_at >= datetime('now', '-7 days')");
+            } else if (dateRange === '15days') {
+              whereClauses.push("created_at >= datetime('now', '-15 days')");
+            } else if (dateRange === '30days') {
+              whereClauses.push("created_at >= datetime('now', '-30 days')");
+            } else if (dateRange === '6months') {
+              whereClauses.push("created_at >= datetime('now', '-6 months')");
+            } else if (dateRange === 'custom') {
+              if (startDate) {
+                whereClauses.push("created_at >= ?");
+                params.push(startDate + ' 00:00:00');
+              }
+              if (endDate) {
+                whereClauses.push("created_at <= ?");
+                params.push(endDate + ' 23:59:59');
+              }
+            }
           }
           if (status !== 'all') {
             if (status === 'fraud') {
