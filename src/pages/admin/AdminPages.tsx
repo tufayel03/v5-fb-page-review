@@ -777,17 +777,32 @@ export default function AdminPages() {
       {/* Advanced Filter Workspace Panel */}
       <div className="bg-[#091124] border border-white/5 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
         <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2 select-none">
-          <Filter className="h-3 w-3 text-emerald-500" /> Search & Advanced Filters
+          <Filter className="h-3.5 w-3.5 text-emerald-500" /> Search & Advanced Filters
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           
+          {/* Search Term */}
+          <div className="space-y-1.5 md:col-span-2 xl:col-span-2">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Quick Search</label>
+            <div className="relative">
+              <Search className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search by Name or Facebook URL..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg pl-9 pr-3 py-2 text-sm placeholder-slate-600 focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all"
+              />
+            </div>
+          </div>
+
           {/* Page Status Filter */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="Reported as Fraud">🛑 Reported as Fraud</option>
@@ -807,7 +822,7 @@ export default function AdminPages() {
             <select
               value={claimFilter}
               onChange={(e) => { setClaimFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all cursor-pointer"
             >
               <option value="all">All Pages</option>
               <option value="claimed">Claimed Pages</option>
@@ -821,7 +836,7 @@ export default function AdminPages() {
             <select
               value={addedByFilter}
               onChange={(e) => { setAddedByFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all cursor-pointer"
             >
               <option value="all">All Sources</option>
               <option value="admin">Admin</option>
@@ -843,7 +858,7 @@ export default function AdminPages() {
                 }
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all cursor-pointer"
             >
               <option value="all">All Time</option>
               <option value="7days">Last 7 Days</option>
@@ -864,7 +879,7 @@ export default function AdminPages() {
                 placeholder="Min"
                 value={minReviewsFilter}
                 onChange={(e) => { setMinReviewsFilter(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all"
               />
               <span className="text-slate-500 text-xs font-bold">to</span>
               <input
@@ -873,7 +888,7 @@ export default function AdminPages() {
                 placeholder="Max"
                 value={maxReviewsFilter}
                 onChange={(e) => { setMaxReviewsFilter(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all"
               />
             </div>
           </div>
@@ -887,24 +902,10 @@ export default function AdminPages() {
               placeholder="e.g. 2"
               value={minFraudFilter}
               onChange={(e) => { setMinFraudFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm placeholder-slate-750 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm placeholder-slate-700 focus:outline-none focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all"
             />
           </div>
 
-          {/* Search Term */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Quick Search</label>
-            <div className="relative">
-              <Search className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Name or Facebook URL"
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg pl-9 pr-3 py-2 text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Custom Date Range Picker */}
