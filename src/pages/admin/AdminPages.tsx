@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router";
 import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 
@@ -188,6 +188,43 @@ export default function AdminPages() {
       setSyncProgress(null);
     };
   };
+
+  // Scroll Restoration Logic
+  const isInitialMount = useRef(true);
+
+  // Restore scroll position when loading transitions from true to false
+  useEffect(() => {
+    if (!loading) {
+      const savedScroll = sessionStorage.getItem("admin_pages_scroll_y");
+      if (savedScroll) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            window.scrollTo(0, parseInt(savedScroll, 10));
+          });
+        });
+      }
+    }
+  }, [loading]);
+
+  // Monitor and save window scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem("admin_pages_scroll_y", window.scrollY.toString());
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  // Clear saved scroll position when filters or page changes (after initial mount)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    sessionStorage.removeItem("admin_pages_scroll_y");
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, maxReviewsFilter, minFraudFilter, addedByFilter, dateRangeFilter, startDateFilter, endDateFilter, sortConfig]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
