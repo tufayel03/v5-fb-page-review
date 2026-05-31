@@ -4802,6 +4802,56 @@ function normalizeName(str: string): string {
         }
       }
 
+      // 2.5. Ultimate Graph API picture redirect fallback: fetches profile picture directly using the username if it is still empty!
+      if (!profilePicture && username) {
+        console.log(`[AutoScrape] Fetching profile picture from public Graph API redirect for username: ${username}...`);
+        try {
+          const graphPicUrl = `https://graph.facebook.com/${username}/picture?type=large`;
+          const imgRes = await fetch(graphPicUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+            signal: AbortSignal.timeout(5000)
+          });
+
+          if (imgRes.ok) {
+            const pageId = Date.now().toString();
+            const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+            const timestamp = Date.now();
+            const filename = `profile-${pageId}-${timestamp}.webp`;
+            const filepath = path.join(uploadsDir, filename);
+
+            await sharp(imageBuffer)
+              .resize(300, 300, { fit: 'cover' })
+              .webp({ quality: 80 })
+              .toFile(filepath);
+
+            const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+            const thumbFilepath = path.join(uploadsDir, thumbFilename);
+            await sharp(imageBuffer)
+              .resize(80, 80, { fit: 'cover' })
+              .webp({ quality: 70 })
+              .toFile(thumbFilepath);
+
+            profilePicture = `/uploads/${filename}`;
+            console.log(`[AutoScrape] Successfully extracted profile picture via Graph API redirect: ${profilePicture}`);
+          }
+        } catch (graphPicErr: any) {
+          console.error('[AutoScrape] Graph API redirect profile picture fallback failed:', graphPicErr.message);
+        }
+      }
+
+      // Format name beautifully if empty or generic
+      if (!rawTitle || rawTitle.toLowerCase() === 'facebook page' || rawTitle.toLowerCase() === 'error') {
+        if (username) {
+          rawTitle = username
+            .replace(/[._-]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+        } else {
+          rawTitle = 'Facebook Page';
+        }
+      }
+
       // 3. Resiliently add to database! Use 0/NULL for trust_score
       const pageId = Date.now().toString();
       db.prepare(`
