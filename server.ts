@@ -9,6 +9,7 @@ import { db } from './database.js';
 import multer from 'multer';
 import sharp from 'sharp';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import * as xlsx from 'xlsx';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -4581,18 +4582,14 @@ function normalizeName(str: string): string {
                 if (!extractedPic.startsWith('http')) {
                   extractedPic = 'https:' + extractedPic;
                 }
-                console.log(`[AutoScrape] Fetching profile picture from CDN... URL: ${extractedPic.substring(0, 80)}...`);
+                console.log(`[AutoScrape] Fetching profile picture from CDN via curl... URL: ${extractedPic.substring(0, 80)}...`);
                 try {
-                  const imgRes = await fetch(extractedPic, {
-                    headers: {
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    },
-                    signal: AbortSignal.timeout(5000)
-                  });
+                  const tempFile = path.join(uploadsDir, `temp-plugin-${Date.now()}.jpg`);
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
 
-                  if (imgRes.ok) {
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                     const pageId = Date.now().toString();
-                    const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                    const imageBuffer = fs.readFileSync(tempFile);
                     const timestamp = Date.now();
                     const filename = `profile-${pageId}-${timestamp}.webp`;
                     const filepath = path.join(uploadsDir, filename);
@@ -4611,9 +4608,12 @@ function normalizeName(str: string): string {
 
                     profilePicture = `/uploads/${filename}`;
                     console.log(`[AutoScrape] Successfully optimized profile picture: ${profilePicture}`);
+                    try { fs.unlinkSync(tempFile); } catch (e) {}
+                  } else {
+                    console.warn(`[AutoScrape] Curl returned empty file or failed for profile picture`);
                   }
-                } catch (imgErr) {
-                  console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+                } catch (imgErr: any) {
+                  console.error('[AutoScrape] Error downloading profile picture:', imgErr.message);
                 }
               }
             }
@@ -4760,17 +4760,13 @@ function normalizeName(str: string): string {
                 .replace(/&#039;/g, "'");
 
               try {
-                console.log(`[AutoScrape] Fetching profile picture from CDN... URL: ${cleanedImageUrl.substring(0, 80)}...`);
-                const imgRes = await fetch(cleanedImageUrl, {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                  },
-                  signal: AbortSignal.timeout(5000)
-                });
+                console.log(`[AutoScrape] Fetching profile picture from CDN via curl... URL: ${cleanedImageUrl.substring(0, 80)}...`);
+                const tempFile = path.join(uploadsDir, `temp-direct-${Date.now()}.jpg`);
+                execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
 
-                if (imgRes.ok) {
+                if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                   const pageId = Date.now().toString();
-                  const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                  const imageBuffer = fs.readFileSync(tempFile);
                   const timestamp = Date.now();
                   const filename = `profile-${pageId}-${timestamp}.webp`;
                   const filepath = path.join(uploadsDir, filename);
@@ -4789,9 +4785,12 @@ function normalizeName(str: string): string {
 
                   profilePicture = `/uploads/${filename}`;
                   console.log(`[AutoScrape] Successfully optimized profile picture from direct/translate fetch: ${profilePicture}`);
+                  try { fs.unlinkSync(tempFile); } catch (e) {}
+                } else {
+                  console.warn(`[AutoScrape] Curl returned empty file or failed for direct profile picture`);
                 }
-              } catch (imgErr) {
-                console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+              } catch (imgErr: any) {
+                console.error('[AutoScrape] Error downloading profile picture:', imgErr.message);
               }
             }
           } else {
@@ -4807,16 +4806,12 @@ function normalizeName(str: string): string {
         console.log(`[AutoScrape] Fetching profile picture from public Graph API redirect for username: ${username}...`);
         try {
           const graphPicUrl = `https://graph.facebook.com/${username}/picture?type=large`;
-          const imgRes = await fetch(graphPicUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            },
-            signal: AbortSignal.timeout(5000)
-          });
+          const tempFile = path.join(uploadsDir, `temp-graph-${Date.now()}.jpg`);
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
 
-          if (imgRes.ok) {
+          if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
             const pageId = Date.now().toString();
-            const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+            const imageBuffer = fs.readFileSync(tempFile);
             const timestamp = Date.now();
             const filename = `profile-${pageId}-${timestamp}.webp`;
             const filepath = path.join(uploadsDir, filename);
@@ -4835,6 +4830,9 @@ function normalizeName(str: string): string {
 
             profilePicture = `/uploads/${filename}`;
             console.log(`[AutoScrape] Successfully extracted profile picture via Graph API redirect: ${profilePicture}`);
+            try { fs.unlinkSync(tempFile); } catch (e) {}
+          } else {
+            console.warn(`[AutoScrape] Curl returned empty file or failed for Graph API redirect profile picture`);
           }
         } catch (graphPicErr: any) {
           console.error('[AutoScrape] Graph API redirect profile picture fallback failed:', graphPicErr.message);
