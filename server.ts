@@ -5541,7 +5541,7 @@ function normalizeName(str: string): string {
       }
 
       const reviewsList = db.prepare(`
-        SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
+        SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at, r.useful_count,
                o.reply_text as owner_reply, o.created_at as owner_reply_created_at, 
                CASE WHEN r.is_on_behalf = 1 THEN COALESCE(NULLIF(r.on_behalf_name, ''), 'On behalf') ELSE u.full_name END as current_name
         ${baseQuery}
@@ -5559,6 +5559,31 @@ function normalizeName(str: string): string {
     } catch(e) {
       console.error(e);
       res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  app.post('/api/reviews/:id/useful', (req, res) => {
+    try {
+      const { increment } = req.body;
+      const reviewId = req.params.id;
+      
+      const review = db.prepare('SELECT id, useful_count FROM Reviews WHERE id = ?').get(reviewId) as any;
+      if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
+      
+      let newCount = Number(review.useful_count || 0);
+      if (increment) {
+        newCount += 1;
+      } else {
+        newCount = Math.max(0, newCount - 1);
+      }
+      
+      db.prepare('UPDATE Reviews SET useful_count = ? WHERE id = ?').run(newCount, reviewId);
+      res.json({ success: true, useful_count: newCount });
+    } catch (e: any) {
+      console.error('[Useful] Error updating useful count:', e);
+      res.status(500).json({ error: 'Failed to update useful count' });
     }
   });
 

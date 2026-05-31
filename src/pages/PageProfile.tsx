@@ -284,7 +284,7 @@ export default function PageProfile() {
     }
   };
 
-  const handleUseful = (reviewId: any) => {
+  const handleUseful = async (reviewId: string) => {
     const wasUseful = !!usefulVotes[reviewId];
     const newVotes = { ...usefulVotes, [reviewId]: !wasUseful };
     setUsefulVotes(newVotes);
@@ -292,6 +292,43 @@ export default function PageProfile() {
       localStorage.setItem('review_useful_votes', JSON.stringify(newVotes));
     } catch (e) {
       console.error(e);
+    }
+    
+    // Optimistically update the local useful_count state
+    setReviewsData(prev => ({
+      ...prev,
+      reviews: prev.reviews.map((r: any) => {
+        if (r.id === reviewId) {
+          const currentCount = Number(r.useful_count || 0);
+          return {
+            ...r,
+            useful_count: wasUseful ? Math.max(0, currentCount - 1) : currentCount + 1
+          };
+        }
+        return r;
+      })
+    }));
+
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/useful`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ increment: !wasUseful })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        // Sync with absolute server value
+        setReviewsData(prev => ({
+          ...prev,
+          reviews: prev.reviews.map((r: any) => 
+            r.id === reviewId ? { ...r, useful_count: json.useful_count } : r
+          )
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to update useful count on server:", err);
     }
   };
   const REVIEWS_PER_PAGE = 10;
@@ -1386,7 +1423,7 @@ export default function PageProfile() {
                             />
                             Useful{" "}
                             <span className="font-bold text-[11px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full text-slate-600 dark:text-slate-300 shrink-0">
-                              {(review.title.length % 5) + (usefulVotes[review.id] ? 1 : 0)}
+                              {review.useful_count ?? 0}
                             </span>
                           </button>
                           

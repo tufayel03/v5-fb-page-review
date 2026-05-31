@@ -66,6 +66,7 @@ db.exec(`
     subcategory_id TEXT,
     is_on_behalf INTEGER DEFAULT 0,
     on_behalf_name TEXT,
+    useful_count INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (page_id) REFERENCES FacebookPages(id),
     FOREIGN KEY (user_id) REFERENCES Users(id)
@@ -404,6 +405,7 @@ try {
 } catch (e) {}
 try { db.exec('ALTER TABLE Reviews ADD COLUMN is_on_behalf INTEGER DEFAULT 0;'); } catch (e) {}
 try { db.exec('ALTER TABLE Reviews ADD COLUMN on_behalf_name TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE Reviews ADD COLUMN useful_count INTEGER DEFAULT 0;'); } catch (e) {}
 try { db.exec('ALTER TABLE Claims ADD COLUMN updated_at DATETIME;'); } catch (e) {}
 try { db.exec('ALTER TABLE Claims ADD COLUMN admin_note TEXT;'); } catch (e) {}
 
