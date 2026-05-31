@@ -184,3 +184,26 @@ UTILITY 2: Direct Interactive Database Checker (local-db-checker.js)
      "Do you want to apply these changes to the database and upload to VPS? (yes/no): "
   5. The utility will automatically rewrite the local DB transaction, upload it back, and restart your live VPS site instantly!
 =============================================================================
+10. DUAL-MODE PROFILE PICTURE MANAGEMENT (SYNC vs UPDATE)
+-----------------------------------------------------------------------------
+* Multi-Tier Profile Picture Scraper:
+  The crawler pipeline follows a four-tier fallback structure:
+  1) Public Page Plugin widget iframe -> 2) Direct Page HTML -> 3) Google Translate Proxy -> 4) Graph API redirect.
+* Tiered Validation (Sharp Integration):
+  Every fallback tier immediately validates downloaded content using `sharp().metadata()`. If Facebook or the CDN blocks the request and returns an invalid format (like a 403 Forbidden HTML error page instead of a binary image), the system automatically deletes the corrupt file and falls back to the next tier without throwing/crashing.
+* Sync Mode (Auto-Fetch Profile Pictures):
+  Exclusively targets page records with no existing profile picture (where the database lists the picture as NULL, "", or "failed"). Skips pages that already have valid pictures.
+* Update Mode (Update Profile Pictures):
+  Forced refresh of existing images. Fetches the latest profile picture from Facebook, automatically deletes both the old full-sized WebP and old thumbnail WebP files from the server's uploads/ folder to prevent storage bloat, and updates the database record.
+
+-----------------------------------------------------------------------------
+11. AUTOMATIC FACEBOOK SHARE SHORTLINK RESOLUTION
+-----------------------------------------------------------------------------
+* Shortlink Redirect Resolution:
+  Users searching/adding pages using Facebook share shortlinks (e.g., `https://www.facebook.com/share/18Dhxpq5Je`) are supported natively.
+* Execution Flow:
+  - The backend detects `/share/` in the input URL query.
+  - Resolves the 302 location header using a lightweight curl request.
+  - Automatically cleans parameters from the resolved location URL (stripping `?rdid=...` and `#...`).
+  - The central scraper (`scrapeAndAddFacebookPage`) continues using the resolved canonical page URL, avoiding wrong shortlink usernames as names, and seamlessly matching existing page records in the database.
+=============================================================================
