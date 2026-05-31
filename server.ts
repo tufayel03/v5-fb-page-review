@@ -4557,7 +4557,9 @@ function normalizeName(str: string): string {
             const extractedName = pageNameMatch ? pageNameMatch[1] : '';
 
             // Extract profile pic url (usually containing -1/ in the scontent path)
-            const picMatch = pluginHtml.match(/(scontent[^\s\"]+\-1\/[^\s\"]+)/i) || 
+            const picMatch = pluginHtml.match(/"image_url"\s*:\s*"([^"]+)"/i) ||
+                             pluginHtml.match(/"profile_pic"\s*:\s*\{\s*"uri"\s*:\s*"([^"]+)"/i) ||
+                             pluginHtml.match(/(scontent[^\s\"]+\-1\/[^\s\"]+)/i) || 
                              pluginHtml.match(/(scontent[^\s\"]+\-6\/[^\s\"]+)/i) ||
                              pluginHtml.match(/(scontent[^\s\"]+\-[a-zA-Z0-9]\/[^\s\"]+)/i);
             
@@ -4723,9 +4725,23 @@ function normalizeName(str: string): string {
             }
 
             // Attempt to extract profile picture
+            let ogImageUrl = '';
             const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
             if (ogImageMatch && ogImageMatch[1]) {
-              let ogImageUrl = ogImageMatch[1]
+              ogImageUrl = ogImageMatch[1];
+            } else {
+              // Highly resilient fallback: search for CDN profile pic within raw inline JSON payloads (image_url or uri with scontent)
+              const jsonPicMatch = html.match(/"image_url"\s*:\s*"([^"]+)"/i) ||
+                                   html.match(/"profile_pic"\s*:\s*\{\s*"uri"\s*:\s*"([^"]+)"/i) ||
+                                   html.match(/(https?:\\\/\\\/[^\s\"]+scontent[^\s\"]+\-1\/[^\s\"]+)/i) ||
+                                   html.match(/(scontent[^\s\"]+\-1\/[^\s\"]+)/i);
+              if (jsonPicMatch && jsonPicMatch[1]) {
+                ogImageUrl = jsonPicMatch[1].replace(/\\/g, '');
+              }
+            }
+
+            if (ogImageUrl) {
+              let cleanedImageUrl = ogImageUrl
                 .replace(/&amp;/g, '&')
                 .replace(/&lt;/g, '<')
                 .replace(/&gt;/g, '>')
@@ -4733,8 +4749,8 @@ function normalizeName(str: string): string {
                 .replace(/&#039;/g, "'");
 
               try {
-                console.log(`[AutoScrape] Fetching profile picture from CDN...`);
-                const imgRes = await fetch(ogImageUrl, {
+                console.log(`[AutoScrape] Fetching profile picture from CDN... URL: ${cleanedImageUrl.substring(0, 80)}...`);
+                const imgRes = await fetch(cleanedImageUrl, {
                   headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
                   },
@@ -4761,6 +4777,7 @@ function normalizeName(str: string): string {
                     .toFile(thumbFilepath);
 
                   profilePicture = `/uploads/${filename}`;
+                  console.log(`[AutoScrape] Successfully optimized profile picture from direct/translate fetch: ${profilePicture}`);
                 }
               } catch (imgErr) {
                 console.error('[AutoScrape] Error downloading profile picture:', imgErr);
