@@ -4535,46 +4535,64 @@ function normalizeName(str: string): string {
         rawTitle = 'Facebook Page';
       }      
       let profilePicture = null;
-      let hasPagePluginSuccess = false;
-
-      // 1.5. Try using Facebook Page Plugin widget iframe (NEVER blocked by Facebook and does not require login!)
+      let hasPagePluginSuccess = false;      // 1.5. Try using Facebook Page Plugin widget iframe (NEVER blocked by Facebook and does not require login!)
       if (username) {
         console.log(`[AutoScrape] Fetching page metadata via public Page Plugin for username: ${username}`);
         try {
-          const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}`;
-          const pluginRes = await fetch(pluginUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
-            signal: AbortSignal.timeout(5000)
-          });
-
-          if (pluginRes.ok) {
-            const pluginHtml = await pluginRes.text();
+          const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
+          const tempHtmlFile = path.join(uploadsDir, `temp-plugin-html-${Date.now()}.html`);
+          
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+          
+          if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+            const pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+            try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
             
             // Extract page name
-            const pageNameMatch = pluginHtml.match(/"pageName"\s*:\s*"([^"]+)"/i);
-            const extractedName = pageNameMatch ? pageNameMatch[1] : '';
-
-            // Extract profile pic url with advanced, bulletproof scontent parser
-            let extractedPic = '';
-            const scontentMatches = pluginHtml.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
-            const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
-            
-            // 1st priority: contains -1/ (profile avatar)
-            extractedPic = cleanUrls.find(url => url.includes('-1/')) || '';
-            // 2nd priority: contains -6/
-            if (!extractedPic) {
-              extractedPic = cleanUrls.find(url => url.includes('-6/')) || '';
+            let extractedName = '';
+            // Try title attribute match first (often contains clean name!)
+            const titleAttrMatch = pluginHtml.match(/class="[^"]*_1drp[^"]*"[^>]*title="([^"]+)"/i) || 
+                                   pluginHtml.match(/title="([^"]+)"[^>]*class="[^"]*_1drp[^"]*"/i);
+            if (titleAttrMatch && titleAttrMatch[1]) {
+              extractedName = titleAttrMatch[1];
             }
-            // 3rd priority: first match
-            if (!extractedPic && cleanUrls.length > 0) {
-              extractedPic = cleanUrls[0];
+            
+            if (!extractedName) {
+              const pageNameMatch = pluginHtml.match(/"pageName"\s*:\s*"([^"]+)"/i);
+              extractedName = pageNameMatch ? pageNameMatch[1] : '';
+            }
+            
+            // Extract profile pic url with advanced, bulletproof scontent / profilePicURL parser
+            let extractedPic = '';
+            const profilePicMatch = pluginHtml.match(/"profilePicURL"\s*:\s*"([^"]+)"/i);
+            if (profilePicMatch && profilePicMatch[1]) {
+              extractedPic = profilePicMatch[1].replace(/\\/g, '');
+            }
+            
+            if (!extractedPic) {
+              const scontentMatches = pluginHtml.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
+              const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
+              
+              // 1st priority: contains -1/ (profile avatar)
+              extractedPic = cleanUrls.find(url => url.includes('-1/')) || '';
+              // 2nd priority: contains -6/
+              if (!extractedPic) {
+                extractedPic = cleanUrls.find(url => url.includes('-6/')) || '';
+              }
+              // 3rd priority: first match
+              if (!extractedPic && cleanUrls.length > 0) {
+                extractedPic = cleanUrls[0];
+              }
             }
 
             if (extractedName && !extractedName.toLowerCase().includes('error')) {
-              rawTitle = decodeHTMLEntities(extractedName);
+              let cleanedName = decodeHTMLEntities(extractedName);
+              if (cleanedName.includes('-') || cleanedName.includes('_')) {
+                cleanedName = cleanedName.replace(/[-_]/g, ' ');
+              }
+              cleanedName = cleanedName.replace(/\b\w/g, c => c.toUpperCase());
+              rawTitle = cleanedName;
+              
               console.log(`[AutoScrape] Successfully extracted page name via Page Plugin: "${rawTitle}"`);
               hasPagePluginSuccess = true;
 
@@ -4630,53 +4648,47 @@ function normalizeName(str: string): string {
           let html = '';
           let isDirectSuccess = false;
 
+          const tempDirectHtmlFile = path.join(uploadsDir, `temp-direct-html-${Date.now()}.html`);
           try {
-            const fbRes = await fetch(urlNoSlash, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-              },
-              signal: AbortSignal.timeout(5000) // 5 seconds timeout
-            });
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempDirectHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+            if (fs.existsSync(tempDirectHtmlFile) && fs.statSync(tempDirectHtmlFile).size > 0) {
+              html = fs.readFileSync(tempDirectHtmlFile, 'utf-8');
+              try { fs.unlinkSync(tempDirectHtmlFile); } catch (e) {}
 
-            if (fbRes.ok) {
-              html = await fbRes.text();
-              
               // Check if roadblock
               const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
               const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i);
               const parsedTitle = (ogTitleMatch ? ogTitleMatch[1] : (titleMatch ? titleMatch[1] : '')).toLowerCase().trim();
               const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-              
+
               const isRoadblocked = !parsedTitle || 
                                     nameBlacklist.includes(parsedTitle) || 
                                     html.includes("This content isn't available") || 
                                     html.includes("isn't available at the moment");
-              
+
               if (!isRoadblocked) {
                 isDirectSuccess = true;
               }
             }
           } catch (directErr: any) {
             console.error('[AutoScrape] Direct fetch timed out or failed:', directErr.message);
+            try { fs.unlinkSync(tempDirectHtmlFile); } catch (e) {}
           }
 
           // Fallback to Google Translate Proxy if direct fetch is blocked / roadblocked
           if (!isDirectSuccess) {
             console.log(`[AutoScrape] Direct fetch failed or was blocked. Bypassing via Google Translate proxy...`);
+            const tempProxyHtmlFile = path.join(uploadsDir, `temp-proxy-html-${Date.now()}.html`);
             try {
               const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(urlNoSlash)}`;
-              const proxyRes = await fetch(proxyUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                },
-                signal: AbortSignal.timeout(6000)
-              });
-              if (proxyRes.ok) {
-                html = await proxyRes.text();
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempProxyHtmlFile}" "${proxyUrl}"`, { timeout: 8000 });
+              if (fs.existsSync(tempProxyHtmlFile) && fs.statSync(tempProxyHtmlFile).size > 0) {
+                html = fs.readFileSync(tempProxyHtmlFile, 'utf-8');
+                try { fs.unlinkSync(tempProxyHtmlFile); } catch (e) {}
               }
             } catch (proxyErr: any) {
               console.error('[AutoScrape] Google Translate proxy failed:', proxyErr.message);
+              try { fs.unlinkSync(tempProxyHtmlFile); } catch (e) {}
             }
           }
 
@@ -4684,20 +4696,20 @@ function normalizeName(str: string): string {
             // Extract title
             let ogTitle = '';
             const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+                                 html.match(/<meta[^]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
             if (ogTitleMatch && ogTitleMatch[1]) {
               ogTitle = ogTitleMatch[1].split('|')[0].trim();
             }
             if (!ogTitle) {
               const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-                                   html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+                                   html.match(/<meta[^]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
               if (twitterTitle && twitterTitle[1]) {
                 ogTitle = twitterTitle[1].split('|')[0].trim();
               }
             }
             if (!ogTitle) {
               const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
-                                html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+                                html.match(/<meta[^]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
               if (metaTitle && metaTitle[1]) {
                 ogTitle = metaTitle[1].split('|')[0].trim();
               }
