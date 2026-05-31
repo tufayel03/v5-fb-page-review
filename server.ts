@@ -1248,7 +1248,8 @@ async function startServer() {
       const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
       const status = typeof req.query.status === 'string' ? req.query.status.trim() : 'all';
       const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
-      const minReviews = Number(req.query.minReviews);
+      const minReviews = req.query.minReviews !== undefined && req.query.minReviews !== '' ? Number(req.query.minReviews) : NaN;
+      const maxReviews = req.query.maxReviews !== undefined && req.query.maxReviews !== '' ? Number(req.query.maxReviews) : NaN;
       const minFraud = Number(req.query.minFraud);
       const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
       const dateRange = typeof req.query.dateRange === 'string' ? req.query.dateRange.trim() : 'all';
@@ -1323,9 +1324,14 @@ async function startServer() {
         }
       }
 
-      if (!isNaN(minReviews) && minReviews > 0) {
+      if (!isNaN(minReviews) && minReviews >= 0) {
         whereClauses.push("total_reviews >= ?");
         params.push(minReviews);
+      }
+
+      if (!isNaN(maxReviews) && maxReviews >= 0) {
+        whereClauses.push("total_reviews <= ?");
+        params.push(maxReviews);
       }
 
       if (!isNaN(minFraud) && minFraud > 0) {
@@ -2465,7 +2471,8 @@ function normalizeName(str: string): string {
           const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
           const status = typeof req.query.status === 'string' ? req.query.status.trim() : 'all';
           const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
-          const minReviews = Number(req.query.minReviews);
+          const minReviews = req.query.minReviews !== undefined && req.query.minReviews !== '' ? Number(req.query.minReviews) : NaN;
+          const maxReviews = req.query.maxReviews !== undefined && req.query.maxReviews !== '' ? Number(req.query.maxReviews) : NaN;
           const minFraud = Number(req.query.minFraud);
           const addedBy = typeof req.query.addedBy === 'string' ? req.query.addedBy.trim() : 'all';
           const dateRange = typeof req.query.dateRange === 'string' ? req.query.dateRange.trim() : 'all';
@@ -2523,9 +2530,13 @@ function normalizeName(str: string): string {
               whereClauses.push("claim_status = 'Unclaimed'");
             }
           }
-          if (!isNaN(minReviews) && minReviews > 0) {
+          if (!isNaN(minReviews) && minReviews >= 0) {
             whereClauses.push("total_reviews >= ?");
             params.push(minReviews);
+          }
+          if (!isNaN(maxReviews) && maxReviews >= 0) {
+            whereClauses.push("total_reviews <= ?");
+            params.push(maxReviews);
           }
           if (!isNaN(minFraud) && minFraud > 0) {
             whereClauses.push("fraud_report_count >= ?");

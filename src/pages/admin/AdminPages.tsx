@@ -12,6 +12,7 @@ export default function AdminPages() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [claimFilter, setClaimFilter] = useState("all");
   const [minReviewsFilter, setMinReviewsFilter] = useState("");
+  const [maxReviewsFilter, setMaxReviewsFilter] = useState("");
   const [minFraudFilter, setMinFraudFilter] = useState("");
   const [addedByFilter, setAddedByFilter] = useState("all");
   const [dateRangeFilter, setDateRangeFilter] = useState("all");
@@ -165,7 +166,7 @@ export default function AdminPages() {
       fetchPages();
     }, 250); // 250ms debounce for admin search actions
     return () => clearTimeout(timer);
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, minFraudFilter, addedByFilter, dateRangeFilter, startDateFilter, endDateFilter, sortConfig]);
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter, claimFilter, minReviewsFilter, maxReviewsFilter, minFraudFilter, addedByFilter, dateRangeFilter, startDateFilter, endDateFilter, sortConfig]);
 
   const fetchPages = () => {
     setLoading(true);
@@ -176,6 +177,7 @@ export default function AdminPages() {
       status: statusFilter,
       claimStatus: claimFilter,
       minReviews: minReviewsFilter,
+      maxReviews: maxReviewsFilter,
       minFraud: minFraudFilter,
       addedBy: addedByFilter,
       dateRange: dateRangeFilter,
@@ -218,6 +220,7 @@ export default function AdminPages() {
         status: statusFilter,
         claimStatus: claimFilter,
         minReviews: minReviewsFilter,
+        maxReviews: maxReviewsFilter,
         minFraud: minFraudFilter,
         addedBy: addedByFilter,
         dateRange: dateRangeFilter,
@@ -250,6 +253,7 @@ export default function AdminPages() {
       queryParams.append("status", statusFilter);
       queryParams.append("claimStatus", claimFilter);
       queryParams.append("minReviews", minReviewsFilter);
+      queryParams.append("maxReviews", maxReviewsFilter);
       queryParams.append("minFraud", minFraudFilter);
       queryParams.append("addedBy", addedByFilter);
       queryParams.append("dateRange", dateRangeFilter);
@@ -778,17 +782,28 @@ export default function AdminPages() {
             </select>
           </div>
 
-          {/* Min Reviews Filter */}
+          {/* Reviews Range Filter */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Min reviews</label>
-            <input
-              type="number"
-              min="0"
-              placeholder="e.g. 5"
-              value={minReviewsFilter}
-              onChange={(e) => { setMinReviewsFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm placeholder-slate-750 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Reviews (Min - Max)</label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                min="0"
+                placeholder="Min"
+                value={minReviewsFilter}
+                onChange={(e) => { setMinReviewsFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <span className="text-slate-500 text-xs font-bold">to</span>
+              <input
+                type="number"
+                min="0"
+                placeholder="Max"
+                value={maxReviewsFilter}
+                onChange={(e) => { setMaxReviewsFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-2.5 py-2 text-sm placeholder-slate-700 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
           </div>
 
           {/* Min Fraud Reports Filter */}
@@ -845,13 +860,14 @@ export default function AdminPages() {
         )}
 
         {/* Clear filter indicator */}
-        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || minFraudFilter !== "" || addedByFilter !== "all" || dateRangeFilter !== "all" || startDateFilter !== "" || endDateFilter !== "" || searchQuery !== "") && (
+        {(statusFilter !== "all" || claimFilter !== "all" || minReviewsFilter !== "" || maxReviewsFilter !== "" || minFraudFilter !== "" || addedByFilter !== "all" || dateRangeFilter !== "all" || startDateFilter !== "" || endDateFilter !== "" || searchQuery !== "") && (
           <div className="flex justify-end mt-1">
             <button
               onClick={() => {
                 setStatusFilter("all");
                 setClaimFilter("all");
                 setMinReviewsFilter("");
+                setMaxReviewsFilter("");
                 setMinFraudFilter("");
                 setAddedByFilter("all");
                 setDateRangeFilter("all");
