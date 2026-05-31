@@ -2033,121 +2033,206 @@ function normalizeName(str: string): string {
         }
         
         try {
-          console.log(`[Sync] Fetching HTML for page "${page.current_name}" (${page.facebook_url})...`);
-          const fbRes = await fetch(page.facebook_url, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-              'Accept-Language': 'en-US,en;q=0.9',
+          const urlNoSlash = page.facebook_url.endsWith('/') ? page.facebook_url.slice(0, -1) : page.facebook_url;
+          let username = '';
+          try {
+            const urlObj = new URL(urlNoSlash.startsWith('http') ? urlNoSlash : 'https://' + urlNoSlash);
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+            if (pathParts[0] === 'pages' || pathParts[0] === 'people') {
+              username = pathParts[2] || pathParts[1] || '';
+            } else if (pathParts[0] === 'profile.php') {
+              username = urlObj.searchParams.get('id') || '';
+            } else {
+              username = pathParts[0] || '';
             }
-          });
-          
-          console.log(`[Sync] Page response status: ${fbRes.status} (${fbRes.statusText})`);
-          if (!fbRes.ok) {
-            console.log(`[Sync] Page skipped: response not OK`);
-            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
-            continue;
+          } catch (urlErr) {
+            console.error('[Sync] Error parsing username from URL:', urlErr);
           }
-          
-          const html = await fbRes.text();
-          
-          // Extract page title using og:title first, then fallback to title tag with robust regex
-          let rawTitle = '';
-          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
-          if (ogTitleMatch && ogTitleMatch[1]) {
-            rawTitle = ogTitleMatch[1].split('|')[0].trim();
-          }
-          if (!rawTitle) {
-            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
-            if (twitterTitle && twitterTitle[1]) {
-              rawTitle = twitterTitle[1].split('|')[0].trim();
+
+          let tempDownloadedFile = '';
+
+          // 1. Page Plugin fetch via curl
+          if (username) {
+            console.log(`[Sync] Fetching profile picture via public Page Plugin for username: ${username}`);
+            const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
+            const tempHtmlFile = path.join(uploadsDir, `temp-sync-plugin-html-${Date.now()}.html`);
+            try {
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+              if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+                const pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+                try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
+
+                let extractedPic = '';
+                const profilePicMatch = pluginHtml.match(/"profilePicURL"\s*:\s*"([^"]+)"/i);
+                if (profilePicMatch && profilePicMatch[1]) {
+                  extractedPic = profilePicMatch[1].replace(/\\/g, '');
+                }
+
+                if (!extractedPic) {
+                  const scontentMatches = pluginHtml.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
+                  const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
+                  extractedPic = cleanUrls.find(url => url.includes('-1/')) || 
+                                 cleanUrls.find(url => url.includes('-6/')) || 
+                                 (cleanUrls.length > 0 ? cleanUrls[0] : '');
+                }
+
+                if (extractedPic) {
+                  if (!extractedPic.startsWith('http')) {
+                    extractedPic = 'https:' + extractedPic;
+                  }
+                  console.log(`[Sync] Downloading plugin picture via curl...`);
+                  const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                    tempDownloadedFile = tempFile;
+                  }
+                }
+              }
+            } catch (err: any) {
+              console.error('[Sync] Page Plugin picture fetch failed:', err.message);
+              try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
             }
           }
-          if (!rawTitle) {
-            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
-                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
-            if (metaTitle && metaTitle[1]) {
-              rawTitle = metaTitle[1].split('|')[0].trim();
+
+          // 2. Direct page fetch via curl
+          if (!tempDownloadedFile) {
+            console.log(`[Sync] Falling back to direct URL fetch via curl for: ${urlNoSlash}`);
+            const tempHtmlFile = path.join(uploadsDir, `temp-sync-direct-html-${Date.now()}.html`);
+            try {
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+              if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+                const html = fs.readFileSync(tempHtmlFile, 'utf-8');
+                try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
+
+                let ogImageUrl = '';
+                const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+                if (ogImageMatch && ogImageMatch[1]) {
+                  ogImageUrl = ogImageMatch[1];
+                } else {
+                  const scontentMatches = html.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
+                  const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
+                  ogImageUrl = cleanUrls.find(url => url.includes('-1/')) || 
+                               cleanUrls.find(url => url.includes('-6/')) || 
+                               (cleanUrls.length > 0 ? cleanUrls[0] : '');
+                }
+
+                if (ogImageUrl) {
+                  if (!ogImageUrl.startsWith('http')) {
+                    ogImageUrl = 'https:' + ogImageUrl;
+                  }
+                  let cleanedImageUrl = ogImageUrl
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#039;/g, "'");
+
+                  console.log(`[Sync] Downloading direct picture via curl...`);
+                  const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                    tempDownloadedFile = tempFile;
+                  }
+                }
+              }
+            } catch (err: any) {
+              console.error('[Sync] Direct picture fetch failed:', err.message);
+              try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
             }
           }
-          if (!rawTitle) {
-            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-            rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
-          }
-          
-          rawTitle = decodeHTMLEntities(rawTitle);
-          
-          let title = rawTitle.toLowerCase().trim()
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#039;/g, "'");
-            
-          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-          const isRoadblocked = !title || 
-                                nameBlacklist.includes(title) || 
-                                html.includes("This content isn't available") || 
-                                html.includes("isn't available at the moment");
-                                
-          console.log(`[Sync] Page title: "${rawTitle || 'none'}", Roadblocked: ${isRoadblocked}`);
-          if (isRoadblocked) {
-            console.log(`[Sync] Page skipped: Roadblock detected`);
-            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
-            continue;
-          }
-          
-          const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-          console.log(`[Sync] og:image meta tag matched: ${!!ogImageMatch}`);
-          if (!ogImageMatch || !ogImageMatch[1]) {
-            console.log(`[Sync] Page skipped: og:image meta tag not found in HTML`);
-            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
-            continue;
-          }
-          
-          let ogImageUrl = ogImageMatch[1]
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#039;/g, "'");
-            
-          console.log(`[Sync] Fetching profile picture from CDN...`);
-          const imgRes = await fetch(ogImageUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+
+          // 3. Google Translate Proxy fetch via curl
+          if (!tempDownloadedFile) {
+            console.log(`[Sync] Falling back to Translate proxy via curl...`);
+            const tempHtmlFile = path.join(uploadsDir, `temp-sync-proxy-html-${Date.now()}.html`);
+            try {
+              const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(urlNoSlash)}`;
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${proxyUrl}"`, { timeout: 8000 });
+              if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+                const html = fs.readFileSync(tempHtmlFile, 'utf-8');
+                try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
+
+                let ogImageUrl = '';
+                const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+                if (ogImageMatch && ogImageMatch[1]) {
+                  ogImageUrl = ogImageMatch[1];
+                } else {
+                  const scontentMatches = html.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
+                  const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
+                  ogImageUrl = cleanUrls.find(url => url.includes('-1/')) || 
+                               cleanUrls.find(url => url.includes('-6/')) || 
+                               (cleanUrls.length > 0 ? cleanUrls[0] : '');
+                }
+
+                if (ogImageUrl) {
+                  if (!ogImageUrl.startsWith('http')) {
+                    ogImageUrl = 'https:' + ogImageUrl;
+                  }
+                  let cleanedImageUrl = ogImageUrl
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#039;/g, "'");
+
+                  console.log(`[Sync] Downloading proxy picture via curl...`);
+                  const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                    tempDownloadedFile = tempFile;
+                  }
+                }
+              }
+            } catch (err: any) {
+              console.error('[Sync] Translate proxy picture fetch failed:', err.message);
+              try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
             }
-          });
-          
-          console.log(`[Sync] CDN response status: ${imgRes.status} (${imgRes.statusText})`);
-          if (!imgRes.ok) {
-            console.log(`[Sync] Page skipped: CDN fetch not OK`);
-            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
-            continue;
           }
-          
-          const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-          const timestamp = Date.now();
-          const filename = `profile-${page.id}-${timestamp}.webp`;
-          const filepath = path.join(uploadsDir, filename);
-          
-          await sharp(imageBuffer)
-            .resize(300, 300, { fit: 'cover' })
-            .webp({ quality: 80 })
-            .toFile(filepath);
-            
-          const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
-          const thumbFilepath = path.join(uploadsDir, thumbFilename);
-          await sharp(imageBuffer)
-            .resize(80, 80, { fit: 'cover' })
-            .webp({ quality: 70 })
-            .toFile(thumbFilepath);
-            
-          const profile_picture = `/uploads/${filename}`;
-          db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
-          count++;
-          console.log(`[Sync] SUCCESS: Saved WebP profile picture for page "${page.current_name}"`);
+
+          // 4. Graph API Picture Redirect fetch via curl
+          if (!tempDownloadedFile && username) {
+            console.log(`[Sync] Falling back to public Graph API picture redirect via curl for username: ${username}`);
+            const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
+            try {
+              const graphPicUrl = `https://graph.facebook.com/${username}/picture?type=large`;
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
+              if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                tempDownloadedFile = tempFile;
+              }
+            } catch (err: any) {
+              console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
+              try { fs.unlinkSync(tempFile); } catch (e) {}
+            }
+          }
+
+          // Process the picture
+          if (tempDownloadedFile && fs.existsSync(tempDownloadedFile)) {
+            const imageBuffer = fs.readFileSync(tempDownloadedFile);
+            const timestamp = Date.now();
+            const filename = `profile-${page.id}-${timestamp}.webp`;
+            const filepath = path.join(uploadsDir, filename);
+
+            await sharp(imageBuffer)
+              .resize(300, 300, { fit: 'cover' })
+              .webp({ quality: 80 })
+              .toFile(filepath);
+
+            const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
+            const thumbFilepath = path.join(uploadsDir, thumbFilename);
+            await sharp(imageBuffer)
+              .resize(80, 80, { fit: 'cover' })
+              .webp({ quality: 70 })
+              .toFile(thumbFilepath);
+
+            const profile_picture = `/uploads/${filename}`;
+            db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
+            count++;
+            console.log(`[Sync] SUCCESS: Saved WebP profile picture for page "${page.current_name}"`);
+            try { fs.unlinkSync(tempDownloadedFile); } catch (e) {}
+          } else {
+            console.warn(`[Sync] Skip page "${page.current_name}": Could not fetch profile picture via any fallback channel`);
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+          }
         } catch (innerErr: any) {
           console.error(`[Sync] ERROR for page "${page.current_name}":`, innerErr);
         }
