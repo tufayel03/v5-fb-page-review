@@ -755,6 +755,7 @@ export default function AdminPages() {
               <option value="all">All Sources</option>
               <option value="admin">Admin</option>
               <option value="users">Users</option>
+              <option value="auto_search">Search</option>
             </select>
           </div>
 
@@ -1144,9 +1145,15 @@ export default function AdminPages() {
                           <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
                             page.added_by === 'users'
                               ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
-                              : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                              : page.added_by === 'auto_search'
+                                ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
                           }`}>
-                            {page.added_by === 'users' ? 'User' : 'Admin'}
+                            {page.added_by === 'users' 
+                              ? 'User' 
+                              : page.added_by === 'auto_search' 
+                                ? 'Search' 
+                                : 'Admin'}
                           </span>
                         </div>
                       </td>
