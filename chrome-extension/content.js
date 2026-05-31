@@ -72,6 +72,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
       };
 
+      // Helper to verify if element is inside a timeline post, feed, featured section, or comment
+      const isInsidePostOrFeed = (el) => {
+        if (!el) return false;
+        const postSelectors = [
+          '[role="article"]',
+          '[role="feed"]',
+          '[data-pagelet^="FeedUnit"]',
+          '[data-pagelet="ProfileTimeline"]',
+          '[data-pagelet^="ProfileFeatured"]',
+          '[data-pagelet^="Featured"]',
+          '#profile_grid',
+          '[aria-label="Featured"]',
+          '[aria-label="Photos"]',
+          'aria-label="Posts"',
+          'a[href*="/photos/"]',
+          'a[href*="/posts/"]',
+          'a[href*="/permalink/"]'
+        ];
+        for (const selector of postSelectors) {
+          try {
+            if (el.closest(selector)) return true;
+          } catch (e) {}
+        }
+        return false;
+      };
+
       // 4. Extract Profile Picture URL
       let profilePicUrl = '';
       const allImgs = Array.from(mainContainer.querySelectorAll('img'));
@@ -85,6 +111,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const width = rect.width || img.width || 0;
           if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+          if (isInsidePostOrFeed(img)) return false;
 
           const src = img.src || '';
           if (!isAllowedPic(src)) return false;
@@ -105,6 +132,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const width = rect.width || img.width || 0;
           if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+          if (isInsidePostOrFeed(img)) return false;
 
           const src = img.src || '';
           if (!isAllowedPic(src)) return false;
@@ -131,6 +159,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const width = rect.width || parseFloat(img.getAttribute('width')) || 0;
           if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+          if (isInsidePostOrFeed(img)) return false;
 
           const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
           if (!isAllowedPic(href)) return false;
@@ -146,7 +175,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // D. Fallback: search for any large avatar element
       if (!profilePicUrl) {
         const candidateImg = mainContainer.querySelector('img[width="168"], img[width="176"], img[width="132"]');
-        if (candidateImg) {
+        if (candidateImg && !isInsidePostOrFeed(candidateImg)) {
           const src = candidateImg.src || '';
           if (isAllowedPic(src)) {
             profilePicUrl = src;
@@ -163,9 +192,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const phoneMatches = text.match(phoneRegex);
       if (phoneMatches && phoneMatches.length > 0) {
         // Clean up the match
-        contactNumber = phoneMatches[0].replace(/[\s-]/g, '');
-        if (contactNumber.startsWith('0') && !contactNumber.startsWith('+')) {
-          contactNumber = '+88' + contactNumber;
+        let rawNum = phoneMatches[0].replace(/[\s\-\(\)]/g, '');
+        if (rawNum.startsWith('+880')) {
+          contactNumber = '0' + rawNum.substring(4);
+        } else if (rawNum.startsWith('880')) {
+          contactNumber = '0' + rawNum.substring(3);
+        } else if (rawNum.startsWith('0')) {
+          contactNumber = rawNum;
+        } else {
+          contactNumber = rawNum;
         }
       }
 
