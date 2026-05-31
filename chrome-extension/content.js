@@ -85,7 +85,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           '#profile_grid',
           '[aria-label="Featured"]',
           '[aria-label="Photos"]',
-          'aria-label="Posts"',
+          '[aria-label="Posts"]',
           'a[href*="/photos/"]',
           'a[href*="/posts/"]',
           'a[href*="/permalink/"]'
@@ -98,89 +98,112 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return false;
       };
 
+      // Helper to check if an image is likely the cover photo
+      const isLikelyCoverPhoto = (img) => {
+        const rect = img.getBoundingClientRect();
+        const width = rect.width || img.width || parseFloat(img.getAttribute('width')) || 0;
+        const height = rect.height || img.height || parseFloat(img.getAttribute('height')) || 0;
+        if (width > 300 && height > 0 && (width / height) > 1.8) {
+          return true; // Wide aspect ratio is cover photo
+        }
+        return false;
+      };
+
       // 4. Extract Profile Picture URL
       let profilePicUrl = '';
-      const allImgs = Array.from(mainContainer.querySelectorAll('img'));
-      
-      // A. Prioritize finding image whose alt matches/contains the Facebook Page name
-      if (pageName) {
-        const pageNameLower = pageName.toLowerCase();
-        const pageImg = allImgs.find(img => {
-          // Exclude small navigation images or user header icons (rendered width < 100)
-          const rect = img.getBoundingClientRect();
-          const width = rect.width || img.width || 0;
-          if (width > 0 && width < 100) return false;
-          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
-          if (isInsidePostOrFeed(img)) return false;
 
-          const src = img.src || '';
-          if (!isAllowedPic(src)) return false;
-
-          const alt = (img.alt || '').toLowerCase();
-          return alt === pageNameLower || alt.includes(pageNameLower);
-        });
-        if (pageImg) {
-          profilePicUrl = pageImg.src;
+      // Let's find the header container based on H1 to isolate the header elements
+      let headerContainer = null;
+      if (pageName && validH1) {
+        let current = validH1;
+        for (let i = 0; i < 6; i++) {
+          if (!current) break;
+          const imgs = Array.from(current.querySelectorAll('img, image'));
+          const hasCandidate = imgs.some(img => {
+            const rect = img.getBoundingClientRect();
+            const width = rect.width || img.width || parseFloat(img.getAttribute('width')) || 0;
+            return width >= 100 && !isInsidePostOrFeed(img) && !isLikelyCoverPhoto(img);
+          });
+          if (hasCandidate) {
+            headerContainer = current;
+            break;
+          }
+          current = current.parentElement;
         }
       }
 
-      // B. Fallback: Search for any page profile image container (excl. navigation & small avatars)
-      if (!profilePicUrl) {
-        const profileImg = allImgs.find(img => {
-          // Exclude small navigation images or user header icons (rendered width < 100)
-          const rect = img.getBoundingClientRect();
-          const width = rect.width || img.width || 0;
-          if (width > 0 && width < 100) return false;
-          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
-          if (isInsidePostOrFeed(img)) return false;
+      // Search inside the headerContainer first (for perfect local precision), fall back to mainContainer
+      const searchRoot = headerContainer || mainContainer;
+      const allCandidates = Array.from(searchRoot.querySelectorAll('img, image'));
 
-          const src = img.src || '';
-          if (!isAllowedPic(src)) return false;
+      const candidates = allCandidates.filter(img => {
+        // Exclude small avatars or navigation icons
+        const rect = img.getBoundingClientRect();
+        const width = rect.width || img.width || parseFloat(img.getAttribute('width')) || 0;
+        if (width > 0 && width < 100) return false;
+        
+        // Exclude navigation and header bar elements
+        if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+        
+        // Exclude timeline posts and feeds
+        if (isInsidePostOrFeed(img)) return false;
+        
+        // Exclude the user's own profile photo
+        const src = img.src || img.getAttribute('href') || img.getAttribute('xlink:href') || '';
+        if (!isAllowedPic(src)) return false;
+        
+        // Exclude cover photo
+        if (isLikelyCoverPhoto(img)) return false;
+        
+        return true;
+      });
 
-          const alt = (img.alt || '').toLowerCase();
-          return alt.includes('profile photo') || 
-                 alt.includes('profile picture') || 
-                 alt.includes('প্রোফাইল ছবি') || 
-                 alt.includes('প্রোফাইল ফটো') || 
-                 alt.includes('profile pic');
-        });
-
-        if (profileImg) {
-          profilePicUrl = profileImg.src;
-        }
-      }
-
-      // C. Fallback: look in SVG <image> elements (common in modern FB page/profile headers)
-      if (!profilePicUrl) {
-        const allSvgImages = Array.from(mainContainer.querySelectorAll('image'));
-        const headerSvgImage = allSvgImages.find(img => {
-          // Strict size check for SVG images as well!
-          const rect = img.getBoundingClientRect();
-          const width = rect.width || parseFloat(img.getAttribute('width')) || 0;
-          if (width > 0 && width < 100) return false;
-          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
-          if (isInsidePostOrFeed(img)) return false;
-
-          const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
-          if (!isAllowedPic(href)) return false;
-
-          return href.includes('scontent') && (href.includes('/v/') || href.includes('/t') || href.includes('p160x160') || href.includes('p200x200') || href.includes('p320x320') || href.includes('p50x50') || href.includes('p100x100'));
+      if (candidates.length > 0) {
+        // Sort candidates by score
+        candidates.sort((a, b) => {
+          const getScore = (img) => {
+            let score = 0;
+            const alt = (img.getAttribute('alt') || img.alt || '').toLowerCase();
+            const parentLabel = (img.parentElement?.getAttribute('aria-label') || '').toLowerCase();
+            const grandParentLabel = (img.parentElement?.parentElement?.getAttribute('aria-label') || '').toLowerCase();
+            
+            // Check for explicit "profile picture" labels in parents or alt
+            if (parentLabel.includes('profile picture') || parentLabel.includes('profile photo') || parentLabel.includes('প্রোফাইল') || parentLabel.includes('pic') ||
+                grandParentLabel.includes('profile picture') || grandParentLabel.includes('profile photo') || grandParentLabel.includes('প্রোফাইল') || grandParentLabel.includes('pic')) {
+              score += 100;
+            }
+            if (alt.includes('profile picture') || alt.includes('profile photo') || alt.includes('প্রোফাইল') || alt.includes('pic')) {
+              score += 90;
+            }
+            
+            // Modern FB Page profile picture is usually an SVG <image> tag
+            if (img.tagName.toLowerCase() === 'image') {
+              score += 50;
+            }
+            
+            // Alt matches page name
+            if (pageName) {
+              const pageNameLower = pageName.toLowerCase();
+              if (alt === pageNameLower || alt.includes(pageNameLower)) {
+                score += 30;
+              }
+            }
+            
+            // Size preference (profile photos are usually ~130px to 180px)
+            const rect = img.getBoundingClientRect();
+            const width = rect.width || img.width || parseFloat(img.getAttribute('width')) || 0;
+            if (width >= 120 && width <= 185) {
+              score += 20;
+            }
+            
+            return score;
+          };
+          
+          return getScore(b) - getScore(a);
         });
         
-        if (headerSvgImage) {
-          profilePicUrl = headerSvgImage.getAttribute('href') || headerSvgImage.getAttribute('xlink:href');
-        }
-      }
-
-      // D. Fallback: search for any large avatar element
-      if (!profilePicUrl) {
-        const candidateImg = mainContainer.querySelector('img[width="168"], img[width="176"], img[width="132"]');
-        if (candidateImg && !isInsidePostOrFeed(candidateImg)) {
-          const src = candidateImg.src || '';
-          if (isAllowedPic(src)) {
-            profilePicUrl = src;
-          }
-        }
+        const best = candidates[0];
+        profilePicUrl = best.src || best.getAttribute('href') || best.getAttribute('xlink:href') || '';
       }
 
       // 3. Extract Contact Phone Number
