@@ -281,12 +281,18 @@ export default function AdminPageDetails() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <Link
-          to="/tufayel/pages"
-          className={`p-2 border rounded-lg transition-colors border-white/10 hover:bg-white/5`}
+        <button
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate("/tufayel/pages");
+            }
+          }}
+          className={`p-2 border rounded-lg transition-colors border-white/10 hover:bg-white/5 cursor-pointer`}
         >
           <ChevronLeft className={`h-5 w-5 ${cTextMuted}`} />
-        </Link>
+        </button>
         <div className="flex-1">
           <h1 className={`text-2xl font-bold ${cText}`}>
             {isNew ? "Add New Page" : "Edit Page info"}

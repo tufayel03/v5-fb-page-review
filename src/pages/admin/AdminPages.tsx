@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 
 const TablePageAvatar = ({ page }: { page: any }) => {
@@ -25,7 +25,15 @@ export default function AdminPages() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
+  const setCurrentPage = (newPageVal: number | ((prev: number) => number)) => {
+    const nextVal = typeof newPageVal === "function" ? newPageVal(currentPage) : newPageVal;
+    setSearchParams(prev => {
+      prev.set("page", String(nextVal));
+      return prev;
+    });
+  };
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState("all");
   const [claimFilter, setClaimFilter] = useState("all");
