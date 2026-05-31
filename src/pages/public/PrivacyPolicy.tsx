@@ -71,7 +71,7 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Publish user-submitted reviews and fraud reports publicly to help others.</li>
-              <li>Calculate page trust scores and flag suspicious pages.</li>
+              <li>Flag suspicious pages and generate safety warnings.</li>
               <li>Process business page claims and verify ownership.</li>
               <li>Communicate with you regarding support requests or account issues.</li>
               <li>Improve website functionality and user experience.</li>

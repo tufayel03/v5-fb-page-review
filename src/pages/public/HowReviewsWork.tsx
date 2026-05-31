@@ -36,10 +36,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">2. System Generates Trust Score</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">2. System Generates Safety Badges</h3>
                 </div>
                 <div className="text-slate-600">
-                  Our system calculates a Trust Score based on the ratio of positive reviews to fraud reports, and an Evidence Score based on uploaded proof.
+                  Our system generates safety badges and flags based on the ratio of positive reviews to fraud reports, and displays evidence uploaded by users.
                 </div>
               </div>
             </div>
@@ -54,7 +54,7 @@ export default function HowReviewsWork() {
                   <h3 className="font-bold text-slate-800 text-lg">3. Buyers Search Before Buying</h3>
                 </div>
                 <div className="text-slate-600">
-                  Before sending money, buyers can search for the seller's page link or bKash number on our platform to see the Trust Score and read past reviews.
+                  Before sending money, buyers can search for the seller's page link or bKash number on our platform to see safety badges and read past reviews.
                 </div>
               </div>
             </div>

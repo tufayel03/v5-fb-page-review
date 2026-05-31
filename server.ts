@@ -4512,152 +4512,158 @@ function normalizeName(str: string): string {
         return existing;
       }
 
-      console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
-      const fbRes = await fetch(urlNoSlash, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        }
-      });
-
-      if (!fbRes.ok) {
-        console.log(`[AutoScrape] Fetch page failed with status: ${fbRes.status}`);
-        return null;
-      }
-
-      const html = await fbRes.text();
-
-      // Extract title
+      // 1. Establish robust fallback details based on URL segment
       let rawTitle = '';
-      const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                           html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
-      if (ogTitleMatch && ogTitleMatch[1]) {
-        rawTitle = ogTitleMatch[1].split('|')[0].trim();
-      }
-      if (!rawTitle) {
-        const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
-        if (twitterTitle && twitterTitle[1]) {
-          rawTitle = twitterTitle[1].split('|')[0].trim();
-        }
-      }
-      if (!rawTitle) {
-        const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
-                          html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
-        if (metaTitle && metaTitle[1]) {
-          rawTitle = metaTitle[1].split('|')[0].trim();
-        }
-      }
-      if (!rawTitle) {
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
-      }
-
-      rawTitle = decodeHTMLEntities(rawTitle);
-      const cleanedTitle = rawTitle.toLowerCase().trim()
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
-
-      const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-      const isRoadblocked = !cleanedTitle || 
-                            nameBlacklist.includes(cleanedTitle) || 
-                            html.includes("This content isn't available") || 
-                            html.includes("isn't available at the moment");
-
-      if (isRoadblocked) {
-        console.log(`[AutoScrape] Page blocked or invalid title: "${rawTitle}"`);
-        // Fallback: extract username segment from URL
-        let fallbackName = '';
-        try {
+      let username = '';
+      try {
+        const profileIdMatch = urlNoSlash.match(/[?&]id=(\d+)/i);
+        if (profileIdMatch && profileIdMatch[1]) {
+          username = profileIdMatch[1];
+          rawTitle = 'Facebook User ' + profileIdMatch[1];
+        } else {
           const cleanUrl = urlNoSlash.split('?')[0];
           const parts = cleanUrl.replace(/\/$/, '').split('/');
           const segment = parts[parts.length - 1];
-          if (segment && segment !== 'facebook.com' && segment !== 'fb.com') {
-            fallbackName = segment.replace(/[\.\-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          if (segment && segment !== 'facebook.com' && segment !== 'fb.com' && segment !== 'profile.php') {
+            username = segment;
+            rawTitle = segment.replace(/[\.\-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           }
-        } catch (e) {}
-        if (!fallbackName) {
-          fallbackName = 'Facebook Page';
-        }
-        rawTitle = fallbackName;
-      }
-
-      // Attempt to extract profile picture
-      let profilePicture = null;
-      const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-      if (ogImageMatch && ogImageMatch[1]) {
-        let ogImageUrl = ogImageMatch[1]
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#039;/g, "'");
-
-        try {
-          console.log(`[AutoScrape] Fetching profile picture from CDN...`);
-          const imgRes = await fetch(ogImageUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            }
-          });
-
-          if (imgRes.ok) {
-            const pageId = Date.now().toString();
-            const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-            const timestamp = Date.now();
-            const filename = `profile-${pageId}-${timestamp}.webp`;
-            const filepath = path.join(uploadsDir, filename);
-
-            await sharp(imageBuffer)
-              .resize(300, 300, { fit: 'cover' })
-              .webp({ quality: 80 })
-              .toFile(filepath);
-
-            const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
-            const thumbFilepath = path.join(uploadsDir, thumbFilename);
-            await sharp(imageBuffer)
-              .resize(80, 80, { fit: 'cover' })
-              .webp({ quality: 70 })
-              .toFile(thumbFilepath);
-
-            profilePicture = `/uploads/${filename}`;
-          }
-        } catch (imgErr) {
-          console.error('[AutoScrape] Error downloading profile picture:', imgErr);
-        }
-      }
-
-      // Extract username from URL
-      let username = '';
-      try {
-        const cleanUrl = urlNoSlash.split('?')[0];
-        const parts = cleanUrl.replace(/\/$/, '').split('/');
-        const segment = parts[parts.length - 1];
-        if (segment && segment !== 'facebook.com' && segment !== 'fb.com') {
-          username = segment;
         }
       } catch (e) {}
+      if (!rawTitle) {
+        rawTitle = 'Facebook Page';
+      }
 
-      // Instantly add to database!
+      let profilePicture = null;
+
+      // 2. Perform safe, non-blocking page fetching with short timeout
+      console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
+      try {
+        const fbRes = await fetch(urlNoSlash, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          signal: AbortSignal.timeout(6000) // 6 seconds timeout
+        });
+
+        if (fbRes.ok) {
+          const html = await fbRes.text();
+
+          // Extract title
+          let ogTitle = '';
+          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+          if (ogTitleMatch && ogTitleMatch[1]) {
+            ogTitle = ogTitleMatch[1].split('|')[0].trim();
+          }
+          if (!ogTitle) {
+            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+            if (twitterTitle && twitterTitle[1]) {
+              ogTitle = twitterTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!ogTitle) {
+            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+            if (metaTitle && metaTitle[1]) {
+              ogTitle = metaTitle[1].split('|')[0].trim();
+            }
+          }
+          if (!ogTitle) {
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+            ogTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+          }
+
+          if (ogTitle) {
+            ogTitle = decodeHTMLEntities(ogTitle);
+            const cleanedTitle = ogTitle.toLowerCase().trim()
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'");
+
+            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+            const isRoadblocked = !cleanedTitle || 
+                                  nameBlacklist.includes(cleanedTitle) || 
+                                  html.includes("This content isn't available") || 
+                                  html.includes("isn't available at the moment");
+
+            if (!isRoadblocked) {
+              rawTitle = ogTitle;
+            }
+          }
+
+          // Attempt to extract profile picture
+          const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+          if (ogImageMatch && ogImageMatch[1]) {
+            let ogImageUrl = ogImageMatch[1]
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'");
+
+            try {
+              console.log(`[AutoScrape] Fetching profile picture from CDN...`);
+              const imgRes = await fetch(ogImageUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                },
+                signal: AbortSignal.timeout(5000)
+              });
+
+              if (imgRes.ok) {
+                const pageId = Date.now().toString();
+                const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                const timestamp = Date.now();
+                const filename = `profile-${pageId}-${timestamp}.webp`;
+                const filepath = path.join(uploadsDir, filename);
+
+                await sharp(imageBuffer)
+                  .resize(300, 300, { fit: 'cover' })
+                  .webp({ quality: 80 })
+                  .toFile(filepath);
+
+                const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                await sharp(imageBuffer)
+                  .resize(80, 80, { fit: 'cover' })
+                  .webp({ quality: 70 })
+                  .toFile(thumbFilepath);
+
+                profilePicture = `/uploads/${filename}`;
+              }
+            } catch (imgErr) {
+              console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+            }
+          }
+        } else {
+          console.log(`[AutoScrape] Fetch returned status ${fbRes.status}, falling back to URL-derived metadata`);
+        }
+      } catch (fetchErr) {
+        console.error('[AutoScrape] Fetch timed out or network error, falling back to URL-derived metadata:', fetchErr);
+      }
+
+      // 3. Resiliently add to database! Use 0/NULL for trust_score
       const pageId = Date.now().toString();
       db.prepare(`
         INSERT INTO FacebookPages (
           id, facebook_url, current_name, current_username, 
           claim_status, status_badge, trust_score, is_fraud_listed, 
           profile_picture, created_at, added_by
-        ) VALUES (?, ?, ?, ?, 'Unclaimed', 'Under Review', 50, 0, ?, CURRENT_TIMESTAMP, 'auto_search')
+        ) VALUES (?, ?, ?, ?, 'Unclaimed', 'Under Review', 0, 0, ?, CURRENT_TIMESTAMP, 'auto_search')
       `).run(pageId, urlNoSlash, rawTitle, username || null, profilePicture);
 
-      console.log(`[AutoScrape] Instantly added newly discovered Facebook Page: "${rawTitle}" (ID: ${pageId})`);
+      console.log(`[AutoScrape] Resiliently added discovered Facebook Page: "${rawTitle}" (ID: ${pageId})`);
       
       // Return the newly created page row
       const newPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(pageId);
       return newPage;
     } catch (err) {
-      console.error('[AutoScrape] Error in scrapeAndAddFacebookPage:', err);
+      console.error('[AutoScrape] Critical error in scrapeAndAddFacebookPage:', err);
       return null;
     }
   }

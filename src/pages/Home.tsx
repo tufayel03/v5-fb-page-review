@@ -1019,10 +1019,10 @@ export default function Home() {
                     <ShieldCheck className="w-5.5 h-5.5 md:w-6 md:h-6" />
                   </div>
                   <h3 className="font-extrabold text-slate-900 text-[14px] md:text-[15px] mb-1 md:mb-2">
-                    Check trust score and fraud warnings
+                    Check seller ratings and fraud warnings
                   </h3>
                   <p className="text-slate-400 text-[10.5px] md:text-[11.5px] font-bold leading-relaxed">
-                    See the trust score, verification badges, and automated risk
+                    See customer reviews, verification badges, and automated risk
                     alerts.
                   </p>
                 </div>

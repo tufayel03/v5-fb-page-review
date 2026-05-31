@@ -42,7 +42,7 @@ export default function About() {
 
             <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">How reviews and reports work</h2>
             <p className="mb-6">
-              Users submit reviews detailing their transaction experience. If fraud occurred, users can submit specific fraud reports and upload evidence such as chat screenshots or transaction receipts. Our system compiles this data to generate Trust Scores, making it easy to identify reliable sellers at a glance.
+              Users submit reviews detailing their transaction experience. If fraud occurred, users can submit specific fraud reports and upload evidence such as chat screenshots or transaction receipts. Our system compiles this data to generate verification statuses, making it easy to identify reliable sellers at a glance.
             </p>
 
             <h2 className="text-2xl font-bold text-slate-800 mt-10 mb-4">Our safety mission</h2>

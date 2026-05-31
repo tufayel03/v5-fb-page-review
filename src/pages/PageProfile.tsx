@@ -378,7 +378,7 @@ export default function PageProfile() {
     if (page?.current_name) {
       const siteName = publicSettings.site_name || "FB Page Review";
       const ratingInfo = Number(page?.average_rating) > 0 ? `(${Number(page.average_rating).toFixed(1)} ★)` : "";
-      document.title = `${page.current_name} ${ratingInfo} Reviews, Trust Score & Complaints | ${siteName}`;
+      document.title = `${page.current_name} ${ratingInfo} Reviews & Complaints | ${siteName}`;
     }
   }, [page, publicSettings]);
 
