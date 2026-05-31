@@ -4685,6 +4685,33 @@ function normalizeName(str: string): string {
         url = 'https://' + url;
       }
 
+      // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
+      if (url.includes('profile.php') && url.includes('id=')) {
+        try {
+          const urlObj = new URL(url);
+          const numericId = urlObj.searchParams.get('id');
+          if (numericId && /^\d+$/.test(numericId)) {
+            url = `https://www.facebook.com/people/Page/${numericId}/`;
+            console.log(`[AutoScrape] Converted legacy profile.php link to SEO-friendly URL: ${url}`);
+          }
+        } catch (e) {
+          const match = url.match(/[?&]id=(\d+)/i);
+          if (match && match[1]) {
+            url = `https://www.facebook.com/people/Page/${match[1]}/`;
+            console.log(`[AutoScrape] Converted legacy profile.php link (regex) to SEO-friendly URL: ${url}`);
+          }
+        }
+      }
+      
+      try {
+        const urlObj = new URL(url);
+        const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+        if (pathSegments.length === 1 && /^\d+$/.test(pathSegments[0])) {
+          url = `https://www.facebook.com/people/Page/${pathSegments[0]}/`;
+          console.log(`[AutoScrape] Converted direct numeric ID link to SEO-friendly URL: ${url}`);
+        }
+      } catch (e) {}
+
       // Resolve Facebook share shortlinks (e.g. facebook.com/share/...)
       if (url.includes('/share/')) {
         console.log(`[AutoScrape] Facebook share link detected: ${url}. Resolving redirect...`);
@@ -5124,6 +5151,30 @@ function normalizeName(str: string): string {
     if (!url.startsWith('http')) {
       url = 'https://' + url;
     }
+
+    // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
+    if (url.includes('profile.php') && url.includes('id=')) {
+      try {
+        const urlObj = new URL(url);
+        const numericId = urlObj.searchParams.get('id');
+        if (numericId && /^\d+$/.test(numericId)) {
+          url = `https://www.facebook.com/people/Page/${numericId}/`;
+        }
+      } catch (e) {
+        const match = url.match(/[?&]id=(\d+)/i);
+        if (match && match[1]) {
+          url = `https://www.facebook.com/people/Page/${match[1]}/`;
+        }
+      }
+    }
+    
+    try {
+      const urlObj = new URL(url);
+      const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+      if (pathSegments.length === 1 && /^\d+$/.test(pathSegments[0])) {
+        url = `https://www.facebook.com/people/Page/${pathSegments[0]}/`;
+      }
+    } catch (e) {}
     
     // Allow matching with or without trailing slash
     let urlNoSlash = url;
@@ -5319,6 +5370,31 @@ function normalizeName(str: string): string {
       if (!normalized.startsWith('http')) {
         normalized = 'https://' + normalized;
       }
+
+      // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
+      if (normalized.includes('profile.php') && normalized.includes('id=')) {
+        try {
+          const urlObj = new URL(normalized);
+          const numericId = urlObj.searchParams.get('id');
+          if (numericId && /^\d+$/.test(numericId)) {
+            normalized = `https://www.facebook.com/people/Page/${numericId}/`;
+          }
+        } catch (e) {
+          const match = normalized.match(/[?&]id=(\d+)/i);
+          if (match && match[1]) {
+            normalized = `https://www.facebook.com/people/Page/${match[1]}/`;
+          }
+        }
+      }
+      
+      try {
+        const urlObj = new URL(normalized);
+        const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+        if (pathSegments.length === 1 && /^\d+$/.test(pathSegments[0])) {
+          normalized = `https://www.facebook.com/people/Page/${pathSegments[0]}/`;
+        }
+      } catch (e) {}
+
       let urlNoSlash = normalized;
       if (normalized.endsWith('/')) {
         urlNoSlash = normalized.slice(0, -1);
