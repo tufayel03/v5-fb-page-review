@@ -2003,18 +2003,31 @@ function normalizeName(str: string): string {
     try {
       let pages = [];
       const idsParam = req.query.ids as string;
-      if (idsParam) {
-        const idList = idsParam.split(',').filter(Boolean);
-        if (idList.length > 0) {
-          const placeholders = idList.map(() => '?').join(',');
-          pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages WHERE id IN (${placeholders})`).all(...idList) as any[];
+      const mode = (req.query.mode as string) || 'sync';
+
+      if (mode === 'update') {
+        if (idsParam) {
+          const idList = idsParam.split(',').filter(Boolean);
+          if (idList.length > 0) {
+            const placeholders = idList.map(() => '?').join(',');
+            pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages WHERE id IN (${placeholders})`).all(...idList) as any[];
+          }
         }
       } else {
-        pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = ''").all() as any[];
+        // mode === 'sync' - only work for listings which have no profile picture
+        if (idsParam) {
+          const idList = idsParam.split(',').filter(Boolean);
+          if (idList.length > 0) {
+            const placeholders = idList.map(() => '?').join(',');
+            pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages WHERE id IN (${placeholders}) AND (profile_picture IS NULL OR profile_picture = '' OR profile_picture = 'failed')`).all(...idList) as any[];
+          }
+        } else {
+          pages = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE profile_picture IS NULL OR profile_picture = '' OR profile_picture = 'failed'").all() as any[];
+        }
       }
 
       const total = pages.length;
-      console.log(`[Sync] Starting sync for ${total} pages`);
+      console.log(`[Sync] Starting sync/update for ${total} pages in "${mode}" mode`);
       if (total === 0) {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
@@ -2028,7 +2041,9 @@ function normalizeName(str: string): string {
         
         if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
           console.log(`[Sync] Page "${page.current_name}" skipped: Invalid or missing URL "${page.facebook_url}"`);
-          db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+          if (mode === 'sync') {
+            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+          }
           continue;
         }
         
@@ -2084,7 +2099,14 @@ function normalizeName(str: string): string {
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
-                    tempDownloadedFile = tempFile;
+                    try {
+                      // Validate image before marking as success
+                      await sharp(fs.readFileSync(tempFile)).metadata();
+                      tempDownloadedFile = tempFile;
+                    } catch (sharpErr: any) {
+                      console.warn('[Sync] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
+                      try { fs.unlinkSync(tempFile); } catch (e) {}
+                    }
                   }
                 }
               }
@@ -2131,7 +2153,13 @@ function normalizeName(str: string): string {
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
-                    tempDownloadedFile = tempFile;
+                    try {
+                      await sharp(fs.readFileSync(tempFile)).metadata();
+                      tempDownloadedFile = tempFile;
+                    } catch (sharpErr: any) {
+                      console.warn('[Sync] Direct picture downloaded but invalid image format:', sharpErr.message);
+                      try { fs.unlinkSync(tempFile); } catch (e) {}
+                    }
                   }
                 }
               }
@@ -2179,7 +2207,13 @@ function normalizeName(str: string): string {
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
-                    tempDownloadedFile = tempFile;
+                    try {
+                      await sharp(fs.readFileSync(tempFile)).metadata();
+                      tempDownloadedFile = tempFile;
+                    } catch (sharpErr: any) {
+                      console.warn('[Sync] Proxy picture downloaded but invalid image format:', sharpErr.message);
+                      try { fs.unlinkSync(tempFile); } catch (e) {}
+                    }
                   }
                 }
               }
@@ -2197,7 +2231,13 @@ function normalizeName(str: string): string {
               const graphPicUrl = `https://graph.facebook.com/${username}/picture?type=large`;
               execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
               if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
-                tempDownloadedFile = tempFile;
+                try {
+                  await sharp(fs.readFileSync(tempFile)).metadata();
+                  tempDownloadedFile = tempFile;
+                } catch (sharpErr: any) {
+                  console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
+                  try { fs.unlinkSync(tempFile); } catch (e) {}
+                }
               }
             } catch (err: any) {
               console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
@@ -2224,30 +2264,32 @@ function normalizeName(str: string): string {
               .webp({ quality: 70 })
               .toFile(thumbFilepath);
 
-            // Retrieve old picture to delete before updating the database
-            try {
-              const oldRow = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(page.id) as { profile_picture: string | null } | undefined;
-              if (oldRow && oldRow.profile_picture && oldRow.profile_picture.startsWith('/uploads/')) {
-                const oldRelativePath = oldRow.profile_picture;
-                const oldFilepath = path.join(process.cwd(), oldRelativePath);
-                if (fs.existsSync(oldFilepath)) {
-                  fs.unlinkSync(oldFilepath);
-                  console.log(`[Sync] Deleted old profile picture file: ${oldFilepath}`);
-                }
+            // Retrieve old picture to delete before updating the database (ONLY in 'update' mode!)
+            if (mode === 'update') {
+              try {
+                const oldRow = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(page.id) as { profile_picture: string | null } | undefined;
+                if (oldRow && oldRow.profile_picture && oldRow.profile_picture.startsWith('/uploads/')) {
+                  const oldRelativePath = oldRow.profile_picture;
+                  const oldFilepath = path.join(process.cwd(), oldRelativePath);
+                  if (fs.existsSync(oldFilepath)) {
+                    fs.unlinkSync(oldFilepath);
+                    console.log(`[Sync] Deleted old profile picture file: ${oldFilepath}`);
+                  }
 
-                // Also delete old thumbnail
-                const oldFilename = path.basename(oldRelativePath);
-                if (oldFilename.startsWith('profile-')) {
-                  const oldThumbFilename = oldFilename.replace(/^profile-/, 'profile-thumb-');
-                  const oldThumbFilepath = path.join(uploadsDir, oldThumbFilename);
-                  if (fs.existsSync(oldThumbFilepath)) {
-                    fs.unlinkSync(oldThumbFilepath);
-                    console.log(`[Sync] Deleted old profile thumbnail file: ${oldThumbFilepath}`);
+                  // Also delete old thumbnail
+                  const oldFilename = path.basename(oldRelativePath);
+                  if (oldFilename.startsWith('profile-')) {
+                    const oldThumbFilename = oldFilename.replace(/^profile-/, 'profile-thumb-');
+                    const oldThumbFilepath = path.join(uploadsDir, oldThumbFilename);
+                    if (fs.existsSync(oldThumbFilepath)) {
+                      fs.unlinkSync(oldThumbFilepath);
+                      console.log(`[Sync] Deleted old profile thumbnail file: ${oldThumbFilepath}`);
+                    }
                   }
                 }
+              } catch (delErr: any) {
+                console.error(`[Sync] Error during old file deletion:`, delErr.message);
               }
-            } catch (delErr: any) {
-              console.error(`[Sync] Error during old file deletion:`, delErr.message);
             }
 
             const profile_picture = `/uploads/${filename}`;
@@ -2257,7 +2299,9 @@ function normalizeName(str: string): string {
             try { fs.unlinkSync(tempDownloadedFile); } catch (e) {}
           } else {
             console.warn(`[Sync] Skip page "${page.current_name}": Could not fetch profile picture via any fallback channel`);
-            db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+            if (mode === 'sync') {
+              db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+            }
           }
         } catch (innerErr: any) {
           console.error(`[Sync] ERROR for page "${page.current_name}":`, innerErr);

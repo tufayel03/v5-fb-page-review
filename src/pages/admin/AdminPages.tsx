@@ -108,11 +108,13 @@ export default function AdminPages() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
 
-  const handleSyncPictures = (ids?: string[]) => {
+  const handleSyncPictures = (ids?: string[], mode: 'sync' | 'update' = 'sync') => {
     const isBulk = Array.isArray(ids) && ids.length > 0;
-    const confirmMsg = isBulk 
-      ? `Are you sure you want to auto-fetch and optimize profile pictures for the ${ids.length} selected page(s)?`
-      : "Are you sure you want to auto-fetch and optimize profile pictures for pages that do not have one? This will run in the background on the VPS.";
+    const confirmMsg = mode === 'update'
+      ? `Are you sure you want to FORCE update profile pictures for the ${ids?.length || 0} selected page(s)? This will download the latest profile picture and delete the old one from the server.`
+      : isBulk 
+        ? `Are you sure you want to auto-fetch profile pictures for the selected page(s) that DO NOT have a picture?`
+        : "Are you sure you want to auto-fetch profile pictures for all directory pages that do not have one? This will run in the background on the VPS.";
 
     if (!window.confirm(confirmMsg)) {
       return;
@@ -122,7 +124,7 @@ export default function AdminPages() {
     setSyncProgress({ current: 0, total: 0, pageName: "Initializing...", count: 0 });
     
     const token = localStorage.getItem("token") || "";
-    let url = `/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}`;
+    let url = `/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}&mode=${mode}`;
     if (isBulk) {
       url += `&ids=${encodeURIComponent(ids.join(','))}`;
     }
@@ -432,7 +434,13 @@ export default function AdminPages() {
     }
 
     if (bulkAction === 'sync_pictures') {
-      handleSyncPictures(selectedPageIds);
+      handleSyncPictures(selectedPageIds, 'sync');
+      setBulkAction("");
+      return;
+    }
+
+    if (bulkAction === 'update_pictures') {
+      handleSyncPictures(selectedPageIds, 'update');
       setBulkAction("");
       return;
     }
@@ -917,7 +925,8 @@ export default function AdminPages() {
               <option value="clear_fraud">Bulk Clear Fraud (Under Review)</option>
               <option value="change_status">Bulk Change Status Badge...</option>
               <option value="check_redirects">🔍 Check Name/URL Redirects</option>
-              <option value="sync_pictures">🔄 Sync/Update Profile Pictures</option>
+              <option value="sync_pictures">🖼️ Auto-Fetch Profile Pictures</option>
+              <option value="update_pictures">🔄 Update Profile Pictures</option>
               <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>
