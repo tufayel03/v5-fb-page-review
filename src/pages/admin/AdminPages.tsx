@@ -917,7 +917,7 @@ export default function AdminPages() {
               <option value="clear_fraud">Bulk Clear Fraud (Under Review)</option>
               <option value="change_status">Bulk Change Status Badge...</option>
               <option value="check_redirects">🔍 Check Name/URL Redirects</option>
-              <option value="sync_pictures">🖼️ Auto-Fetch Profile Pictures</option>
+              <option value="sync_pictures">🔄 Sync/Update Profile Pictures</option>
               <option value="export">Bulk Export to Excel</option>
               <option value="delete">Bulk Permanently Delete</option>
             </select>
