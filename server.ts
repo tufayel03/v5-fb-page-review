@@ -4807,14 +4807,24 @@ function normalizeName(str: string): string {
         const profileIdMatch = urlNoSlash.match(/[?&]id=(\d+)/i);
         if (profileIdMatch && profileIdMatch[1]) {
           username = profileIdMatch[1];
-          rawTitle = 'Facebook User ' + profileIdMatch[1];
+          rawTitle = 'Facebook Page ' + profileIdMatch[1];
         } else {
           const cleanUrl = urlNoSlash.split('?')[0];
           const parts = cleanUrl.replace(/\/$/, '').split('/');
           const segment = parts[parts.length - 1];
           if (segment && segment !== 'facebook.com' && segment !== 'fb.com' && segment !== 'profile.php') {
             username = segment;
-            rawTitle = segment.replace(/[\.\-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            if (/^\d+$/.test(segment)) {
+              // Check if the second to last segment contains a clean name slug (like in /people/Trendy-Fashion-By-Eliza/61576737418745/)
+              const prevSegment = parts[parts.length - 2];
+              if (prevSegment && prevSegment !== 'people' && prevSegment !== 'Page' && prevSegment !== 'profile.php' && !/^\d+$/.test(prevSegment)) {
+                rawTitle = prevSegment.replace(/[-_.]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              } else {
+                rawTitle = 'Facebook Page ' + segment;
+              }
+            } else {
+              rawTitle = segment.replace(/[\.\-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            }
           }
         }
       } catch (e) {}
@@ -5156,9 +5166,25 @@ function normalizeName(str: string): string {
 
       if (!rawTitle || rawTitle.toLowerCase() === 'facebook page' || rawTitle.toLowerCase() === 'error' || isLoginWall) {
         if (username) {
-          rawTitle = username
-            .replace(/[._-]/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase());
+          if (/^\d+$/.test(username)) {
+            // Check if the URL path contains a clean name slug before the numeric ID
+            try {
+              const cleanUrl = urlNoSlash.split('?')[0];
+              const parts = cleanUrl.replace(/\/$/, '').split('/');
+              const prevSegment = parts[parts.length - 2];
+              if (prevSegment && prevSegment !== 'people' && prevSegment !== 'Page' && prevSegment !== 'profile.php' && !/^\d+$/.test(prevSegment)) {
+                rawTitle = prevSegment.replace(/[-_.]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              } else {
+                rawTitle = 'Facebook Page ' + username;
+              }
+            } catch (e) {
+              rawTitle = 'Facebook Page ' + username;
+            }
+          } else {
+            rawTitle = username
+              .replace(/[._-]/g, ' ')
+              .replace(/\b\w/g, c => c.toUpperCase());
+          }
         } else {
           rawTitle = 'Facebook Page';
         }
