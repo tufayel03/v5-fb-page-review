@@ -2,7 +2,26 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { ShieldAlert, Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, ShieldCheck, Image, RefreshCw, CheckCircle, AlertTriangle, Upload } from "lucide-react";
 
+const TablePageAvatar = ({ page, cacheBust }: { page: any; cacheBust: number }) => {
+  const [error, setError] = useState(false);
+  return (
+    <div className="w-10 h-10 rounded-lg bg-[#050b18] border border-white/5 flex items-center justify-center font-black text-slate-300 shrink-0 select-none overflow-hidden">
+      {page.profile_picture && !error ? (
+        <img
+          src={`${page.profile_picture}?t=${cacheBust}`}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setError(true)}
+        />
+      ) : (
+        <span>{page.current_name ? page.current_name.charAt(0).toUpperCase() : "?"}</span>
+      )}
+    </div>
+  );
+};
+
 export default function AdminPages() {
+  const [cacheBust] = useState(Date.now());
   const [pages, setPages] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1071,9 +1090,7 @@ export default function AdminPages() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#050b18] border border-white/5 flex items-center justify-center font-black text-slate-300 shrink-0 select-none">
-                            {page.current_name ? page.current_name.charAt(0).toUpperCase() : "?"}
-                          </div>
+                          <TablePageAvatar page={page} cacheBust={cacheBust} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <a
@@ -1092,12 +1109,15 @@ export default function AdminPages() {
                                 {page.claim_status || "Unclaimed"}
                               </span>
                             </div>
-                            <p
-                              className="text-xs text-slate-400 truncate w-48 mt-0.5"
+                            <a
+                              href={page.facebook_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-slate-400 hover:text-emerald-400 hover:underline truncate w-48 mt-0.5 block"
                               title={page.facebook_url}
                             >
                               {page.facebook_url}
-                            </p>
+                            </a>
                           </div>
                         </div>
                       </td>

@@ -2830,6 +2830,31 @@ function normalizeName(str: string): string {
       let profile_picture = req.body.profile_picture;
       if (profile_picture) {
         profile_picture = await optimizeBase64Image(profile_picture, 'profile', req.params.id);
+      } else if (profile_picture === '') {
+        // Explicitly deleted/cleared by the admin!
+        try {
+          const oldPage = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(req.params.id) as any;
+          if (oldPage && oldPage.profile_picture) {
+            const oldPath = oldPage.profile_picture;
+            const fullPath = path.join(__dirname, oldPath);
+            if (fs.existsSync(fullPath)) {
+              fs.unlinkSync(fullPath);
+              console.log(`[Admin] Deleted old profile picture: ${fullPath}`);
+            }
+            // Also delete thumbnail
+            const dir = path.dirname(fullPath);
+            const ext = path.extname(fullPath);
+            const base = path.basename(fullPath, ext);
+            const thumbPath = path.join(dir, `profile-thumb-${base.replace('profile-', '')}${ext}`);
+            if (fs.existsSync(thumbPath)) {
+              fs.unlinkSync(thumbPath);
+              console.log(`[Admin] Deleted old thumbnail: ${thumbPath}`);
+            }
+          }
+        } catch (err: any) {
+          console.error('[Admin] Error deleting profile picture file:', err.message);
+        }
+        profile_picture = null;
       }
 
       const prevPage = db.prepare('SELECT business_verification_status, is_fraud_listed, fraud_severity, fraud_list_reason FROM FacebookPages WHERE id = ?').get(req.params.id) as any;

@@ -19,6 +19,7 @@ export default function AdminPageDetails() {
   const [pageData, setPageData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cacheBust] = useState(Date.now());
 
   // Edit forms
   const [currentName, setCurrentName] = useState("");
@@ -385,7 +386,7 @@ export default function AdminPageDetails() {
               <div className={`h-16 w-16 rounded-full border overflow-hidden flex items-center justify-center flex-shrink-0 ${cInputSec}`}>
                 {profilePicture ? (
                   <img
-                    src={profilePicture}
+                    src={profilePicture.startsWith("data:") ? profilePicture : `${profilePicture}?t=${cacheBust}`}
                     alt="Profile"
                     className="h-full w-full object-cover"
                   />
@@ -393,12 +394,24 @@ export default function AdminPageDetails() {
                   <Camera className="h-6 w-6 opacity-30 text-emerald-500" />
                 )}
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className={`w-full border rounded-lg px-4 py-2 outline-none text-sm ${cInput}`}
-              />
+              <div className="flex flex-1 items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className={`w-full border rounded-lg px-4 py-2 outline-none text-sm ${cInput}`}
+                />
+                {profilePicture && (
+                  <button
+                    type="button"
+                    onClick={() => setProfilePicture("")}
+                    className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-3 py-2 rounded-lg text-sm font-bold hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                    title="Remove profile picture"
+                  >
+                    <Trash2 className="h-4 w-4" /> Remove
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
