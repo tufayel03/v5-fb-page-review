@@ -120,7 +120,7 @@ export default function AdminPageDetails() {
           setRequireManualFraudApproval(
             data.require_manual_fraud_approval === 1,
           );
-          setIsFraudListed(data.is_fraud_listed === 1);
+           setIsFraudListed(data.is_fraud_listed === 1 || data.status_badge === "Reported as Fraud");
           setFraudSeverity(data.fraud_severity || "Low Risk");
           setFraudListReason(data.fraud_list_reason || "");
           setFraudInternalNote(data.fraud_internal_note || "");
@@ -578,7 +578,11 @@ export default function AdminPageDetails() {
                     </label>
                     <select
                       value={statusBadge}
-                      onChange={(e) => setStatusBadge(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setStatusBadge(val);
+                        setIsFraudListed(val === "Reported as Fraud");
+                      }}
                       className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                     >
                       <option value="Under Review">Under Review</option>
@@ -651,24 +655,21 @@ export default function AdminPageDetails() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-5">
-                  <div className="p-4 rounded-lg border border-rose-500/10 bg-rose-500/5">
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={isFraudListed}
-                        onChange={(e) => setIsFraudListed(e.target.checked)}
-                        className="w-5 h-5 mt-0.5 text-rose-500 rounded border-rose-500/20 bg-rose-500/10 focus:ring-rose-500/20"
-                      />
-                      <div className="flex flex-col">
-                        <span className={`text-sm font-bold group-hover:text-rose-400 transition-colors ${cText}`}>
-                          List Page in Detected Fraud Directory
-                        </span>
-                        <span className="text-xs text-slate-400 mt-0.5 max-w-xs">
-                          Publishes this profile publicly inside the fraud directory to warn all users.
-                        </span>
+                  {isFraudListed && (
+                    <div className="p-4 rounded-lg border border-rose-500/10 bg-rose-500/5">
+                      <div className="flex items-start gap-3">
+                        <ShieldAlert className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className={`text-sm font-bold ${cText}`}>
+                            Listed in Detected Fraud Directory
+                          </span>
+                          <span className="text-xs text-slate-400 mt-0.5 max-w-xs">
+                            This profile is published inside the fraud directory because its status is marked as Fraud.
+                          </span>
+                        </div>
                       </div>
-                    </label>
-                  </div>
+                    </div>
+                  )}
 
                   {isFraudListed && (
                     <div>

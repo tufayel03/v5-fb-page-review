@@ -2859,11 +2859,18 @@ function normalizeName(str: string): string {
 
       const prevPage = db.prepare('SELECT business_verification_status, is_fraud_listed, fraud_severity, fraud_list_reason FROM FacebookPages WHERE id = ?').get(req.params.id) as any;
 
+      let resolvedIsFraudListed = is_fraud_listed;
+      if (status_badge === 'Reported as Fraud') {
+        resolvedIsFraudListed = 1;
+      } else if (status_badge !== undefined) {
+        resolvedIsFraudListed = 0;
+      }
+
       if (prevPage) {
-        if (is_fraud_listed !== undefined && Number(prevPage.is_fraud_listed || 0) !== Number(is_fraud_listed || 0)) {
-          const action = Number(is_fraud_listed) === 1 ? 'Page added to fraud directory' : 'Page removed from fraud directory';
+        if (resolvedIsFraudListed !== undefined && Number(prevPage.is_fraud_listed || 0) !== Number(resolvedIsFraudListed || 0)) {
+          const action = Number(resolvedIsFraudListed) === 1 ? 'Page added to fraud directory' : 'Page removed from fraud directory';
           db.prepare('INSERT INTO AdminLogs (id, admin_id, action, target_type, target_id, details) VALUES (?, ?, ?, ?, ?, ?)').run(
-            crypto.randomUUID(), (req as any).user.id, action, 'FacebookPage', req.params.id, `Page ${current_name || ''} fraud list state changed to ${is_fraud_listed}`
+            crypto.randomUUID(), (req as any).user.id, action, 'FacebookPage', req.params.id, `Page ${current_name || ''} fraud list state changed to ${resolvedIsFraudListed}`
           );
         }
         if (fraud_severity !== undefined && prevPage.fraud_severity !== fraud_severity) {
@@ -2878,7 +2885,7 @@ function normalizeName(str: string): string {
         }
       }
 
-      const fraudListedAtVal = is_fraud_listed ? new Date().toISOString() : (prevPage ? prevPage.fraud_listed_at : null);
+      const fraudListedAtVal = resolvedIsFraudListed ? new Date().toISOString() : (prevPage ? prevPage.fraud_listed_at : null);
 
       if (business_verification_status !== undefined) {
           db.prepare(`
@@ -2896,7 +2903,7 @@ function normalizeName(str: string): string {
             trusted_ranking_score || 0, featured_trusted_seller || 0, admin_trusted_note || null,
             business_verification_status, business_verification_note || null, (req as any).user.id,
             require_manual_fraud_approval || 0,
-            is_fraud_listed ? 1 : 0, fraud_list_reason || null, fraud_severity || null, fraud_internal_note || null,
+            resolvedIsFraudListed ? 1 : 0, fraud_list_reason || null, fraud_severity || null, fraud_internal_note || null,
             (req as any).user.id, fraudListedAtVal,
             req.params.id
           );
@@ -2920,7 +2927,7 @@ function normalizeName(str: string): string {
           current_name, facebook_url, category, sub_category || null, contact_number, status_badge, trust_score || 0,
           extra_contacts || null, payment_methods || null, other_urls || null, profile_picture || null, website_url || null, page_details || null,
           trusted_ranking_score || 0, featured_trusted_seller || 0, admin_trusted_note || null, require_manual_fraud_approval || 0,
-          is_fraud_listed ? 1 : 0, fraud_list_reason || null, fraud_severity || null, fraud_internal_note || null,
+          resolvedIsFraudListed ? 1 : 0, fraud_list_reason || null, fraud_severity || null, fraud_internal_note || null,
           (req as any).user.id, fraudListedAtVal,
           req.params.id
         );
