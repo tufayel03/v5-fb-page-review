@@ -439,6 +439,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Reset fields before scraping new page to prevent cross-contamination ONLY if page URL changed!
         if (currentActiveScrapedUrl !== url) {
           currentActiveScrapedUrl = url;
+          pageName.textContent = "Loading...";
+          pageUrl.textContent = url;
+          pageAvatar.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'><circle cx='12' cy='12' r='10'/></svg>";
+          
           contactNumber.value = '';
           paymentMethods.value = '';
           pageDetails.value = '';
