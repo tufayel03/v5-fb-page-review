@@ -1147,9 +1147,10 @@ export default function WriteReview() {
                     <button
                       type="button"
                       onClick={addExtraContact}
-                      className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                      className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
-                      Add
+                      <Plus className="w-4 h-4 shrink-0" />
+                      <span>Add</span>
                     </button>
                   </div>
 
@@ -1206,15 +1207,16 @@ export default function WriteReview() {
                           }
                         }}
                         className="w-full h-12 pl-13 pr-4 bg-white border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none text-sm text-slate-800 placeholder:text-slate-400 font-medium transition-all"
-                        placeholder="e.g. bKash, SSLCommerz..."
+                        placeholder="bKash / Nagad"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={addPaymentMethod}
-                      className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                      className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
-                      Add
+                      <Plus className="w-4 h-4 shrink-0" />
+                      <span>Add</span>
                     </button>
                   </div>
 
