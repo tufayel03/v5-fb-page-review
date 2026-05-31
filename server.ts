@@ -4532,162 +4532,246 @@ function normalizeName(str: string): string {
       } catch (e) {}
       if (!rawTitle) {
         rawTitle = 'Facebook Page';
-      }
-
+      }      
       let profilePicture = null;
+      let hasPagePluginSuccess = false;
 
-      // 2. Perform safe, non-blocking page fetching with short timeout
-      console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
-      try {
-        let html = '';
-        let isDirectSuccess = false;
-
+      // 1.5. Try using Facebook Page Plugin widget iframe (NEVER blocked by Facebook and does not require login!)
+      if (username) {
+        console.log(`[AutoScrape] Fetching page metadata via public Page Plugin for username: ${username}`);
         try {
-          const fbRes = await fetch(urlNoSlash, {
+          const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}`;
+          const pluginRes = await fetch(pluginUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Accept-Language': 'en-US,en;q=0.9',
             },
-            signal: AbortSignal.timeout(5000) // 5 seconds timeout
+            signal: AbortSignal.timeout(5000)
           });
 
-          if (fbRes.ok) {
-            html = await fbRes.text();
+          if (pluginRes.ok) {
+            const pluginHtml = await pluginRes.text();
             
-            // Check if roadblock
-            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-            const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i);
-            const parsedTitle = (ogTitleMatch ? ogTitleMatch[1] : (titleMatch ? titleMatch[1] : '')).toLowerCase().trim();
-            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+            // Extract page name
+            const pageNameMatch = pluginHtml.match(/"pageName"\s*:\s*"([^"]+)"/i);
+            const extractedName = pageNameMatch ? pageNameMatch[1] : '';
+
+            // Extract profile pic url (usually containing -1/ in the scontent path)
+            const picMatch = pluginHtml.match(/(scontent[^\s\"]+\-1\/[^\s\"]+)/i) || 
+                             pluginHtml.match(/(scontent[^\s\"]+\-6\/[^\s\"]+)/i) ||
+                             pluginHtml.match(/(scontent[^\s\"]+\-[a-zA-Z0-9]\/[^\s\"]+)/i);
             
-            const isRoadblocked = !parsedTitle || 
-                                  nameBlacklist.includes(parsedTitle) || 
-                                  html.includes("This content isn't available") || 
-                                  html.includes("isn't available at the moment");
-            
-            if (!isRoadblocked) {
-              isDirectSuccess = true;
+            let extractedPic = '';
+            if (picMatch) {
+              let rawPic = picMatch[1].replace(/\\/g, '');
+              if (!rawPic.startsWith('http')) {
+                rawPic = 'https://' + rawPic;
+              }
+              extractedPic = rawPic;
+            }
+
+            if (extractedName && !extractedName.toLowerCase().includes('error')) {
+              rawTitle = decodeHTMLEntities(extractedName);
+              console.log(`[AutoScrape] Successfully extracted page name via Page Plugin: "${rawTitle}"`);
+              hasPagePluginSuccess = true;
+
+              if (extractedPic) {
+                console.log(`[AutoScrape] Fetching profile picture from CDN...`);
+                try {
+                  const imgRes = await fetch(extractedPic, {
+                    headers: {
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    },
+                    signal: AbortSignal.timeout(5000)
+                  });
+
+                  if (imgRes.ok) {
+                    const pageId = Date.now().toString();
+                    const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                    const timestamp = Date.now();
+                    const filename = `profile-${pageId}-${timestamp}.webp`;
+                    const filepath = path.join(uploadsDir, filename);
+
+                    await sharp(imageBuffer)
+                      .resize(300, 300, { fit: 'cover' })
+                      .webp({ quality: 80 })
+                      .toFile(filepath);
+
+                    const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                    const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                    await sharp(imageBuffer)
+                      .resize(80, 80, { fit: 'cover' })
+                      .webp({ quality: 70 })
+                      .toFile(thumbFilepath);
+
+                    profilePicture = `/uploads/${filename}`;
+                    console.log(`[AutoScrape] Successfully optimized profile picture: ${profilePicture}`);
+                  }
+                } catch (imgErr) {
+                  console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+                }
+              }
             }
           }
-        } catch (directErr: any) {
-          console.error('[AutoScrape] Direct fetch timed out or failed:', directErr.message);
+        } catch (pluginErr: any) {
+          console.error('[AutoScrape] Page Plugin scrape failed:', pluginErr.message);
         }
+      }
 
-        // Fallback to Google Translate Proxy if direct fetch is blocked / roadblocked
-        if (!isDirectSuccess) {
-          console.log(`[AutoScrape] Direct fetch failed or was blocked. Bypassing via Google Translate proxy...`);
+      // 2. Perform direct fetch only if Page Plugin scrape didn't succeed
+      if (!hasPagePluginSuccess) {
+        console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
+        try {
+          let html = '';
+          let isDirectSuccess = false;
+
           try {
-            const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(urlNoSlash)}`;
-            const proxyRes = await fetch(proxyUrl, {
+            const fbRes = await fetch(urlNoSlash, {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
               },
-              signal: AbortSignal.timeout(6000)
+              signal: AbortSignal.timeout(5000) // 5 seconds timeout
             });
-            if (proxyRes.ok) {
-              html = await proxyRes.text();
-            }
-          } catch (proxyErr: any) {
-            console.error('[AutoScrape] Google Translate proxy failed:', proxyErr.message);
-          }
-        }
 
-        if (html) {
-          // Extract title
-          let ogTitle = '';
-          const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                               html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
-          if (ogTitleMatch && ogTitleMatch[1]) {
-            ogTitle = ogTitleMatch[1].split('|')[0].trim();
-          }
-          if (!ogTitle) {
-            const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
-                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
-            if (twitterTitle && twitterTitle[1]) {
-              ogTitle = twitterTitle[1].split('|')[0].trim();
-            }
-          }
-          if (!ogTitle) {
-            const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
-                              html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
-            if (metaTitle && metaTitle[1]) {
-              ogTitle = metaTitle[1].split('|')[0].trim();
-            }
-          }
-          if (!ogTitle) {
-            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-            ogTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
-          }
-
-          if (ogTitle) {
-            ogTitle = decodeHTMLEntities(ogTitle);
-            let cleanedTitle = ogTitle.toLowerCase().trim()
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#039;/g, "'");
-
-            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-            const isRoadblocked = !cleanedTitle || 
-                                  nameBlacklist.includes(cleanedTitle) || 
-                                  html.includes("This content isn't available") || 
-                                  html.includes("isn't available at the moment");
-
-            if (!isRoadblocked) {
-              rawTitle = ogTitle;
-            }
-          }
-
-          // Attempt to extract profile picture
-          const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-          if (ogImageMatch && ogImageMatch[1]) {
-            let ogImageUrl = ogImageMatch[1]
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#039;/g, "'");
-
-            try {
-              console.log(`[AutoScrape] Fetching profile picture from CDN...`);
-              const imgRes = await fetch(ogImageUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                },
-                signal: AbortSignal.timeout(5000)
-              });
-
-              if (imgRes.ok) {
-                const pageId = Date.now().toString();
-                const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-                const timestamp = Date.now();
-                const filename = `profile-${pageId}-${timestamp}.webp`;
-                const filepath = path.join(uploadsDir, filename);
-
-                await sharp(imageBuffer)
-                  .resize(300, 300, { fit: 'cover' })
-                  .webp({ quality: 80 })
-                  .toFile(filepath);
-
-                const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
-                const thumbFilepath = path.join(uploadsDir, thumbFilename);
-                await sharp(imageBuffer)
-                  .resize(80, 80, { fit: 'cover' })
-                  .webp({ quality: 70 })
-                  .toFile(thumbFilepath);
-
-                profilePicture = `/uploads/${filename}`;
+            if (fbRes.ok) {
+              html = await fbRes.text();
+              
+              // Check if roadblock
+              const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+              const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+              const parsedTitle = (ogTitleMatch ? ogTitleMatch[1] : (titleMatch ? titleMatch[1] : '')).toLowerCase().trim();
+              const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+              
+              const isRoadblocked = !parsedTitle || 
+                                    nameBlacklist.includes(parsedTitle) || 
+                                    html.includes("This content isn't available") || 
+                                    html.includes("isn't available at the moment");
+              
+              if (!isRoadblocked) {
+                isDirectSuccess = true;
               }
-            } catch (imgErr) {
-              console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+            }
+          } catch (directErr: any) {
+            console.error('[AutoScrape] Direct fetch timed out or failed:', directErr.message);
+          }
+
+          // Fallback to Google Translate Proxy if direct fetch is blocked / roadblocked
+          if (!isDirectSuccess) {
+            console.log(`[AutoScrape] Direct fetch failed or was blocked. Bypassing via Google Translate proxy...`);
+            try {
+              const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(urlNoSlash)}`;
+              const proxyRes = await fetch(proxyUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                },
+                signal: AbortSignal.timeout(6000)
+              });
+              if (proxyRes.ok) {
+                html = await proxyRes.text();
+              }
+            } catch (proxyErr: any) {
+              console.error('[AutoScrape] Google Translate proxy failed:', proxyErr.message);
             }
           }
-        } else {
-          console.log(`[AutoScrape] Fetch returned status ${fbRes.status}, falling back to URL-derived metadata`);
+
+          if (html) {
+            // Extract title
+            let ogTitle = '';
+            const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                 html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+            if (ogTitleMatch && ogTitleMatch[1]) {
+              ogTitle = ogTitleMatch[1].split('|')[0].trim();
+            }
+            if (!ogTitle) {
+              const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                   html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+              if (twitterTitle && twitterTitle[1]) {
+                ogTitle = twitterTitle[1].split('|')[0].trim();
+              }
+            }
+            if (!ogTitle) {
+              const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                                html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+              if (metaTitle && metaTitle[1]) {
+                ogTitle = metaTitle[1].split('|')[0].trim();
+              }
+            }
+            if (!ogTitle) {
+              const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+              ogTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+            }
+
+            if (ogTitle) {
+              ogTitle = decodeHTMLEntities(ogTitle);
+              let cleanedTitle = ogTitle.toLowerCase().trim()
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#039;/g, "'");
+
+              const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+              const isRoadblocked = !cleanedTitle || 
+                                    nameBlacklist.includes(cleanedTitle) || 
+                                    html.includes("This content isn't available") || 
+                                    html.includes("isn't available at the moment");
+
+              if (!isRoadblocked) {
+                rawTitle = ogTitle;
+              }
+            }
+
+            // Attempt to extract profile picture
+            const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+            if (ogImageMatch && ogImageMatch[1]) {
+              let ogImageUrl = ogImageMatch[1]
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#039;/g, "'");
+
+              try {
+                console.log(`[AutoScrape] Fetching profile picture from CDN...`);
+                const imgRes = await fetch(ogImageUrl, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                  },
+                  signal: AbortSignal.timeout(5000)
+                });
+
+                if (imgRes.ok) {
+                  const pageId = Date.now().toString();
+                  const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+                  const timestamp = Date.now();
+                  const filename = `profile-${pageId}-${timestamp}.webp`;
+                  const filepath = path.join(uploadsDir, filename);
+
+                  await sharp(imageBuffer)
+                    .resize(300, 300, { fit: 'cover' })
+                    .webp({ quality: 80 })
+                    .toFile(filepath);
+
+                  const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                  const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                  await sharp(imageBuffer)
+                    .resize(80, 80, { fit: 'cover' })
+                    .webp({ quality: 70 })
+                    .toFile(thumbFilepath);
+
+                  profilePicture = `/uploads/${filename}`;
+                }
+              } catch (imgErr) {
+                console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+              }
+            }
+          } else {
+            console.log(`[AutoScrape] Fetch returned status or failed, falling back to URL-derived metadata`);
+          }
+        } catch (fetchErr) {
+          console.error('[AutoScrape] Fetch timed out or network error, falling back to URL-derived metadata:', fetchErr);
         }
-      } catch (fetchErr) {
-        console.error('[AutoScrape] Fetch timed out or network error, falling back to URL-derived metadata:', fetchErr);
       }
 
       // 3. Resiliently add to database! Use 0/NULL for trust_score
