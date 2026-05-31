@@ -164,38 +164,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const getScore = (img) => {
             let score = 0;
             const alt = (img.getAttribute('alt') || img.alt || '').toLowerCase();
-            const parentLabel = (img.parentElement?.getAttribute('aria-label') || '').toLowerCase();
-            const grandParentLabel = (img.parentElement?.parentElement?.getAttribute('aria-label') || '').toLowerCase();
             
-            // Check for explicit "profile picture" labels in parents or alt
-            if (parentLabel.includes('profile picture') || parentLabel.includes('profile photo') || parentLabel.includes('প্রোফাইল') || parentLabel.includes('pic') ||
-                grandParentLabel.includes('profile picture') || grandParentLabel.includes('profile photo') || grandParentLabel.includes('প্রোফাইল') || grandParentLabel.includes('pic')) {
-              score += 100;
+            // Search up the parent tree for aria-label or alt
+            let current = img;
+            let foundProfileLabel = false;
+            let foundPageNameLabel = false;
+            for (let i = 0; i < 6; i++) {
+              if (!current) break;
+              const label = (current.getAttribute('aria-label') || current.getAttribute('alt') || '').toLowerCase();
+              if (label.includes('profile picture') || label.includes('profile photo') || label.includes('প্রোফাইল') || label.includes('pic') || label.includes('avatar')) {
+                foundProfileLabel = true;
+              }
+              if (pageName) {
+                const pageNameLower = pageName.toLowerCase();
+                if (label === pageNameLower || label.includes(pageNameLower)) {
+                  foundPageNameLabel = true;
+                }
+              }
+              current = current.parentElement;
             }
-            if (alt.includes('profile picture') || alt.includes('profile photo') || alt.includes('প্রোফাইল') || alt.includes('pic')) {
-              score += 90;
+
+            if (foundProfileLabel) {
+              score += 150;
             }
-            
-            // Modern FB Page profile picture is usually an SVG <image> tag
-            if (img.tagName.toLowerCase() === 'image') {
+            if (foundPageNameLabel) {
               score += 50;
             }
-            
-            // Alt matches page name
-            if (pageName) {
-              const pageNameLower = pageName.toLowerCase();
-              if (alt === pageNameLower || alt.includes(pageNameLower)) {
-                score += 30;
-              }
+
+            // Modern FB Page profile picture is usually an SVG <image> tag
+            if (img.tagName.toLowerCase() === 'image') {
+              score += 60;
             }
-            
-            // Size preference (profile photos are usually ~130px to 180px)
+
+            // Size and aspect ratio preference
             const rect = img.getBoundingClientRect();
             const width = rect.width || img.width || parseFloat(img.getAttribute('width')) || 0;
-            if (width >= 120 && width <= 185) {
-              score += 20;
-            }
+            const height = rect.height || img.height || parseFloat(img.getAttribute('height')) || 0;
             
+            // Profile photos are exactly square (1:1 aspect ratio)
+            if (width > 0 && height > 0) {
+              const aspect = width / height;
+              if (aspect >= 0.95 && aspect <= 1.05) {
+                score += 50; // Aspect ratio is perfectly square!
+              }
+            }
+
+            if (width >= 120 && width <= 185) {
+              score += 30;
+            }
+
             return score;
           };
           
@@ -211,19 +228,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const text = document.body.innerText || '';
       
       // Find Bangladeshi phone numbers (e.g., +88017..., 017..., etc.)
-      const phoneRegex = /(?:\+880\s*|0)1[3-9]\d{2}\s*-?\s*\d{6}/g;
+      const phoneRegex = /(?:\+880\s*|880\s*|0)1[3-9]\d(?:\s*[\s\-]?\s*\d){7}/g;
       const phoneMatches = text.match(phoneRegex);
       if (phoneMatches && phoneMatches.length > 0) {
-        // Clean up the match
-        let rawNum = phoneMatches[0].replace(/[\s\-\(\)]/g, '');
-        if (rawNum.startsWith('+880')) {
-          contactNumber = '0' + rawNum.substring(4);
-        } else if (rawNum.startsWith('880')) {
-          contactNumber = '0' + rawNum.substring(3);
-        } else if (rawNum.startsWith('0')) {
-          contactNumber = rawNum;
+        // Clean up the match to be exactly 11 digits starting with 01
+        let rawNum = phoneMatches[0];
+        let digits = rawNum.replace(/\D/g, ''); // Extract only digits
+        if (digits.startsWith('8801')) {
+          contactNumber = '0' + digits.substring(3);
+        } else if (digits.startsWith('01')) {
+          contactNumber = digits;
+        } else if (digits.startsWith('1') && digits.length === 10) {
+          contactNumber = '0' + digits;
         } else {
-          contactNumber = rawNum;
+          contactNumber = digits;
+        }
+        if (contactNumber.length > 11 && contactNumber.startsWith('01')) {
+          contactNumber = contactNumber.substring(0, 11);
         }
       }
 
