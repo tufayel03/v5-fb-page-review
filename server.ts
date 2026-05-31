@@ -2063,7 +2063,32 @@ function normalizeName(str: string): string {
         res.write(`data: ${JSON.stringify({ done: true, total: 0, count: 0 })}\n\n`);
         return res.end();
       }
-      
+      // Get scraper cookie if saved (supports both raw cookie string and JSON array from Cookie Editor!)
+      let scraperCookie = '';
+      try {
+        const cookieRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('facebook_scraper_cookies') as any;
+        if (cookieRow && cookieRow.value) {
+          const val = cookieRow.value.trim();
+          if (val.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed)) {
+                scraperCookie = parsed.map((c: any) => `${c.name}=${c.value}`).join('; ');
+              } else {
+                scraperCookie = val;
+              }
+            } catch (jsonErr) {
+              scraperCookie = val;
+            }
+          } else {
+            scraperCookie = val;
+          }
+        }
+      } catch (err) {
+        console.error('[Sync] Error reading facebook_scraper_cookies setting:', err);
+      }
+      const cookieOption = scraperCookie ? `-H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}"` : '';
+
       let count = 0;
       let current = 0;
       for (const page of pages) {
@@ -2103,7 +2128,7 @@ function normalizeName(str: string): string {
             const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
             const tempHtmlFile = path.join(uploadsDir, `temp-sync-plugin-html-${Date.now()}.html`);
             try {
-              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
               if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
                 const pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
                 try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
@@ -2129,7 +2154,7 @@ function normalizeName(str: string): string {
                   }
                   console.log(`[Sync] Downloading plugin picture via curl...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                     try {
                       // Validate image before marking as success
@@ -2153,7 +2178,7 @@ function normalizeName(str: string): string {
             console.log(`[Sync] Falling back to direct URL fetch via curl for: ${urlNoSlash}`);
             const tempHtmlFile = path.join(uploadsDir, `temp-sync-direct-html-${Date.now()}.html`);
             try {
-              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
               if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
                 const html = fs.readFileSync(tempHtmlFile, 'utf-8');
                 try { fs.unlinkSync(tempHtmlFile); } catch (e) {}
@@ -2183,7 +2208,7 @@ function normalizeName(str: string): string {
 
                   console.log(`[Sync] Downloading direct picture via curl...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                     try {
                       await sharp(fs.readFileSync(tempFile)).metadata();
@@ -4830,6 +4855,32 @@ function normalizeName(str: string): string {
         }
       }
 
+      // 1. Get scraper cookie if saved (supports both raw cookie string and JSON array from Cookie Editor!)
+      let scraperCookie = '';
+      try {
+        const cookieRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('facebook_scraper_cookies') as any;
+        if (cookieRow && cookieRow.value) {
+          const val = cookieRow.value.trim();
+          if (val.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed)) {
+                scraperCookie = parsed.map((c: any) => `${c.name}=${c.value}`).join('; ');
+              } else {
+                scraperCookie = val;
+              }
+            } catch (jsonErr) {
+              scraperCookie = val;
+            }
+          } else {
+            scraperCookie = val;
+          }
+        }
+      } catch (err) {
+        console.error('[AutoScrape] Error reading facebook_scraper_cookies setting:', err);
+      }
+      const cookieOption = scraperCookie ? `-H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}"` : '';
+
       // 1. Establish robust fallback details based on URL segment
       let rawTitle = '';
       let username = '';
@@ -4869,7 +4920,7 @@ function normalizeName(str: string): string {
           const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
           const tempHtmlFile = path.join(uploadsDir, `temp-plugin-html-${Date.now()}.html`);
           
-          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
           
           if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
             const pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
@@ -4931,7 +4982,7 @@ function normalizeName(str: string): string {
                 console.log(`[AutoScrape] Fetching profile picture from CDN via curl... URL: ${extractedPic.substring(0, 80)}...`);
                 try {
                   const tempFile = path.join(uploadsDir, `temp-plugin-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
 
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                     const pageId = Date.now().toString();
@@ -4978,7 +5029,7 @@ function normalizeName(str: string): string {
 
           const tempDirectHtmlFile = path.join(uploadsDir, `temp-direct-html-${Date.now()}.html`);
           try {
-            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempDirectHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempDirectHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
             if (fs.existsSync(tempDirectHtmlFile) && fs.statSync(tempDirectHtmlFile).size > 0) {
               html = fs.readFileSync(tempDirectHtmlFile, 'utf-8');
               try { fs.unlinkSync(tempDirectHtmlFile); } catch (e) {}
@@ -5102,7 +5153,7 @@ function normalizeName(str: string): string {
               try {
                 console.log(`[AutoScrape] Fetching profile picture from CDN via curl... URL: ${cleanedImageUrl.substring(0, 80)}...`);
                 const tempFile = path.join(uploadsDir, `temp-direct-${Date.now()}.jpg`);
-                execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+                execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
 
                 if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
                   const pageId = Date.now().toString();

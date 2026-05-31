@@ -99,8 +99,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Helper: Save form draft to chrome.storage
   const saveDraft = () => {
+    const activeUrl = currentScrapedData ? currentScrapedData.url : pageUrl.textContent;
+    if (!activeUrl || activeUrl === 'Not a Facebook page' || activeUrl.includes('placeholder')) {
+      return;
+    }
+
     const draft = {
-      pageUrl: currentScrapedData ? currentScrapedData.url : pageUrl.textContent,
+      pageUrl: activeUrl,
       contactNumber: contactNumber.value,
       paymentMethods: paymentMethods.value,
       pageDetails: pageDetails.value,
@@ -115,7 +120,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       onBehalfName: onBehalfName.value,
       activeTab: tabScraperBtn.classList.contains('active') ? 'scraper' : 'review'
     };
-    chrome.storage.local.set({ review_draft: draft });
+
+    chrome.storage.local.get(['review_drafts'], (result) => {
+      const drafts = result.review_drafts || {};
+      drafts[activeUrl] = draft;
+      chrome.storage.local.set({ review_drafts: drafts });
+    });
   };
 
   // Helper: Load form draft from chrome.storage
@@ -123,65 +133,100 @@ document.addEventListener('DOMContentLoaded', async () => {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeUrl = (tabs && tabs[0]) ? (tabs[0].url || '') : '';
-        chrome.storage.local.get(['review_draft'], (result) => {
-          if (result && result.review_draft) {
-            const draft = result.review_draft;
+        if (!activeUrl) {
+          resolve();
+          return;
+        }
+
+        chrome.storage.local.get(['review_drafts'], (result) => {
+          const drafts = result.review_drafts || {};
+          const draft = drafts[activeUrl];
+          
+          if (draft) {
+            if (draft.contactNumber !== undefined) contactNumber.value = draft.contactNumber;
+            if (draft.paymentMethods !== undefined) paymentMethods.value = draft.paymentMethods;
+            if (draft.pageDetails !== undefined) pageDetails.value = draft.pageDetails;
             
-            // Only restore draft if the page URL matches the active tab's URL!
-            if (draft.pageUrl === activeUrl || !activeUrl || !draft.pageUrl) {
-              if (draft.contactNumber !== undefined) contactNumber.value = draft.contactNumber;
-              if (draft.paymentMethods !== undefined) paymentMethods.value = draft.paymentMethods;
-              if (draft.pageDetails !== undefined) pageDetails.value = draft.pageDetails;
-              
-              if (draft.selectedReviewType !== undefined) {
-                selectedReviewType = draft.selectedReviewType;
-                pills.forEach(p => {
-                  if (p.getAttribute('data-type') === selectedReviewType) {
-                    p.classList.add('selected');
-                  } else {
-                    p.classList.remove('selected');
-                  }
-                });
-              }
-              
-              if (draft.selectedRating !== undefined) {
-                selectedRating = draft.selectedRating;
-                updateStarsUI();
-              }
-              
-              if (draft.reviewTitle !== undefined) reviewTitle.value = draft.reviewTitle;
-              if (draft.reviewDate !== undefined) reviewDate.value = draft.reviewDate;
-              if (draft.reviewDesc !== undefined) reviewDesc.value = draft.reviewDesc;
-              if (draft.reviewBkash !== undefined) reviewBkash.value = draft.reviewBkash;
-              if (draft.reviewPostLink !== undefined) reviewPostLink.value = draft.reviewPostLink;
-              
-              if (draft.reviewOnBehalf !== undefined) {
-                reviewOnBehalf.checked = draft.reviewOnBehalf;
-                if (onBehalfNameGroup) {
-                  onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+            if (draft.selectedReviewType !== undefined) {
+              selectedReviewType = draft.selectedReviewType;
+              pills.forEach(p => {
+                if (p.getAttribute('data-type') === selectedReviewType) {
+                  p.classList.add('selected');
+                } else {
+                  p.classList.remove('selected');
                 }
-              }
-              if (draft.onBehalfName !== undefined) onBehalfName.value = draft.onBehalfName;
-              
-              if (draft.activeTab === 'review') {
-                tabScraperBtn.classList.remove('active');
-                tabReviewBtn.classList.add('active');
-                tabScraperContent.style.display = 'none';
-                tabReviewContent.style.display = 'block';
-              } else {
-                tabReviewBtn.classList.remove('active');
-                tabScraperBtn.classList.add('active');
-                tabReviewContent.style.display = 'none';
-                tabScraperContent.style.display = 'block';
-              }
-            } else {
-              // URL mismatch, clear previous draft
-              chrome.storage.local.remove(['review_draft']);
+              });
             }
+            
+            if (draft.selectedRating !== undefined) {
+              selectedRating = draft.selectedRating;
+              updateStarsUI();
+            }
+            
+            if (draft.reviewTitle !== undefined) reviewTitle.value = draft.reviewTitle;
+            if (draft.reviewDate !== undefined) reviewDate.value = draft.reviewDate;
+            if (draft.reviewDesc !== undefined) reviewDesc.value = draft.reviewDesc;
+            if (draft.reviewBkash !== undefined) reviewBkash.value = draft.reviewBkash;
+            if (draft.reviewPostLink !== undefined) reviewPostLink.value = draft.reviewPostLink;
+            
+            if (draft.reviewOnBehalf !== undefined) {
+              reviewOnBehalf.checked = draft.reviewOnBehalf;
+              if (onBehalfNameGroup) {
+                onBehalfNameGroup.style.display = reviewOnBehalf.checked ? 'block' : 'none';
+              }
+            }
+            if (draft.onBehalfName !== undefined) onBehalfName.value = draft.onBehalfName;
+            
+            if (draft.activeTab === 'review') {
+              tabScraperBtn.classList.remove('active');
+              tabReviewBtn.classList.add('active');
+              tabScraperContent.style.display = 'none';
+              tabReviewContent.style.display = 'block';
+            } else {
+              tabReviewBtn.classList.remove('active');
+              tabScraperBtn.classList.add('active');
+              tabReviewContent.style.display = 'none';
+              tabScraperContent.style.display = 'block';
+            }
+          } else {
+            // No draft for this active page, clear inputs to avoid leakage
+            contactNumber.value = '';
+            paymentMethods.value = '';
+            pageDetails.value = '';
+            reviewTitle.value = '';
+            reviewDesc.value = '';
+            reviewBkash.value = '';
+            reviewPostLink.value = '';
+            onBehalfName.value = '';
+            reviewDate.value = today;
+            selectedRating = 5;
+            updateStarsUI();
+            selectedReviewType = 'Good';
+            pills.forEach(p => {
+              if (p.getAttribute('data-type') === 'Good') {
+                p.classList.add('selected');
+              } else {
+                p.classList.remove('selected');
+              }
+            });
+            tabReviewBtn.classList.remove('active');
+            tabScraperBtn.classList.add('active');
+            tabReviewContent.style.display = 'none';
+            tabScraperContent.style.display = 'block';
           }
           resolve();
         });
       });
+    });
+  };
+
+  // Helper: Remove draft for a page URL
+  const removeDraft = (url) => {
+    if (!url) return;
+    chrome.storage.local.get(['review_drafts'], (result) => {
+      const drafts = result.review_drafts || {};
+      delete drafts[url];
+      chrome.storage.local.set({ review_drafts: drafts });
     });
   };
 
@@ -723,7 +768,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       // Clear draft
-      chrome.storage.local.remove(['review_draft']);
+      if (payload.facebookUrl) {
+        removeDraft(payload.facebookUrl);
+      }
 
     } catch (err) {
       showAlert(err.message, 'danger');
@@ -795,7 +842,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       reviewDate.value = today;
       selectedRating = 5;
       updateStarsUI();
-      chrome.storage.local.remove(['review_draft']);
+      const pageUrlString = currentScrapedData ? currentScrapedData.url : '';
+      if (pageUrlString) {
+        removeDraft(pageUrlString);
+      }
 
     } catch (err) {
       showAlert(err.message, 'danger');

@@ -407,6 +407,13 @@ export default function AdminSettings() {
                      <span className="text-xs font-medium text-rose-300">Disables public access. Only admins can view the site.</span>
                   </div>
                 </label>
+                <div className="p-4 border border-white/5 bg-[#050b18]/45 rounded-lg space-y-2">
+                   <div>
+                     <h3 className="font-bold text-slate-200">Facebook Cookie String (For Scraping)</h3>
+                     <p className="text-xs text-slate-400">Paste your active Facebook session cookie string here (e.g. from Chrome DevTools: Application &rarr; Cookies). This allows the server to scrape personal profiles and professional-mode pages without roadblocks.</p>
+                   </div>
+                   <textarea rows={3} value={getSettingValue('facebook_scraper_cookies', '')} onChange={e => updateSetting('facebook_scraper_cookies', e.target.value, 'advanced', 'textarea')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none font-mono text-xs" placeholder="c_user=...; xs=...; fr=...;" />
+                </div>
 
                 <div className="flex items-center justify-between p-4 border border-white/5 bg-[#050b18]/45 rounded-lg">
                    <div>
