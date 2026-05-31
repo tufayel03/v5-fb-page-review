@@ -5069,8 +5069,22 @@ function normalizeName(str: string): string {
         }
       }
 
-      // Format name beautifully if empty or generic
-      if (!rawTitle || rawTitle.toLowerCase() === 'facebook page' || rawTitle.toLowerCase() === 'error') {
+      // Format name beautifully if empty, generic, or a login wall
+      const lowerTitle = (rawTitle || '').toLowerCase();
+      const isLoginWall = lowerTitle.includes('log in') || 
+                          lowerTitle.includes('sign up') || 
+                          lowerTitle.includes('sign in') || 
+                          lowerTitle.includes('roadblock') ||
+                          lowerTitle.includes('checkpoint') ||
+                          lowerTitle.includes('लॉग इन') || 
+                          lowerTitle.includes('साइन अप') || 
+                          lowerTitle.includes('पाहण्यासाठी') ||
+                          lowerTitle.includes('লগ ইন') || 
+                          lowerTitle.includes('সাইন আপ') ||
+                          lowerTitle.includes('প্রবেশ করুন') ||
+                          lowerTitle.includes('নিবন্ধন করুন');
+
+      if (!rawTitle || rawTitle.toLowerCase() === 'facebook page' || rawTitle.toLowerCase() === 'error' || isLoginWall) {
         if (username) {
           rawTitle = username
             .replace(/[._-]/g, ' ')
