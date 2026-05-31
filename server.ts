@@ -4652,6 +4652,37 @@ function normalizeName(str: string): string {
       if (!url.startsWith('http')) {
         url = 'https://' + url;
       }
+
+      // Resolve Facebook share shortlinks (e.g. facebook.com/share/...)
+      if (url.includes('/share/')) {
+        console.log(`[AutoScrape] Facebook share link detected: ${url}. Resolving redirect...`);
+        try {
+          // Fetch headers using curl without custom user agent to capture 302 location header
+          const stdout = execSync(`curl -i -s "${url}"`, { timeout: 8000 }).toString();
+          const locationMatch = stdout.match(/^location:\s*([^\r\n]+)/im);
+          if (locationMatch && locationMatch[1]) {
+            let resolvedUrl = locationMatch[1].trim();
+            console.log(`[AutoScrape] Successfully resolved share link to: ${resolvedUrl}`);
+            
+            // Clean resolved URL (remove parameters like ?rdid=... or &share_url=...)
+            try {
+              const urlObj = new URL(resolvedUrl);
+              urlObj.search = '';
+              urlObj.hash = '';
+              resolvedUrl = urlObj.toString();
+              console.log(`[AutoScrape] Cleaned resolved URL: ${resolvedUrl}`);
+            } catch (e) {
+              resolvedUrl = resolvedUrl.split('?')[0].split('#')[0];
+            }
+            
+            url = resolvedUrl;
+          } else {
+            console.warn(`[AutoScrape] Could not find location redirect header in curl output for share link`);
+          }
+        } catch (resolveErr: any) {
+          console.error('[AutoScrape] Failed to resolve Facebook share redirect:', resolveErr.message);
+        }
+      }
       
       // Normalize url
       let urlNoSlash = url;
