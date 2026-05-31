@@ -921,9 +921,9 @@ export default function WriteReview() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto px-0 sm:px-6">
         {/* Header Block with Green Icon Circle */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 mb-8 sm:mb-10 select-none">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 mb-8 sm:mb-10 select-none px-4 sm:px-0">
           <div className="w-16 h-16 rounded-full bg-[#e6fcf0] text-[#00a859] flex items-center justify-center border border-[#c5f2d8] shrink-0 shadow-[0_4px_12px_rgba(0,168,89,0.06)] relative">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -941,7 +941,7 @@ export default function WriteReview() {
         </div>
 
         {/* Stepper Progress Indicator */}
-        <div className="mb-10 select-none max-w-xl mx-auto">
+        <div className="mb-10 select-none max-w-xl mx-auto px-4 sm:px-0">
           <div className="flex items-center justify-between relative px-2 sm:px-4">
             {/* Background line */}
             <div className="absolute left-[8%] right-[8%] top-[18px] h-0.5 bg-neutral-200/80 -z-10"></div>
@@ -993,7 +993,7 @@ export default function WriteReview() {
         </div>
 
         {/* Form Container White Card block */}
-        <div className="bg-white rounded-[26px] border border-slate-100 shadow-[0_12px_40px_rgba(13,42,69,0.035)] p-5 sm:p-10 mb-8 relative">
+        <div className="bg-white border-y border-slate-100 md:border md:border-slate-100 md:shadow-[0_12px_40px_rgba(13,42,69,0.035)] px-4 py-5 sm:p-10 mb-8 relative rounded-none md:rounded-[26px]">
           {/* Active section header with file badge */}
           <div className="pb-6 border-b border-slate-100 mb-8 flex items-start sm:items-center gap-4 select-none">
             <div className="w-12 h-12 rounded-2xl bg-[#e6fcf0] text-[#00a859] flex items-center justify-center shrink-0">
@@ -1118,7 +1118,7 @@ export default function WriteReview() {
             {/* Sub-grid with Contacts and Payments matching screenshot card frame exactly */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Contact Numbers Card */}
-              <div className="bg-[#fcfdfc] p-6 rounded-[22px] border border-[#e6f4ea] flex flex-col justify-between min-h-[170px]">
+              <div className="md:bg-[#fcfdfc] md:p-6 md:rounded-[22px] md:border md:border-[#e6f4ea] md:min-h-[170px] flex flex-col justify-between bg-transparent p-0 border-none rounded-none min-h-0">
                 <div>
                   <label className="block text-[#0d2a45] font-extrabold text-base mb-3">
                     Contact Numbers
@@ -1183,7 +1183,7 @@ export default function WriteReview() {
               </div>
 
               {/* Payment Methods Card */}
-              <div className="bg-[#fcfdfc] p-6 rounded-[22px] border border-[#e6f4ea] flex flex-col justify-between min-h-[170px]">
+              <div className="md:bg-[#fcfdfc] md:p-6 md:rounded-[22px] md:border md:border-[#e6f4ea] md:min-h-[170px] flex flex-col justify-between bg-transparent p-0 border-none rounded-none min-h-0">
                 <div>
                   <label className="block text-[#0d2a45] font-extrabold text-base mb-3">
                     Payment Methods
