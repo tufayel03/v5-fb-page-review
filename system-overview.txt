@@ -207,3 +207,38 @@ UTILITY 2: Direct Interactive Database Checker (local-db-checker.js)
   - Automatically cleans parameters from the resolved location URL (stripping `?rdid=...` and `#...`).
   - The central scraper (`scrapeAndAddFacebookPage`) continues using the resolved canonical page URL, avoiding wrong shortlink usernames as names, and seamlessly matching existing page records in the database.
 =============================================================================
+12. MULTILINGUAL LOGIN-WALL FILTER & IGNORE JUNK NAMES
+-----------------------------------------------------------------------------
+* Bulletproof Multilingual Filter:
+  Prevent saving incorrect localized page names (like "Log in or sign up to view" / "पाहण्यासाठी लॉग इन किंवा সাইন আপ") when a page is private, restricted, or unreachable from the VPS network location.
+* Detection & Interception:
+  The central scraper inspects the parsed rawTitle using an extensive multilingual keyword check:
+  - English: "log in", "sign up", "sign in", "roadblock", "checkpoint".
+  - Marathi/Hindi: "लॉग इन" (log in), "साইন আপ" (sign up), "पाहण्यासाठी" (to view).
+  - Bengali: "লগ ইন", "সাইন আপ", "প্রবেশ করুন", "নিবন্ধন করুন".
+* Dynamic Defaulting:
+  If a login wall title is detected, the title is safely cleared and the scraper falls back to beautifully formatting the Facebook username segment (e.g. `wasifinityofficial` -> `Wasifinityofficial`), keeping the directory clean and professional.
+
+-----------------------------------------------------------------------------
+13. ADMIN PANEL BROWSER CACHE OPTIMIZATION
+-----------------------------------------------------------------------------
+* Natively Enabled Caching:
+  Removed the mounting-time cache-busting timestamp (`?t=${cacheBust}`) from profile pictures within the main Admin directory list (`AdminPages.tsx`).
+* Resource & Bandwidth Preservation:
+  This allows modern browsers to natively and aggressively cache all page avatars locally. Admin navigation, pagination, sorting, and search now load profile images instantly from local disk cache, saving massive VPS server bandwidth and drastically improving directory speed.
+* Dual-Mode Preservation:
+  The individual Edit Form (`AdminPageDetails.tsx`) retains cache-busting to ensure that when an administrator explicitly uploads a new custom avatar, the update renders instantly.
+
+-----------------------------------------------------------------------------
+14. LEGACY URL AUTO-CONVERSION TO SEO-FRIENDLY FORMATS
+-----------------------------------------------------------------------------
+* Facebook Routing Hack:
+  Facebook's public routing only validates the numeric ID at the end of the public SEO URL path `/people/{slug}/{id}/` (the middle name slug is completely ignored by Facebook routers).
+* Seamless ID Conversion:
+  When a user searches or adds a legacy query URL (like `profile.php?id=61572741565378` or a direct numeric path `facebook.com/61572741565378`), the system automatically extracts the ID and converts the URL into:
+  `https://www.facebook.com/people/Page/{id}/`
+* Complete Guest Bypass:
+  Instead of hitting legacy Facebook pages (which are aggressively guest-blocked and redirect to login screens), the scraper crawls the newly constructed SEO-friendly URL. Since Facebook permits guest search engines to crawl these paths, the scraper successfully extracts the direct profile picture CDN link and the canonical page name without any block roadblocks!
+* Universal Normalization:
+  This normalization is unified across the scraper, the `/api/pages/by-url` endpoint (extension lookup), and the main `/api/pages/search` bar, ensuring zero duplicate database rows and pristine caching.
+=============================================================================
