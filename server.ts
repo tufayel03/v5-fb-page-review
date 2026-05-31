@@ -2892,7 +2892,7 @@ function normalizeName(str: string): string {
       const prevPage = db.prepare('SELECT business_verification_status, is_fraud_listed, fraud_severity, fraud_list_reason FROM FacebookPages WHERE id = ?').get(req.params.id) as any;
 
       let resolvedIsFraudListed = is_fraud_listed;
-      if (status_badge === 'Reported as Fraud') {
+      if (status_badge === 'Reported as Fraud' || status_badge === 'Old/Dead Reported Page') {
         resolvedIsFraudListed = 1;
       } else if (status_badge !== undefined) {
         resolvedIsFraudListed = 0;

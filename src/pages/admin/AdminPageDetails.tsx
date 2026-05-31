@@ -120,7 +120,7 @@ export default function AdminPageDetails() {
           setRequireManualFraudApproval(
             data.require_manual_fraud_approval === 1,
           );
-           setIsFraudListed(data.is_fraud_listed === 1 || data.status_badge === "Reported as Fraud");
+           setIsFraudListed(data.is_fraud_listed === 1 || data.status_badge === "Reported as Fraud" || data.status_badge === "Old/Dead Reported Page");
           setFraudSeverity(data.fraud_severity || "Low Risk");
           setFraudListReason(data.fraud_list_reason || "");
           setFraudInternalNote(data.fraud_internal_note || "");
@@ -582,12 +582,12 @@ export default function AdminPageDetails() {
                     <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
                       Status Badge (Standard)
                     </label>
-                    <select
+                     <select
                       value={statusBadge}
                       onChange={(e) => {
                         const val = e.target.value;
                         setStatusBadge(val);
-                        setIsFraudListed(val === "Reported as Fraud");
+                        setIsFraudListed(val === "Reported as Fraud" || val === "Old/Dead Reported Page");
                       }}
                       className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                     >
@@ -596,6 +596,8 @@ export default function AdminPageDetails() {
                       <option value="Suspicious">Suspicious</option>
                       <option value="Reported as Fraud">Fraud</option>
                       <option value="Gold Seller">⭐ Gold Seller</option>
+                      <option value="Old/Dead Page">💀 Old/Dead Page</option>
+                      <option value="Old/Dead Reported Page">💀🚩 Old/Dead Reported Page</option>
                     </select>
                   </div>
 
