@@ -4490,7 +4490,179 @@ function normalizeName(str: string): string {
   });
 
   
-  app.get('/api/pages/by-url', (req, res) => {
+  async function scrapeAndAddFacebookPage(facebookUrl: string): Promise<any | null> {
+    try {
+      let url = facebookUrl.trim();
+      if (!url.startsWith('http')) {
+        url = 'https://' + url;
+      }
+      
+      // Normalize url
+      let urlNoSlash = url;
+      if (url.endsWith('/')) {
+        urlNoSlash = url.slice(0, -1);
+      }
+      const urlWithSlash = urlNoSlash + '/';
+      let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
+      let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
+
+      // Check database one more time to avoid race conditions
+      const existing = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+      if (existing) {
+        return existing;
+      }
+
+      console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
+      const fbRes = await fetch(urlNoSlash, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        }
+      });
+
+      if (!fbRes.ok) {
+        console.log(`[AutoScrape] Fetch page failed with status: ${fbRes.status}`);
+        return null;
+      }
+
+      const html = await fbRes.text();
+
+      // Extract title
+      let rawTitle = '';
+      const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                           html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']og:title["']/i);
+      if (ogTitleMatch && ogTitleMatch[1]) {
+        rawTitle = ogTitleMatch[1].split('|')[0].trim();
+      }
+      if (!rawTitle) {
+        const twitterTitle = html.match(/<meta[^>]*(?:name|property)=["']twitter:title["'][^>]*content=["']([^"']+)["']/i) ||
+                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']twitter:title["']/i);
+        if (twitterTitle && twitterTitle[1]) {
+          rawTitle = twitterTitle[1].split('|')[0].trim();
+        }
+      }
+      if (!rawTitle) {
+        const metaTitle = html.match(/<meta[^>]*(?:name|property)=["']title["'][^>]*content=["']([^"']+)["']/i) ||
+                          html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']title["']/i);
+        if (metaTitle && metaTitle[1]) {
+          rawTitle = metaTitle[1].split('|')[0].trim();
+        }
+      }
+      if (!rawTitle) {
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        rawTitle = titleMatch ? titleMatch[1].split('|')[0].trim() : '';
+      }
+
+      rawTitle = decodeHTMLEntities(rawTitle);
+      const cleanedTitle = rawTitle.toLowerCase().trim()
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'");
+
+      const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+      const isRoadblocked = !cleanedTitle || 
+                            nameBlacklist.includes(cleanedTitle) || 
+                            html.includes("This content isn't available") || 
+                            html.includes("isn't available at the moment");
+
+      if (isRoadblocked) {
+        console.log(`[AutoScrape] Page blocked or invalid title: "${rawTitle}"`);
+        // Fallback: extract username segment from URL
+        let fallbackName = '';
+        try {
+          const cleanUrl = urlNoSlash.split('?')[0];
+          const parts = cleanUrl.replace(/\/$/, '').split('/');
+          const segment = parts[parts.length - 1];
+          if (segment && segment !== 'facebook.com' && segment !== 'fb.com') {
+            fallbackName = segment.replace(/[\.\-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          }
+        } catch (e) {}
+        if (!fallbackName) {
+          fallbackName = 'Facebook Page';
+        }
+        rawTitle = fallbackName;
+      }
+
+      // Attempt to extract profile picture
+      let profilePicture = null;
+      const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+      if (ogImageMatch && ogImageMatch[1]) {
+        let ogImageUrl = ogImageMatch[1]
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'");
+
+        try {
+          console.log(`[AutoScrape] Fetching profile picture from CDN...`);
+          const imgRes = await fetch(ogImageUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            }
+          });
+
+          if (imgRes.ok) {
+            const pageId = Date.now().toString();
+            const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+            const timestamp = Date.now();
+            const filename = `profile-${pageId}-${timestamp}.webp`;
+            const filepath = path.join(uploadsDir, filename);
+
+            await sharp(imageBuffer)
+              .resize(300, 300, { fit: 'cover' })
+              .webp({ quality: 80 })
+              .toFile(filepath);
+
+            const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+            const thumbFilepath = path.join(uploadsDir, thumbFilename);
+            await sharp(imageBuffer)
+              .resize(80, 80, { fit: 'cover' })
+              .webp({ quality: 70 })
+              .toFile(thumbFilepath);
+
+            profilePicture = `/uploads/${filename}`;
+          }
+        } catch (imgErr) {
+          console.error('[AutoScrape] Error downloading profile picture:', imgErr);
+        }
+      }
+
+      // Extract username from URL
+      let username = '';
+      try {
+        const cleanUrl = urlNoSlash.split('?')[0];
+        const parts = cleanUrl.replace(/\/$/, '').split('/');
+        const segment = parts[parts.length - 1];
+        if (segment && segment !== 'facebook.com' && segment !== 'fb.com') {
+          username = segment;
+        }
+      } catch (e) {}
+
+      // Instantly add to database!
+      const pageId = Date.now().toString();
+      db.prepare(`
+        INSERT INTO FacebookPages (
+          id, facebook_url, current_name, current_username, 
+          claim_status, status_badge, trust_score, is_fraud_listed, 
+          profile_picture, created_at, added_by
+        ) VALUES (?, ?, ?, ?, 'Unclaimed', 'Under Review', 50, 0, ?, CURRENT_TIMESTAMP, 'auto_search')
+      `).run(pageId, urlNoSlash, rawTitle, username || null, profilePicture);
+
+      console.log(`[AutoScrape] Instantly added newly discovered Facebook Page: "${rawTitle}" (ID: ${pageId})`);
+      
+      // Return the newly created page row
+      const newPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(pageId);
+      return newPage;
+    } catch (err) {
+      console.error('[AutoScrape] Error in scrapeAndAddFacebookPage:', err);
+      return null;
+    }
+  }
+
+  app.get('/api/pages/by-url', async (req, res) => {
     let { url } = req.query;
     if (!url || typeof url !== 'string') return res.json({ success: false });
     url = url.trim();
@@ -4511,11 +4683,17 @@ function normalizeName(str: string): string {
     let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
     let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
-    const page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash);
+    let page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
     if (page) {
       res.json({ success: true, page });
     } else {
-      res.json({ success: false });
+      // Try to scrape and add instantly!
+      const newPage = await scrapeAndAddFacebookPage(urlNoSlash);
+      if (newPage) {
+        res.json({ success: true, page: newPage });
+      } else {
+        res.json({ success: false });
+      }
     }
   });
 
@@ -4668,7 +4846,7 @@ function normalizeName(str: string): string {
     }
   });
 
-  app.get('/api/pages/search', (req, res) => {
+  app.get('/api/pages/search', async (req, res) => {
     const { q } = req.query;
     if (!q || typeof q !== 'string') return res.json([]);
     
@@ -4677,6 +4855,43 @@ function normalizeName(str: string): string {
     const rawTrim = q.trim();
     const queryLike = `%${rawTrim}%`;
     const isLikeNumber = /^[\d\+\-\s]+$/.test(rawTrim) || (rawTrim.replace(/\D/g, '').length >= 8);
+
+    // If search query is a Facebook URL, check if we have it or scrape & add it instantly
+    const isUrlQuery = rawTrim.toLowerCase().startsWith('http') || 
+                       rawTrim.toLowerCase().includes('facebook.com') || 
+                       rawTrim.toLowerCase().includes('fb.com');
+
+    if (isUrlQuery) {
+      let normalized = rawTrim;
+      if (!normalized.startsWith('http')) {
+        normalized = 'https://' + normalized;
+      }
+      let urlNoSlash = normalized;
+      if (normalized.endsWith('/')) {
+        urlNoSlash = normalized.slice(0, -1);
+      }
+      const urlWithSlash = urlNoSlash + '/';
+      let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
+      let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
+
+      let page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+      if (!page) {
+        page = await scrapeAndAddFacebookPage(urlNoSlash);
+      }
+      if (page) {
+        const wrappedPage = db.prepare(`
+          SELECT p.id, p.facebook_url, p.current_name, p.current_username, p.category, p.sub_category, p.trust_score, p.claim_status, p.is_fraud_listed, p.fraud_listed_at, p.status_badge, p.created_at, p.profile_picture, p.contact_number, p.fraud_list_reason, p.fraud_severity,
+                 (SELECT COUNT(*) FROM Reviews r WHERE r.page_id = p.id AND r.review_type = 'fraud') as fraud_report_count,
+                 (SELECT COUNT(*) FROM Reviews r WHERE r.page_id = p.id) as review_count,
+                 (SELECT AVG(star_rating) FROM Reviews r WHERE r.page_id = p.id) as average_rating
+          FROM FacebookPages p
+          WHERE p.id = ?
+        `).get(page.id) as any;
+        if (wrappedPage) {
+          return res.json([wrappedPage]);
+        }
+      }
+    }
     
     // Normalize phone numbers to make contact search bulletproof
     const digits = rawTrim.replace(/\D/g, '');
