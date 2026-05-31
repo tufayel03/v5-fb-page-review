@@ -959,19 +959,20 @@ export default function AdminPages() {
 
       {/* Bulk Action Workspace Banner */}
       {selectedPageIds.length > 0 && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
+        <div className="bg-[#0a142c]/90 border border-indigo-500/20 backdrop-blur-md shadow-2xl shadow-indigo-950/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="h-7 px-3 rounded-full bg-emerald-500 text-[#050b18] text-xs font-black flex items-center justify-center select-none shadow">
+            <div className="h-7 px-3 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-black flex items-center justify-center gap-1.5 select-none shadow">
+              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
               {selectedPageIds.length} Selected
             </div>
-            <p className="text-sm text-slate-200 mt-1 lg:mt-0 font-semibold">
-              Select an action to apply to the directory pages chosen above.
+            <p className="text-sm text-slate-300 mt-1 lg:mt-0 font-medium">
+              Choose an action to perform on the selected pages:
             </p>
             {selectedPageIds.length === pages.length && total > pages.length && (
               <button
                 disabled={selectingAllMatching}
                 onClick={selectAllMatchingPages}
-                className="bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                className="bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-500/30 text-indigo-300 text-xs font-black px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
                 {selectingAllMatching ? "Loading all..." : `Select all ${total} pages`}
               </button>
@@ -982,7 +983,7 @@ export default function AdminPages() {
             <select
               value={bulkAction}
               onChange={(e) => setBulkAction(e.target.value)}
-              className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500/30 focus:ring-4 focus:ring-indigo-500/5 transition-all cursor-pointer h-9"
             >
               <option value="">-- Bulk Actions --</option>
               <option value="mark_fraud">Bulk Mark as Fraud (-100 Score)</option>
@@ -999,7 +1000,7 @@ export default function AdminPages() {
               <select
                 value={bulkStatusValue}
                 onChange={(e) => setBulkStatusValue(e.target.value)}
-                className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500/30 focus:ring-4 focus:ring-indigo-500/5 transition-all cursor-pointer h-9"
               >
                 <option value="Under Review">Under Review</option>
                 <option value="Reported as Fraud">Reported as Fraud</option>
@@ -1014,13 +1015,13 @@ export default function AdminPages() {
             <button
               disabled={bulkLoading || !bulkAction}
               onClick={executeBulkAction}
-              className="bg-emerald-600 hover:bg-emerald-500 font-extrabold text-[#050b18] text-emerald-950 px-4 py-2 rounded-lg text-sm transition-all shadow hover:shadow-md select-none active:scale-97 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-extrabold px-4 py-2 rounded-lg text-xs shadow-lg shadow-indigo-500/10 transition-all select-none hover:brightness-110 active:scale-97 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed h-9 flex items-center justify-center"
             >
               {bulkLoading ? "Running..." : "Apply to Chosen"}
             </button>
             <button
               onClick={() => setSelectedPageIds([])}
-              className="text-xs text-slate-400 hover:text-slate-200 font-semibold px-2 py-1 transition-all"
+              className="bg-white/5 border border-white/5 hover:bg-white/10 text-slate-300 font-bold px-3 py-2 rounded-lg text-xs transition-colors cursor-pointer h-9 flex items-center justify-center"
             >
               Clear choices
             </button>
