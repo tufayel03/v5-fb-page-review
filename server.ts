@@ -1356,7 +1356,7 @@ async function startServer() {
       const total = countResult ? countResult.total : 0;
 
       const items = db.prepare(`
-        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count, added_by 
+        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count, added_by, profile_picture 
         FROM FacebookPages 
         ${whereSQL} 
         ORDER BY ${sortBy} ${sortOrder} 
