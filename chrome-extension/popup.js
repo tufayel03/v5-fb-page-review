@@ -552,6 +552,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
         if (data.exists && data.page) {
           dbStatusBadge.style.display = 'block';
+
+          // Silently correct fallback names or missing profile pictures if we have scraped the real ones!
+          const dbName = (data.page.current_name || '').toLowerCase().replace(/[\s\-\_]/g, '');
+          const scrapedUsername = (currentScrapedData?.url || '').split('?')[0].replace(/\/$/, '').split('/').pop().toLowerCase().replace(/[\s\-\_]/g, '') || '';
+          const isFallbackName = dbName === scrapedUsername ||
+                                 data.page.current_name === 'Unknown Page' ||
+                                 data.page.current_name === 'Facebook Page';
+          const isMissingPic = !data.page.profile_picture || data.page.profile_picture === 'failed' || data.page.profile_picture.includes('svg') || data.page.profile_picture.includes('circle');
+
+          if ((isFallbackName || isMissingPic) && currentScrapedData && currentScrapedData.name && currentScrapedData.name !== 'Loading...') {
+            console.log('[Extension] Auto-correcting fallback page metadata in database...');
+            const payload = {
+              facebookUrl: currentScrapedData.url,
+              name: currentScrapedData.name,
+              profilePictureUrl: currentScrapedData.profilePicUrl || '',
+              status: data.page.status || 'Under Review',
+              contactNumber: contactNumber.value.trim() || data.page.contactNumber || '',
+              paymentMethods: paymentMethods.value.trim() || data.page.paymentMethods || '',
+              pageDetails: pageDetails.value.trim() || data.page.pageDetails || ''
+            };
+
+            fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/add-page`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${connectionSettings.token}`
+              },
+              body: JSON.stringify(payload)
+            }).then(async (updateRes) => {
+              if (updateRes.ok) {
+                console.log('[Extension] Silently corrected fallback page details successfully!');
+                // Auto-update the active text inside the popup UI so the user sees it correct instantly!
+                pageName.textContent = currentScrapedData.name;
+                if (currentScrapedData.profilePicUrl) {
+                  pageAvatar.src = currentScrapedData.profilePicUrl;
+                }
+              }
+            }).catch(e => console.error('[Extension] Failed to silent-update fallback page:', e));
+          }
           
           // Pre-fill existing data from database conditionally
           let updated = false;

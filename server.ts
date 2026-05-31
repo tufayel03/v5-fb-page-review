@@ -4539,17 +4539,60 @@ function normalizeName(str: string): string {
       // 2. Perform safe, non-blocking page fetching with short timeout
       console.log(`[AutoScrape] Fetching page from Facebook: ${urlNoSlash}`);
       try {
-        const fbRes = await fetch(urlNoSlash, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-          },
-          signal: AbortSignal.timeout(6000) // 6 seconds timeout
-        });
+        let html = '';
+        let isDirectSuccess = false;
 
-        if (fbRes.ok) {
-          const html = await fbRes.text();
+        try {
+          const fbRes = await fetch(urlNoSlash, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept-Language': 'en-US,en;q=0.9',
+            },
+            signal: AbortSignal.timeout(5000) // 5 seconds timeout
+          });
 
+          if (fbRes.ok) {
+            html = await fbRes.text();
+            
+            // Check if roadblock
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+            const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+            const parsedTitle = (ogTitleMatch ? ogTitleMatch[1] : (titleMatch ? titleMatch[1] : '')).toLowerCase().trim();
+            const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
+            
+            const isRoadblocked = !parsedTitle || 
+                                  nameBlacklist.includes(parsedTitle) || 
+                                  html.includes("This content isn't available") || 
+                                  html.includes("isn't available at the moment");
+            
+            if (!isRoadblocked) {
+              isDirectSuccess = true;
+            }
+          }
+        } catch (directErr: any) {
+          console.error('[AutoScrape] Direct fetch timed out or failed:', directErr.message);
+        }
+
+        // Fallback to Google Translate Proxy if direct fetch is blocked / roadblocked
+        if (!isDirectSuccess) {
+          console.log(`[AutoScrape] Direct fetch failed or was blocked. Bypassing via Google Translate proxy...`);
+          try {
+            const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(urlNoSlash)}`;
+            const proxyRes = await fetch(proxyUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              },
+              signal: AbortSignal.timeout(6000)
+            });
+            if (proxyRes.ok) {
+              html = await proxyRes.text();
+            }
+          } catch (proxyErr: any) {
+            console.error('[AutoScrape] Google Translate proxy failed:', proxyErr.message);
+          }
+        }
+
+        if (html) {
           // Extract title
           let ogTitle = '';
           const ogTitleMatch = html.match(/<meta[^>]*(?:property|name)=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
@@ -4578,7 +4621,7 @@ function normalizeName(str: string): string {
 
           if (ogTitle) {
             ogTitle = decodeHTMLEntities(ogTitle);
-            const cleanedTitle = ogTitle.toLowerCase().trim()
+            let cleanedTitle = ogTitle.toLowerCase().trim()
               .replace(/&amp;/g, '&')
               .replace(/&lt;/g, '<')
               .replace(/&gt;/g, '>')
