@@ -2123,6 +2123,7 @@ function normalizeName(str: string): string {
                 }
 
                 if (extractedPic) {
+                  extractedPic = decodeHTMLEntities(extractedPic);
                   if (!extractedPic.startsWith('http')) {
                     extractedPic = 'https:' + extractedPic;
                   }
@@ -4883,6 +4884,7 @@ function normalizeName(str: string): string {
               hasPagePluginSuccess = true;
 
               if (extractedPic) {
+                extractedPic = decodeHTMLEntities(extractedPic);
                 if (!extractedPic.startsWith('http')) {
                   extractedPic = 'https:' + extractedPic;
                 }
