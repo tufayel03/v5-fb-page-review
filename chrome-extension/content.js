@@ -2,13 +2,78 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "scrapePageDetails") {
     try {
-      // 1. Extract Page Name (H1 is the standard Facebook Page layout title)
-      const h1El = document.querySelector('h1');
-      const pageName = h1El ? h1El.innerText.trim() : '';
+      // 1. Detect Logged-In User Profile Photo to Block It
+      const blockedUrls = new Set();
+      const userAvatarSelectors = [
+        '[role="navigation"] img',
+        'header img',
+        '[aria-label*="Your profile"] img',
+        '[aria-label*="আপনার প্রোফাইল"] img',
+        '[aria-label*="profile"] img',
+        '[role="navigation"] image',
+        'header image',
+        '[aria-label*="Your profile"] image',
+        '[aria-label*="আপনার প্রোফাইল"] image'
+      ];
+      
+      userAvatarSelectors.forEach(selector => {
+        try {
+          const els = document.querySelectorAll(selector);
+          els.forEach(el => {
+            const src = el.src || el.getAttribute('href') || el.getAttribute('xlink:href');
+            if (src) {
+              blockedUrls.add(src);
+              try {
+                const cleanUrl = src.split('?')[0];
+                blockedUrls.add(cleanUrl);
+              } catch (e) {}
+            }
+          });
+        } catch (e) {}
+      });
 
-      // 2. Extract Profile Picture URL
-      let profilePicUrl = '';
+      // 2. Extract Page Name (Avoid Home, Facebook, navigation H1s)
       const mainContainer = document.querySelector('[role="main"]') || document.body;
+      const h1Elements = Array.from(mainContainer.querySelectorAll('h1'));
+      
+      let pageName = '';
+      const validH1 = h1Elements.find(el => {
+        const text = el.innerText.trim();
+        const textLower = text.toLowerCase();
+        return text && 
+               textLower !== 'home' && 
+               textLower !== 'facebook' && 
+               textLower !== 'হোম' && 
+               textLower !== 'ফেসবুক' && 
+               textLower !== 'pages' && 
+               textLower !== 'পেজ';
+      });
+
+      if (validH1) {
+        pageName = validH1.innerText.trim();
+      }
+
+      // Fallback to document title (strip " | Facebook")
+      if (!pageName) {
+        const docTitle = document.title || '';
+        if (docTitle && !docTitle.toLowerCase().includes('facebook home') && !docTitle.toLowerCase().includes('log in')) {
+          pageName = docTitle.split('|')[0].trim();
+        }
+      }
+
+      // 3. Helper to verify if an image URL is allowed
+      const isAllowedPic = (src) => {
+        if (!src) return false;
+        if (blockedUrls.has(src)) return false;
+        try {
+          const clean = src.split('?')[0];
+          if (blockedUrls.has(clean)) return false;
+        } catch (e) {}
+        return true;
+      };
+
+      // 4. Extract Profile Picture URL
+      let profilePicUrl = '';
       const allImgs = Array.from(mainContainer.querySelectorAll('img'));
       
       // A. Prioritize finding image whose alt matches/contains the Facebook Page name
@@ -20,6 +85,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const width = rect.width || img.width || 0;
           if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+
+          const src = img.src || '';
+          if (!isAllowedPic(src)) return false;
 
           const alt = (img.alt || '').toLowerCase();
           return alt === pageNameLower || alt.includes(pageNameLower);
@@ -38,6 +106,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
 
+          const src = img.src || '';
+          if (!isAllowedPic(src)) return false;
+
           const alt = (img.alt || '').toLowerCase();
           return alt.includes('profile photo') || 
                  alt.includes('profile picture') || 
@@ -51,11 +122,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
 
-      // C. Fallback: look in SVG <image> elements (common in modern FB page headers)
+      // C. Fallback: look in SVG <image> elements (common in modern FB page/profile headers)
       if (!profilePicUrl) {
         const allSvgImages = Array.from(mainContainer.querySelectorAll('image'));
         const headerSvgImage = allSvgImages.find(img => {
+          // Strict size check for SVG images as well!
+          const rect = img.getBoundingClientRect();
+          const width = rect.width || parseFloat(img.getAttribute('width')) || 0;
+          if (width > 0 && width < 100) return false;
+          if (img.closest('[role="navigation"]') || img.closest('header')) return false;
+
           const href = img.getAttribute('href') || img.getAttribute('xlink:href') || '';
+          if (!isAllowedPic(href)) return false;
+
           return href.includes('scontent') && (href.includes('/v/') || href.includes('/t') || href.includes('p160x160') || href.includes('p200x200') || href.includes('p320x320') || href.includes('p50x50') || href.includes('p100x100'));
         });
         
@@ -68,7 +147,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (!profilePicUrl) {
         const candidateImg = mainContainer.querySelector('img[width="168"], img[width="176"], img[width="132"]');
         if (candidateImg) {
-          profilePicUrl = candidateImg.src;
+          const src = candidateImg.src || '';
+          if (isAllowedPic(src)) {
+            profilePicUrl = src;
+          }
         }
       }
 
