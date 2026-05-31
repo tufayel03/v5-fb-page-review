@@ -31,6 +31,37 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+function extractFacebookId(url: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.includes('profile.php')) {
+      const id = parsed.searchParams.get('id');
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    const pathSegments = parsed.pathname.split('/').filter(Boolean);
+    if (pathSegments.length > 0) {
+      if (pathSegments.includes('people') || pathSegments.includes('pages')) {
+        for (const segment of pathSegments) {
+          if (/^\d+$/.test(segment)) {
+            return segment;
+          }
+        }
+      }
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (/^\d+$/.test(lastSegment)) {
+        return lastSegment;
+      }
+    }
+  } catch (e) {}
+  
+  const idMatch = url.match(/[?&]id=(\d+)/i) || url.match(/\/(\d+)(?:\/|\?|$)/);
+  if (idMatch && idMatch[1]) {
+    return idMatch[1];
+  }
+  return null;
+}
+
 async function optimizeBase64Image(base64Str: string, type: 'profile' | 'proof', id: string) {
   if (!base64Str || !base64Str.startsWith('data:image')) return base64Str;
 
@@ -4752,6 +4783,16 @@ function normalizeName(str: string): string {
       let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
       let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
+      // Check database using numeric ID to completely avoid duplicate entries
+      const queryId = extractFacebookId(url);
+      if (queryId) {
+        const existingById = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${queryId}%`) as any;
+        if (existingById) {
+          console.log(`[AutoScrape] Match found by ID in database: "${existingById.current_name}" (URL: ${existingById.facebook_url}). Returning existing row.`);
+          return existingById;
+        }
+      }
+
       // Check database one more time to avoid race conditions
       const existing = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
       if (existing) {
@@ -5187,7 +5228,15 @@ function normalizeName(str: string): string {
     let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
     let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
-    let page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+    let page = null;
+    const queryId = extractFacebookId(url);
+    if (queryId) {
+      page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${queryId}%`) as any;
+    }
+
+    if (!page) {
+      page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+    }
     if (page) {
       res.json({ success: true, page });
     } else {
@@ -5403,7 +5452,18 @@ function normalizeName(str: string): string {
       let urlNoWwwNoSlash = urlNoSlash.replace('https://www.', 'https://');
       let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
-      let page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+      let page = null;
+      const searchId = extractFacebookId(rawTrim);
+      if (searchId) {
+        page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${searchId}%`) as any;
+        if (page) {
+          console.log(`[Search] Exact database match found by ID: "${page.current_name}" (URL: ${page.facebook_url})`);
+        }
+      }
+
+      if (!page) {
+        page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+      }
       if (!page) {
         page = await scrapeAndAddFacebookPage(urlNoSlash);
       }
