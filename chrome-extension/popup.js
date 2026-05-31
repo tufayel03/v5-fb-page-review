@@ -556,9 +556,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           // Silently correct fallback names or missing profile pictures if we have scraped the real ones!
           const dbName = (data.page.current_name || '').toLowerCase().replace(/[\s\-\_]/g, '');
           const scrapedUsername = (currentScrapedData?.url || '').split('?')[0].replace(/\/$/, '').split('/').pop().toLowerCase().replace(/[\s\-\_]/g, '') || '';
+          const nameLower = (data.page.current_name || '').toLowerCase();
           const isFallbackName = dbName === scrapedUsername ||
-                                 data.page.current_name === 'Unknown Page' ||
-                                 data.page.current_name === 'Facebook Page';
+                                 nameLower === 'unknown page' ||
+                                 nameLower === 'facebook page' ||
+                                 nameLower === 'facebook user' ||
+                                 /^\d+$/.test(nameLower) ||
+                                 nameLower.startsWith('facebook page ') ||
+                                 nameLower.startsWith('facebook user ');
           const isMissingPic = !data.page.profile_picture || data.page.profile_picture === 'failed' || data.page.profile_picture.includes('svg') || data.page.profile_picture.includes('circle');
 
           if ((isFallbackName || isMissingPic) && currentScrapedData && currentScrapedData.name && currentScrapedData.name !== 'Loading...') {

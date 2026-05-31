@@ -4785,19 +4785,49 @@ function normalizeName(str: string): string {
       let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
       // Check database using numeric ID to completely avoid duplicate entries
+      let existingPageIdToUpdate = '';
       const queryId = extractFacebookId(url);
       if (queryId) {
         const existingById = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${queryId}%`) as any;
         if (existingById) {
-          console.log(`[AutoScrape] Match found by ID in database: "${existingById.current_name}" (URL: ${existingById.facebook_url}). Returning existing row.`);
-          return existingById;
+          const nameLower = (existingById.current_name || '').toLowerCase();
+          const isFallback = !existingById.current_name ||
+                             nameLower === 'facebook page' ||
+                             nameLower === 'unknown page' ||
+                             nameLower === 'facebook user' ||
+                             /^\d+$/.test(nameLower) ||
+                             nameLower.startsWith('facebook page ') ||
+                             nameLower.startsWith('facebook user ');
+          
+          if (!isFallback) {
+            console.log(`[AutoScrape] Match found by ID in database: "${existingById.current_name}" (URL: ${existingById.facebook_url}). Returning existing row.`);
+            return existingById;
+          } else {
+            console.log(`[AutoScrape] Match found by ID in database, but has generic fallback name "${existingById.current_name}". Bypassing early return to refresh it.`);
+            existingPageIdToUpdate = existingById.id;
+          }
         }
       }
 
-      // Check database one more time to avoid race conditions
-      const existing = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
-      if (existing) {
-        return existing;
+      if (!existingPageIdToUpdate) {
+        const existing = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
+        if (existing) {
+          const nameLower = (existing.current_name || '').toLowerCase();
+          const isFallback = !existing.current_name ||
+                             nameLower === 'facebook page' ||
+                             nameLower === 'unknown page' ||
+                             nameLower === 'facebook user' ||
+                             /^\d+$/.test(nameLower) ||
+                             nameLower.startsWith('facebook page ') ||
+                             nameLower.startsWith('facebook user ');
+          
+          if (!isFallback) {
+            return existing;
+          } else {
+            console.log(`[AutoScrape] Match found by URL in database, but has generic fallback name "${existing.current_name}". Bypassing early return to refresh it.`);
+            existingPageIdToUpdate = existing.id;
+          }
+        }
       }
 
       // 1. Establish robust fallback details based on URL segment
@@ -5190,21 +5220,36 @@ function normalizeName(str: string): string {
         }
       }
 
-      // 3. Resiliently add to database! Use 0/NULL for trust_score
-      const pageId = Date.now().toString();
-      db.prepare(`
-        INSERT INTO FacebookPages (
-          id, facebook_url, current_name, current_username, 
-          claim_status, status_badge, trust_score, is_fraud_listed, 
-          profile_picture, created_at, added_by
-        ) VALUES (?, ?, ?, ?, 'Unclaimed', 'Under Review', 0, 0, ?, CURRENT_TIMESTAMP, 'auto_search')
-      `).run(pageId, urlNoSlash, rawTitle, username || null, profilePicture);
+      // 3. Resiliently add or update database! Use 0/NULL for trust_score
+      if (existingPageIdToUpdate) {
+        db.prepare(`
+          UPDATE FacebookPages
+          SET current_name = ?,
+              current_username = ?,
+              profile_picture = COALESCE(?, profile_picture),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(rawTitle, username || null, profilePicture || null, existingPageIdToUpdate);
+        console.log(`[AutoScrape] Resiliently updated existing fallback Facebook Page: "${rawTitle}" (ID: ${existingPageIdToUpdate})`);
+        
+        // Return updated row
+        return db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(existingPageIdToUpdate);
+      } else {
+        const pageId = Date.now().toString();
+        db.prepare(`
+          INSERT INTO FacebookPages (
+            id, facebook_url, current_name, current_username, 
+            claim_status, status_badge, trust_score, is_fraud_listed, 
+            profile_picture, created_at, added_by
+          ) VALUES (?, ?, ?, ?, 'Unclaimed', 'Under Review', 0, 0, ?, CURRENT_TIMESTAMP, 'auto_search')
+        `).run(pageId, urlNoSlash, rawTitle, username || null, profilePicture);
 
-      console.log(`[AutoScrape] Resiliently added discovered Facebook Page: "${rawTitle}" (ID: ${pageId})`);
-      
-      // Return the newly created page row
-      const newPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(pageId);
-      return newPage;
+        console.log(`[AutoScrape] Resiliently added discovered Facebook Page: "${rawTitle}" (ID: ${pageId})`);
+        
+        // Return the newly created page row
+        const newPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(pageId);
+        return newPage;
+      }
     } catch (err) {
       console.error('[AutoScrape] Critical error in scrapeAndAddFacebookPage:', err);
       return null;
@@ -5265,15 +5310,32 @@ function normalizeName(str: string): string {
     if (!page) {
       page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
     }
+
+    let isFallbackName = false;
     if (page) {
+      const nameLower = (page.current_name || '').toLowerCase();
+      isFallbackName = !page.current_name ||
+                       nameLower === 'facebook page' ||
+                       nameLower === 'unknown page' ||
+                       nameLower === 'facebook user' ||
+                       /^\d+$/.test(nameLower) ||
+                       nameLower.startsWith('facebook page ') ||
+                       nameLower.startsWith('facebook user ');
+    }
+
+    if (page && !isFallbackName) {
       res.json({ success: true, page });
     } else {
-      // Try to scrape and add instantly!
+      // Try to scrape and add/update instantly!
       const newPage = await scrapeAndAddFacebookPage(urlNoSlash);
       if (newPage) {
         res.json({ success: true, page: newPage });
       } else {
-        res.json({ success: false });
+        if (page) {
+          res.json({ success: true, page });
+        } else {
+          res.json({ success: false });
+        }
       }
     }
   });
@@ -5492,8 +5554,24 @@ function normalizeName(str: string): string {
       if (!page) {
         page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
       }
-      if (!page) {
-        page = await scrapeAndAddFacebookPage(urlNoSlash);
+      
+      let isFallbackName = false;
+      if (page) {
+        const nameLower = (page.current_name || '').toLowerCase();
+        isFallbackName = !page.current_name ||
+                         nameLower === 'facebook page' ||
+                         nameLower === 'unknown page' ||
+                         nameLower === 'facebook user' ||
+                         /^\d+$/.test(nameLower) ||
+                         nameLower.startsWith('facebook page ') ||
+                         nameLower.startsWith('facebook user ');
+      }
+
+      if (!page || isFallbackName) {
+        const scraped = await scrapeAndAddFacebookPage(urlNoSlash);
+        if (scraped) {
+          page = scraped;
+        }
       }
       if (page) {
         const wrappedPage = db.prepare(`
