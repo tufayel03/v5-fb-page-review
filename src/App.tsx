@@ -216,23 +216,23 @@ function StandardLayout() {
   const isWriteReviewActive = location.pathname.startsWith("/write-review");
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-16 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-14 md:pb-0">
       <header className="sticky top-0 z-50 transition-colors duration-300 bg-white border-b border-slate-200">
-        <div className="flex items-center justify-between px-4 sm:px-8 h-18 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-8 h-14 md:h-18 shrink-0">
           <Link to="/" className="flex items-center gap-2.5">
             {publicSettings.site_logo ? (
               <img
                 src={publicSettings.site_logo}
                 alt={publicSettings.site_name || "Logo"}
                 referrerPolicy="no-referrer"
-                className="max-h-12 max-w-[160px] object-contain select-none"
+                className="max-h-9 md:max-h-12 max-w-[160px] object-contain select-none"
               />
             ) : (
               <>
-                <div className="w-10 h-10 shrink-0 bg-[#0fbc6f] rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-xs select-none">
+                <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 bg-[#0fbc6f] rounded-2xl flex items-center justify-center text-white font-extrabold text-lg md:text-xl shadow-xs select-none">
                   {(publicSettings.site_name || "FB Page Review").charAt(0)}
                 </div>
-                <span className="text-[19px] font-black tracking-tight text-slate-900 select-none">
+                <span className="text-[16px] md:text-[19px] font-black tracking-tight text-slate-900 select-none">
                   {publicSettings.site_name ? (
                     publicSettings.site_name
                   ) : (
@@ -404,14 +404,14 @@ function StandardLayout() {
         {/* Mobile Slide-in Menu Overlay */}
         {mobileMenuOpen && (
           <div
-            className="md:hidden fixed inset-x-0 bottom-0 top-[64px] z-[40] bg-black/50 transition-opacity"
+            className="md:hidden fixed inset-x-0 bottom-0 top-[56px] md:top-[72px] z-[40] bg-black/50 transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
         {/* Mobile Slide-in Menu Panel */}
         <div
-          className={`md:hidden fixed inset-y-0 right-0 top-[64px] z-[45] w-[85%] sm:w-[350px] bg-white text-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "translate-x-[100%]"}`}
+          className={`md:hidden fixed inset-y-0 right-0 top-[56px] md:top-[72px] z-[45] w-[85%] sm:w-[350px] bg-white text-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "translate-x-[100%]"}`}
         >
           <div className="p-4 overflow-y-auto h-full pb-24 hide-scrollbar">
             <Link
@@ -569,7 +569,7 @@ function StandardLayout() {
       <Footer />
 
       {/* Mobile Bottom Navigation Menu */}
-      <div className="fixed bottom-0 inset-x-0 z-[48] bg-white border-t border-slate-200 h-16 md:hidden flex items-center justify-around px-2 pb-safe shadow-[0_-3px_12px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 inset-x-0 z-[48] bg-white border-t border-slate-200 h-14 md:hidden flex items-center justify-around px-2 pb-safe shadow-[0_-3px_12px_rgba(0,0,0,0.06)]">
         <Link
           to="/"
           className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors outline-none ${
