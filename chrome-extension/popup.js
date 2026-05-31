@@ -362,6 +362,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.create({ url: 'https://www.facebook.com' });
   });
 
+  let currentActiveScrapedUrl = '';
+
   // Helper: Verify if URL is an actual Facebook page / profile (and not newsfeed/groups)
   const isFacebookPageUrl = (urlStr) => {
     if (!urlStr || !urlStr.includes('facebook.com')) return false;
@@ -434,30 +436,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       const url = activeTab.url || '';
 
       if (isFacebookPageUrl(url)) {
-        // Reset fields before scraping new page to prevent cross-contamination
-        contactNumber.value = '';
-        paymentMethods.value = '';
-        pageDetails.value = '';
-        reviewTitle.value = '';
-        reviewDesc.value = '';
-        reviewBkash.value = '';
-        reviewPostLink.value = '';
-        onBehalfName.value = '';
-        reviewOnBehalf.checked = false;
-        if (onBehalfNameGroup) onBehalfNameGroup.style.display = 'none';
-        selectedReviewType = 'Good';
-        pills.forEach(p => {
-          if (p.getAttribute('data-type') === 'Good') {
-            p.classList.add('selected');
-          } else {
-            p.classList.remove('selected');
-          }
-        });
-        selectedRating = 5;
-        updateStarsUI();
+        // Reset fields before scraping new page to prevent cross-contamination ONLY if page URL changed!
+        if (currentActiveScrapedUrl !== url) {
+          currentActiveScrapedUrl = url;
+          contactNumber.value = '';
+          paymentMethods.value = '';
+          pageDetails.value = '';
+          reviewTitle.value = '';
+          reviewDesc.value = '';
+          reviewBkash.value = '';
+          reviewPostLink.value = '';
+          onBehalfName.value = '';
+          reviewOnBehalf.checked = false;
+          if (onBehalfNameGroup) onBehalfNameGroup.style.display = 'none';
+          selectedReviewType = 'Good';
+          pills.forEach(p => {
+            if (p.getAttribute('data-type') === 'Good') {
+              p.classList.add('selected');
+            } else {
+              p.classList.remove('selected');
+            }
+          });
+          selectedRating = 5;
+          updateStarsUI();
 
-        // Load new draft if url matches
-        await loadDraft();
+          // Load new draft if url matches
+          await loadDraft();
+        }
 
         facebookContent.style.display = 'block';
         nonFacebookContent.style.display = 'none';
@@ -492,6 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
       } else {
+        currentActiveScrapedUrl = '';
         facebookContent.style.display = 'none';
         nonFacebookContent.style.display = 'block';
       }
@@ -763,21 +769,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initializeScraper();
 
   let lastScrapedUrl = '';
+  let pollingInterval = null;
 
   // Auto-refresh scraper when active tab changes or updates
   chrome.tabs.onActivated.addListener(() => {
+    if (pollingInterval) clearInterval(pollingInterval);
     initializeScraper();
+    
+    // Progressive polling to catch SPA renderings
+    let pollCount = 0;
+    pollingInterval = setInterval(() => {
+      initializeScraper();
+      pollCount++;
+      if (pollCount >= 5) {
+        clearInterval(pollingInterval);
+      }
+    }, 600);
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' || changeInfo.url) {
+      if (pollingInterval) clearInterval(pollingInterval);
       initializeScraper();
-      // If the URL changed, trigger a secondary scrape in 800ms to allow Facebook's SPA to render fully!
+      
+      // If the URL changed, trigger a progressive poll to capture late-rendering SPA content
       if (changeInfo.url && changeInfo.url !== lastScrapedUrl) {
         lastScrapedUrl = changeInfo.url;
-        setTimeout(() => {
+        
+        let pollCount = 0;
+        pollingInterval = setInterval(() => {
           initializeScraper();
-        }, 800);
+          pollCount++;
+          if (pollCount >= 6) { // Poll for 3.6 seconds
+            clearInterval(pollingInterval);
+          }
+        }, 600);
       }
     }
   });

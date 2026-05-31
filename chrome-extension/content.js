@@ -15,9 +15,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (pageName) {
         const pageNameLower = pageName.toLowerCase();
         const pageImg = allImgs.find(img => {
-          // Exclude small navigation images or user header icons (width < 60)
-          const width = img.width || 0;
-          if (width > 0 && width < 60) return false;
+          // Exclude small navigation images or user header icons (rendered width < 100)
+          const rect = img.getBoundingClientRect();
+          const width = rect.width || img.width || 0;
+          if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
 
           const alt = (img.alt || '').toLowerCase();
@@ -31,8 +32,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // B. Fallback: Search for any page profile image container (excl. navigation & small avatars)
       if (!profilePicUrl) {
         const profileImg = allImgs.find(img => {
-          const width = img.width || 0;
-          if (width > 0 && width < 60) return false;
+          // Exclude small navigation images or user header icons (rendered width < 100)
+          const rect = img.getBoundingClientRect();
+          const width = rect.width || img.width || 0;
+          if (width > 0 && width < 100) return false;
           if (img.closest('[role="navigation"]') || img.closest('header')) return false;
 
           const alt = (img.alt || '').toLowerCase();
