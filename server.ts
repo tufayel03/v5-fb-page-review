@@ -1191,6 +1191,177 @@ async function startServer() {
     }
   });
 
+  // Backups Manager API Endpoints (WordPress style)
+  const backupsDir = path.join(process.cwd(), 'backups');
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  // 1. Get list of backups stored on the server
+  app.get('/api/admin/backups', requireAdmin, (req, res) => {
+    try {
+      if (!fs.existsSync(backupsDir)) {
+        return res.json([]);
+      }
+      const files = fs.readdirSync(backupsDir);
+      const backupFiles = files
+        .filter(file => file.startsWith('backup_') && file.endsWith('.zip'))
+        .map(file => {
+          const filePath = path.join(backupsDir, file);
+          const stats = fs.statSync(filePath);
+          return {
+            filename: file,
+            size: stats.size, // bytes
+            createdAt: stats.birthtime || stats.mtime
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(backupFiles);
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to fetch backups' });
+    }
+  });
+
+  // 2. Trigger creation of a new backup on the server
+  app.post('/api/admin/backups', requireAdmin, async (req, res) => {
+    try {
+      const archiver = (await import("archiver")).default;
+      if (!fs.existsSync(backupsDir)) {
+        fs.mkdirSync(backupsDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `backup_${timestamp}.zip`;
+      const zipPath = path.join(backupsDir, filename);
+
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      archive.on('error', (err) => {
+        throw err;
+      });
+
+      archive.pipe(output);
+
+      // Add database
+      const dbPath = path.join(process.cwd(), 'data.db');
+      if (fs.existsSync(dbPath)) {
+        archive.file(dbPath, { name: 'data.db' });
+      }
+
+      // Add uploads directory
+      const uploadsPath = path.join(process.cwd(), 'uploads');
+      if (fs.existsSync(uploadsPath)) {
+        archive.directory(uploadsPath, 'uploads');
+      }
+
+      output.on('close', () => {
+        const stats = fs.statSync(zipPath);
+        res.json({
+          success: true,
+          message: 'Backup created successfully',
+          backup: {
+            filename,
+            size: stats.size,
+            createdAt: stats.birthtime || stats.mtime
+          }
+        });
+      });
+
+      archive.finalize();
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to create backup' });
+    }
+  });
+
+  // 3. Download a specific backup by filename
+  app.get('/api/admin/backups/download/:filename', requireAdmin, (req, res) => {
+    try {
+      const filename = req.params.filename;
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+      const zipPath = path.join(backupsDir, filename);
+      if (!fs.existsSync(zipPath)) {
+        return res.status(404).json({ error: 'Backup file not found' });
+      }
+      res.download(zipPath, filename);
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to download backup' });
+    }
+  });
+
+  // 4. Restore website directly from a backup file stored on the server
+  app.post('/api/admin/backups/restore/:filename', requireAdmin, async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+      const zipPath = path.join(backupsDir, filename);
+      if (!fs.existsSync(zipPath)) {
+        return res.status(404).json({ error: 'Backup file not found' });
+      }
+
+      const extract = (await import("extract-zip")).default;
+      const os = await import("os");
+      const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
+
+      await extract(zipPath, { dir: destPath });
+
+      // Overwrite database
+      const extractedDb = path.join(destPath, 'data.db');
+      const currentDbPath = path.join(process.cwd(), 'data.db');
+      if (fs.existsSync(extractedDb)) {
+        fs.copyFileSync(extractedDb, currentDbPath);
+        if (fs.existsSync(currentDbPath + '-wal')) fs.unlinkSync(currentDbPath + '-wal');
+        if (fs.existsSync(currentDbPath + '-shm')) fs.unlinkSync(currentDbPath + '-shm');
+      }
+
+      // Overwrite uploads folder
+      const extractedUploads = path.join(destPath, 'uploads');
+      const currentUploads = path.join(process.cwd(), 'uploads');
+      if (fs.existsSync(extractedUploads)) {
+        if (fs.existsSync(currentUploads)) fs.rmSync(currentUploads, { recursive: true, force: true });
+        fs.cpSync(extractedUploads, currentUploads, { recursive: true });
+      }
+
+      // Cleanup extraction folder
+      fs.rmSync(destPath, { recursive: true, force: true });
+
+      res.json({ success: true, message: 'Website restored successfully from backup. Server is restarting.' });
+
+      setTimeout(() => {
+        process.exit(0);
+      }, 1000);
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to restore backup' });
+    }
+  });
+
+  // 5. Delete a specific backup file
+  app.delete('/api/admin/backups/:filename', requireAdmin, (req, res) => {
+    try {
+      const filename = req.params.filename;
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+      const zipPath = path.join(backupsDir, filename);
+      if (fs.existsSync(zipPath)) {
+        fs.unlinkSync(zipPath);
+      }
+      res.json({ success: true, message: 'Backup deleted successfully' });
+    } catch(e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to delete backup' });
+    }
+  });
+
 
 
   const os = await import("os");
