@@ -448,10 +448,10 @@ try { db.exec('ALTER TABLE BulkImports ADD COLUMN error_report TEXT;'); } catch 
 
 
 // Seed admin user if none exists — password from env or auto-generated
-const countUsers = db.prepare('SELECT COUNT(*) as count FROM Users WHERE role = \'admin\'').get() as { count: number };
+const adminEmail = process.env.ADMIN_EMAIL || 'admin@fbpagereview.com';
+const countUsers = db.prepare("SELECT COUNT(*) as count FROM Users WHERE username = 'admin' OR email = ?").get(adminEmail) as { count: number };
 if (countUsers.count === 0) {
   const seedUserId = crypto.randomUUID();
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@fbpagereview.com';
   const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomUUID();
   if (!process.env.ADMIN_PASSWORD) {
     console.warn(`\n⚠️  No ADMIN_PASSWORD set in .env — auto-generated admin password: ${adminPassword}`);
