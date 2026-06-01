@@ -547,19 +547,29 @@ export default function WriteReview() {
   if (isSearchingPage) {
     return (
       <div className="bg-white min-h-[calc(100vh-80px)]">
-        <div className="bg-gradient-to-b from-indigo-50 to-white py-16 px-4 md:py-24 text-center border-b border-indigo-100/50">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
-              Review a Facebook Page
+        <div className="bg-white py-16 px-4 md:py-24 text-center border-b border-slate-100 relative overflow-hidden">
+          {/* Decorative green ambient blurs matching home page */}
+          <div className="absolute top-[-60px] left-[-60px] w-[220px] h-[220px] bg-[#0fbc6f]/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-[10%] right-[-80px] w-[280px] h-[280px] bg-[#0fbc6f]/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="max-w-3xl mx-auto relative z-10">
+            {/* Badge matching home */}
+            <div className="flex justify-center mb-5 select-none">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#e6f7ef] text-[#0fbc6f] text-xs font-black tracking-wider uppercase rounded-full border border-[#0fbc6f]/10 shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                SHARE YOUR EXPERIENCE
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-[1.1]">
+              Review a <span className="text-[#0fbc6f]">Facebook Page</span>
             </h1>
-            <p className="text-lg md:text-xl text-slate-600 font-medium mb-10 max-w-2xl mx-auto">
+            <p className="text-[15px] md:text-[17px] text-slate-500 font-semibold mb-10 max-w-2xl mx-auto leading-relaxed">
               Search by name, URL, phone number, or bKash account to share your
               experience and help others avoid fraud.
             </p>
 
             <div className="relative max-w-2xl mx-auto">
               <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                <Search className="h-6 w-6 text-slate-400" />
+                <Search className="h-6 w-6 text-[#0fbc6f]" />
               </div>
               <input
                 autoFocus
@@ -567,7 +577,7 @@ export default function WriteReview() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search page name, URL, or contact number..."
-                className="w-full h-16 pl-14 pr-6 bg-white border border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 rounded-full text-lg shadow-sm outline-none transition-all placeholder:text-slate-400 font-medium text-slate-900"
+                className="w-full h-14 md:h-16 pl-14 pr-6 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#0fbc6f]/50 focus:ring-4 focus:ring-[#0fbc6f]/10 rounded-full text-base md:text-lg shadow-sm outline-none transition-all placeholder:text-slate-400 font-medium text-slate-900"
               />
 
               {searchQuery.trim().length > 0 && (
@@ -580,7 +590,7 @@ export default function WriteReview() {
                           <Link
                             key={page.id}
                             to={`/write-review?pageId=${page.id}&type=${reviewType === "Fraud Report" ? "fraud" : "safe"}`}
-                            className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 group"
+                            className="flex items-center gap-4 px-6 py-4 hover:bg-[#f0faf5] transition-colors border-b border-slate-100 last:border-0 group"
                             onClick={() => setIsSearchingPage(false)}
                           >
                             <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
@@ -598,7 +608,7 @@ export default function WriteReview() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                <h4 className="font-bold text-slate-900 text-[17px] truncate group-hover:text-indigo-600 transition-colors max-w-full">
+                                <h4 className="font-bold text-slate-900 text-[17px] truncate group-hover:text-[#0fbc6f] transition-colors max-w-full">
                                   {page.current_name}
                                 </h4>
                                 {page.business_verification_status &&
@@ -626,11 +636,11 @@ export default function WriteReview() {
                                 • {page.review_count || 0} reviews
                               </p>
                             </div>
-                            <div className="shrink-0 flex items-center bg-indigo-50 px-2 py-1 rounded">
+                            <div className="shrink-0 flex items-center bg-[#e6f7ef] px-2 py-1 rounded">
                               <Star
-                                className={`h-3 w-3 mr-1 ${rating > 0 ? "text-indigo-500 fill-indigo-500" : "text-slate-400 fill-slate-400"}`}
+                                className={`h-3 w-3 mr-1 ${rating > 0 ? "text-[#0fbc6f] fill-[#0fbc6f]" : "text-slate-400 fill-slate-400"}`}
                               />
-                              <span className="text-sm font-bold text-indigo-700">
+                              <span className="text-sm font-bold text-[#0da662]">
                                 {rating > 0 ? rating.toFixed(1) : "0.0"}
                               </span>
                             </div>
@@ -640,7 +650,7 @@ export default function WriteReview() {
                     </div>
                   ) : (
                     <div className="p-8 flex flex-col items-center justify-center text-center">
-                      <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4 text-indigo-400">
+                      <div className="w-16 h-16 bg-[#e6f7ef] rounded-full flex items-center justify-center mb-4 text-[#0fbc6f]">
                         <Store className="w-8 h-8" />
                       </div>
                       <h3 className="text-lg font-bold text-slate-900 mb-2">
@@ -662,7 +672,7 @@ export default function WriteReview() {
                           }
                           setIsSearchingPage(false);
                         }}
-                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
+                        className="px-6 py-3 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
                       >
                         Add new page
                       </button>
@@ -735,15 +745,15 @@ export default function WriteReview() {
         <div className="max-w-5xl mx-auto px-4 py-16 text-center space-y-16">
           {/* What can you review */}
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-[#0a192f] mb-1">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-1">
               What can you review?
             </h2>
             <div className="w-12 h-1 bg-emerald-500 mx-auto rounded-full mb-10"></div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Facebook Page */}
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-sm hover:shadow-md hover:border-[#0fbc6f]/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-[#e6f7ef] text-[#0fbc6f] border border-[#0fbc6f]/20 flex items-center justify-center shrink-0">
                   <Facebook className="h-6 w-6 fill-current" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -758,8 +768,8 @@ export default function WriteReview() {
               </div>
 
               {/* Seller Profile */}
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-full bg-[#0fbc6f] text-white flex items-center justify-center shrink-0">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-sm hover:shadow-md hover:border-[#0fbc6f]/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-[#e6f7ef] text-[#0fbc6f] border border-[#0fbc6f]/20 flex items-center justify-center shrink-0">
                   <Store className="h-6 w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -774,8 +784,8 @@ export default function WriteReview() {
               </div>
 
               {/* Payment Number */}
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-2xs hover:shadow-sm hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-row items-center md:items-start md:flex-col gap-4 text-left shadow-sm hover:shadow-md hover:border-[#0fbc6f]/30 transition-all">
+                <div className="w-12 h-12 rounded-full bg-[#e6f7ef] text-[#0fbc6f] border border-[#0fbc6f]/20 flex items-center justify-center shrink-0">
                   <CreditCard className="h-6 w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -793,12 +803,12 @@ export default function WriteReview() {
           </div>
 
           {/* How to Submit a Review */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-slate-50 border border-slate-100 rounded-3xl p-6 md:p-8 text-left shadow-3xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-[#f0faf5]/60 border border-[#0fbc6f]/10 rounded-3xl p-6 md:p-8 text-left">
             <div className="md:col-span-1 space-y-3">
-              <span className="inline-block px-3 py-1 bg-emerald-50 text-[#0fbc6f] text-[11px] font-bold uppercase tracking-wider rounded-lg">
+              <span className="inline-block px-3 py-1 bg-[#e6f7ef] text-[#0fbc6f] text-[11px] font-black uppercase tracking-wider rounded-lg">
                 Quick Guide
               </span>
-              <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight leading-tight">
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
                 How to Submit a Review
               </h2>
               <p className="text-slate-500 text-sm leading-relaxed">
