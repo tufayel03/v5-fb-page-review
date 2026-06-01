@@ -1166,7 +1166,8 @@ async function startServer() {
 
   app.get('/api/admin/backup-db', requireAdmin, async (req, res) => {
     try {
-      const archiver = require("archiver");
+      const archiverLib = require("archiver");
+      const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
       const archive = archiver('zip', { zlib: { level: 9 } });
       
       res.attachment('website_full_backup.zip');
@@ -1227,7 +1228,8 @@ async function startServer() {
   // 2. Trigger creation of a new backup on the server
   app.post('/api/admin/backups', requireAdmin, async (req, res) => {
     try {
-      const archiver = require("archiver");
+      const archiverLib = require("archiver");
+      const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
       if (!fs.existsSync(backupsDir)) {
         fs.mkdirSync(backupsDir, { recursive: true });
       }
@@ -1307,7 +1309,8 @@ async function startServer() {
         return res.status(404).json({ error: 'Backup file not found' });
       }
 
-      const extract = require("extract-zip");
+      const extractLib = require("extract-zip");
+      const extract = typeof extractLib === 'function' ? extractLib : (extractLib.default || extractLib);
       const os = require("os");
       const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
 
@@ -1380,7 +1383,8 @@ async function startServer() {
           if (fs.existsSync(dbPath + '-wal')) fs.unlinkSync(dbPath + '-wal');
           if (fs.existsSync(dbPath + '-shm')) fs.unlinkSync(dbPath + '-shm');
       } else {
-          const extract = require("extract-zip");
+          const extractLib = require("extract-zip");
+          const extract = typeof extractLib === 'function' ? extractLib : (extractLib.default || extractLib);
           const os = require("os");
           const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
           
