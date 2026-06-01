@@ -1619,6 +1619,7 @@ async function startServer() {
   app.get('/api/admin/pages', requireModerator, (req, res) => {
     try {
       const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+      const status = typeof req.query.status === 'string' ? req.query.status.trim() : 'all';
       const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
       const minReviews = req.query.minReviews !== undefined && req.query.minReviews !== '' ? Number(req.query.minReviews) : NaN;
       const maxReviews = req.query.maxReviews !== undefined && req.query.maxReviews !== '' ? Number(req.query.maxReviews) : NaN;
