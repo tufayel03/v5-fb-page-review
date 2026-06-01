@@ -1166,8 +1166,7 @@ async function startServer() {
 
   app.get('/api/admin/backup-db', requireAdmin, async (req, res) => {
     try {
-      const archiverModule = await import("archiver");
-      const archiver = (archiverModule.default || archiverModule) as any;
+      const archiver = require("archiver");
       const archive = archiver('zip', { zlib: { level: 9 } });
       
       res.attachment('website_full_backup.zip');
@@ -1228,8 +1227,7 @@ async function startServer() {
   // 2. Trigger creation of a new backup on the server
   app.post('/api/admin/backups', requireAdmin, async (req, res) => {
     try {
-      const archiverModule = await import("archiver");
-      const archiver = (archiverModule.default || archiverModule) as any;
+      const archiver = require("archiver");
       if (!fs.existsSync(backupsDir)) {
         fs.mkdirSync(backupsDir, { recursive: true });
       }
@@ -1309,9 +1307,8 @@ async function startServer() {
         return res.status(404).json({ error: 'Backup file not found' });
       }
 
-      const extractModule = await import("extract-zip");
-      const extract = (extractModule.default || extractModule) as any;
-      const os = await import("os");
+      const extract = require("extract-zip");
+      const os = require("os");
       const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
 
       await extract(zipPath, { dir: destPath });
@@ -1367,7 +1364,7 @@ async function startServer() {
 
 
 
-  const os = await import("os");
+  const os = require("os");
   const diskUpload = multer({ dest: path.join(process.cwd(), "uploads") });
   
   app.post("/api/admin/restore-db", requireAdmin, diskUpload.single("dbfile"), async (req, res) => {
@@ -1383,7 +1380,8 @@ async function startServer() {
           if (fs.existsSync(dbPath + '-wal')) fs.unlinkSync(dbPath + '-wal');
           if (fs.existsSync(dbPath + '-shm')) fs.unlinkSync(dbPath + '-shm');
       } else {
-          const extract = (await import("extract-zip")).default;
+          const extract = require("extract-zip");
+          const os = require("os");
           const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
           
           await extract(zipPath, { dir: destPath });
