@@ -69,7 +69,7 @@ flowchart TD
 
 ---
 
-## 🚀 4. Major System Optimizations (May 2026)
+## 🚀 4. Major System Optimizations (May & June 2026)
 
 The following core upgrades have been successfully implemented, verified, and deployed live to production.
 
@@ -79,7 +79,7 @@ The following core upgrades have been successfully implemented, verified, and de
   - Integrated `extractFacebookId(url)` inside all routes (`/api/pages/search`, `/api/pages/by-url`, `scrapeAndAddFacebookPage`).
   - The database is searched by the numeric ID first via `LIKE '%{numericId}%'`. Matches instantly return the original high-quality record, preventing duplicate API fetches or page creation.
 
-### 🖼️ B. HTML Entity Entity Decoding Fix
+### 🖼️ B. HTML Entity Decoding Fix
 - **The Problem:** The Page Plugin iframe encodes URL query string parameters in HTML format (replacing `&` with `&amp;`). When downloaded directly via `curl`, Facebook's CDN returned a `403 Forbidden` error because of the broken URL query structure, causing image optimization to fail and fall back to a generic silhouette.
 - **The Fix:** Bound `extractedPic` to `decodeHTMLEntities(extractedPic)` in both the `[Sync]` and `[AutoScrape]` blocks inside `server.ts`. Parameters are fully reconstructed to standard web URLs before calling `curl`, ensuring high-resolution images are retrieved successfully.
 
@@ -89,7 +89,28 @@ The following core upgrades have been successfully implemented, verified, and de
   - Rewrote the administrative dashboard (`AdminPages.tsx`) state to be driven dynamically by URL parameters (`?page=X`) using React Router's `useSearchParams`.
   - Updated the back action inside `AdminPageDetails.tsx` to use native history traversal (`navigate(-1)`), preserving the exact page number, filters, and searches perfectly.
 
+### 🗃️ D. Backup System Restoration (ESM Archiver Integration)
+- **The Problem:** Upgrading the `archiver` dependency to v8.x broke legacy Express backup route configurations by deprecating traditional factory exports, causing a crash (`TypeError: archiver is not a function`).
+- **The Fix:** Refactored backend routes in `server.ts` to support the new ESM class syntax (`new archiverLib.ZipArchive()`) with runtime validation to dynamically adapt to both legacy and modern archiver packages safely.
+
+### 🔠 E. Bangla Unicode Rendering & Startup Database Healer
+- **The Problem:** A legacy text capitalization regex incorrectly targeted non-English Unicode escape strings (e.g. converting lowercase `\u09b2` to `\U09b2` by treating the escape character as a word boundary), resulting in corrupted random characters in Bengali text.
+- **The Fix:** 
+  - Integrated a robust unescaping utility that parses and resolves all raw Unicode escape strings before any casing adjustments are applied.
+  - Implemented `StartupAutoMigration` which automatically scans the SQLite `FacebookPages` table on server launch to auto-heal historical data corruptions and restore raw Bangla page titles.
+
+### 🏷️ F. Exact Facebook Page Name Preservation
+- **The Problem:** The web scraper automatically replaced all dashes (`-`) and underscores (`_`) with spaces and forced word capitalization on the page title, resulting in incorrect names (e.g. `Lovely Mart - লাভলি মার্ট` became `Lovely Mart   লাভলি মার্ট`).
+- **The Fix:** Removed the legacy clean-up filters and capitalization rules from the crawler title extraction block in `server.ts` to ensure Facebook page titles are fetched and stored 100% exactly as written on Facebook.
+
+### 🎠 G. Hardware-Accelerated Infinite Marquee Carousel
+- **The Problem:** The homepage listed threat pages in a static grid format, which felt static and constrained.
+- **The Fix:**
+  - Designed a high-performance, GPU-accelerated infinite scrolling marquee carousel for the "Recently Blacklisted Fraud Pages" section on the PC viewport.
+  - Increased query limits from 10 to 25 cards and duplicated list slides to seamlessly loop at 60/144 FPS using pure CSS `translate3d` animations, with a smooth hover pause effect.
+
 ---
 
 > [!NOTE]
 > All changes are fully type-checked, committed to Git (`origin main`), and successfully built/restarted under `fbpagereview.service` on production vps.
+

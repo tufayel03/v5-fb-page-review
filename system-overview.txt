@@ -242,3 +242,25 @@ UTILITY 2: Direct Interactive Database Checker (local-db-checker.js)
 * Universal Normalization:
   This normalization is unified across the scraper, the `/api/pages/by-url` endpoint (extension lookup), and the main `/api/pages/search` bar, ensuring zero duplicate database rows and pristine caching.
 =============================================================================
+15. BACKUP SYSTEM ARCHIVER COMPATIBILITY (v8.x ESM)
+-----------------------------------------------------------------------------
+* The Problem: Upgraded archiver v8.x package broke traditional factory functional exports, causing type crashes during automated backups.
+* Refactored Execution: Integrated ESM-friendly `new archiverLib.ZipArchive()` with robust runtime detection. Fully safeguards database backup creations.
+
+-----------------------------------------------------------------------------
+16. UNICODE UNESCAPER & STARTUP DATABASE HEALER
+-----------------------------------------------------------------------------
+* Scraper Unicode Fix: Pre-processes Unicode escape sequences (converting escaped formats to UTF-8 letters) before any word boundary operations. Fully solves non-English character displays (like Bangla text).
+* Startup Auto-Migration: Runs a system check during server bootstrap. Automatically cleans historical database pages containing corrupted unescaped Unicode entities, ensuring pristine rendering.
+
+-----------------------------------------------------------------------------
+17. EXACT FACEBOOK PAGE NAME PRESERVATION
+-----------------------------------------------------------------------------
+* Raw Title Fetching: Completely disabled forced replacement of dashes (`-`) and underscores (`_`) into spaces, and disabled word capitalization on crawled names inside the main scraper function. Ensures page titles (e.g. `Lovely Mart - লাভলি মার্ট`) match Facebook precisely.
+
+-----------------------------------------------------------------------------
+18. HARDWARE-ACCELERATED PC HOMEPAGE MARQUEE CAROUSEL
+-----------------------------------------------------------------------------
+* Infinite Scrolling Ticker: Designed a GPU-driven `translate3d` CSS carousel scrolling automatically from left to right on PC.
+* Rich UI Details: Increased card limits to 25 items for a spacious view, built beautiful fading gradient borders, and enabled hover scrolling pause for interactive user clicks.
+=============================================================================
