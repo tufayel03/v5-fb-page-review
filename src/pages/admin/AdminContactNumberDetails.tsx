@@ -8,6 +8,7 @@ export default function AdminContactNumberDetails() {
   const navigate = useNavigate();
   const [number, setNumber] = useState<any>(null);
   const [linkedPages, setLinkedPages] = useState<any[]>([]);
+  const [pagesLoaded, setPagesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -51,7 +52,7 @@ export default function AdminContactNumberDetails() {
             } catch (_) {}
           }
         }
-
+        setPagesLoaded(true);
         setLoading(false);
       });
   }, [id]);
@@ -173,9 +174,13 @@ export default function AdminContactNumberDetails() {
                   </span>
                 </h3>
 
-                {linkedPages.length === 0 ? (
-                  <p className="text-sm text-slate-500 italic py-1">
+                {!pagesLoaded ? (
+                  <p className="text-sm text-slate-500 italic py-1 animate-pulse">
                     Loading linked pages...
+                  </p>
+                ) : linkedPages.length === 0 ? (
+                  <p className="text-sm text-slate-500 italic py-1">
+                    Linked page data unavailable (pages may have been deleted).
                   </p>
                 ) : (
                   <div className="space-y-2">
