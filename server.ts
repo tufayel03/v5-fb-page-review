@@ -3864,7 +3864,7 @@ function normalizeName(str: string): string {
       const countResult = db.prepare(`SELECT COUNT(*) as count ${baseQuery}`).get(...params) as any;
       const totalCount = countResult ? countResult.count : 0;
 
-      const validSortOptions = ['created_at', 'last_reported_at', 'fraud_report_count', 'suspicious_report_count', 'total_mentions'];
+      const validSortOptions = ['created_at', 'last_reported_at', 'fraud_report_count', 'suspicious_report_count', 'total_mentions', 'linked_page_count'];
       const finalSortColumn = validSortOptions.includes(sortBy) ? sortBy : 'created_at';
 
       const numbers = db.prepare(`
@@ -4000,10 +4000,10 @@ function normalizeName(str: string): string {
 
   app.put('/api/admin/contact-numbers/:id', requireAdmin, (req, res) => {
     try {
-      const { status, admin_note, type, account_type, display_name } = req.body;
+      const { status, admin_note, type, display_name } = req.body;
       db.prepare(`
-        UPDATE ContactNumbers SET status = ?, admin_note = ?, type = ?, account_type = ?, display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-      `).run(status, admin_note || '', type, account_type, display_name, req.params.id);
+        UPDATE ContactNumbers SET status = ?, admin_note = ?, type = ?, display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+      `).run(status, admin_note || '', type, display_name, req.params.id);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: 'Server error' });
@@ -4012,12 +4012,12 @@ function normalizeName(str: string): string {
 
   app.post('/api/admin/contact-numbers', requireAdmin, (req, res) => {
     try {
-      const { number, type, account_type, display_name, status, admin_note } = req.body;
+      const { number, type, display_name, status, admin_note } = req.body;
       const id = crypto.randomUUID();
       db.prepare(`
-        INSERT INTO ContactNumbers (id, number, type, account_type, display_name, status, admin_note, added_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'admin')
-      `).run(id, number, type || 'Unknown', account_type || 'Unknown', display_name, status || 'Normal', admin_note || '');
+        INSERT INTO ContactNumbers (id, number, type, display_name, status, admin_note, added_by)
+        VALUES (?, ?, ?, ?, ?, ?, 'admin')
+      `).run(id, number, type || 'Contact Number', display_name, status || 'Normal', admin_note || '');
       res.json({ success: true, id });
     } catch (e: any) {
       if (e.message.includes('UNIQUE constraint failed')) {
@@ -6517,32 +6517,35 @@ function normalizeName(str: string): string {
             if (pageIdToLink && !parsedLinks.includes(pageIdToLink)) {
               parsedLinks.push(pageIdToLink);
             }
+            const newLinkedCount = parsedLinks.filter((s: string) => s).length;
             db.prepare(`
               UPDATE ContactNumbers 
               SET total_mentions = total_mentions + 1,
                   fraud_report_count = fraud_report_count + ?,
                   suspicious_report_count = suspicious_report_count + ?,
                   linked_page_ids = ?,
+                  linked_page_count = ?,
                   last_reported_at = CURRENT_TIMESTAMP
               WHERE id = ?
             `).run(
               isFraud ? 1 : 0, 
               isSuspicious ? 1 : 0, 
               parsedLinks.join(','),
+              newLinkedCount,
               existingNumber.id
             );
           } else {
+            const newCount = pageIdToLink ? 1 : 0;
             db.prepare(`
-              INSERT INTO ContactNumbers (id, number, type, account_type, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids, added_by) 
-              VALUES (?, ?, ?, ?, 1, ?, ?, ?, 'users')
+              INSERT INTO ContactNumbers (id, number, type, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids, linked_page_count, added_by) 
+              VALUES (?, ?, 'Payment Number', 1, ?, ?, ?, ?, 'users')
             `).run(
               crypto.randomUUID(), 
               bkash_number, 
-              'Unknown', 
-              'Unknown', 
               isFraud ? 1 : 0, 
               isSuspicious ? 1 : 0, 
-              pageIdToLink
+              pageIdToLink,
+              newCount
             );
           }
         }

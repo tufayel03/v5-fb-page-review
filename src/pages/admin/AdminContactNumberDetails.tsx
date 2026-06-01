@@ -13,8 +13,7 @@ export default function AdminContactNumberDetails() {
   const [formData, setFormData] = useState({
     status: "Normal",
     admin_note: "",
-    type: "bKash",
-    account_type: "Personal",
+    type: "Contact Number",
     display_name: "",
   });
 
@@ -28,8 +27,7 @@ export default function AdminContactNumberDetails() {
         setFormData({
           status: data.status || "Normal",
           admin_note: data.admin_note || "",
-          type: data.type || "bKash",
-          account_type: data.account_type || "Personal",
+          type: data.type || "Contact Number",
           display_name: data.display_name || "",
         });
         setLoading(false);
@@ -123,15 +121,18 @@ export default function AdminContactNumberDetails() {
               </p>
             </div>
             <div>
-              <p className="text-slate-400">First Reported</p>
-              <p className="font-medium text-slate-200 mt-1">
-                {new Date(number.first_reported_at).toLocaleDateString()}
+              <p className="text-slate-400">Linked Pages</p>
+              <p className={`font-bold text-lg mt-1 ${
+                (number.linked_page_count || 0) >= 3 ? 'text-rose-400' :
+                (number.linked_page_count || 0) === 2 ? 'text-amber-400' : 'text-white'
+              }`}>
+                {number.linked_page_count || 0} {(number.linked_page_count || 0) === 1 ? 'page' : 'pages'}
               </p>
             </div>
             <div>
-              <p className="text-slate-400">Last Reported</p>
+              <p className="text-slate-400">First Reported</p>
               <p className="font-medium text-slate-200 mt-1">
-                {new Date(number.last_reported_at).toLocaleDateString()}
+                {new Date(number.first_reported_at).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -178,7 +179,7 @@ export default function AdminContactNumberDetails() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-400 mb-2">
-                  Type
+                  Number Type
                 </label>
                 <select
                   value={formData.type}
@@ -187,30 +188,8 @@ export default function AdminContactNumberDetails() {
                   }
                   className="w-full border border-white/5 bg-[#050b18]/45 text-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]/20 mt-1 font-semibold"
                 >
-                  <option value="bKash" className="bg-[#091124]">bKash</option>
-                  <option value="Nagad" className="bg-[#091124]">Nagad</option>
-                  <option value="Rocket" className="bg-[#091124]">Rocket</option>
-                  <option value="Phone" className="bg-[#091124]">Phone</option>
-                  <option value="WhatsApp" className="bg-[#091124]">WhatsApp</option>
-                  <option value="Other" className="bg-[#091124]">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-400 mb-2">
-                  Account Type
-                </label>
-                <select
-                  value={formData.account_type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, account_type: e.target.value })
-                  }
-                  className="w-full border border-white/5 bg-[#050b18]/45 text-slate-200 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10b981]/20 mt-1 font-semibold"
-                >
-                  <option value="Personal" className="bg-[#091124]">Personal</option>
-                  <option value="Agent" className="bg-[#091124]">Agent</option>
-                  <option value="Merchant" className="bg-[#091124]">Merchant</option>
-                  <option value="Unknown" className="bg-[#091124]">Unknown</option>
+                  <option value="Contact Number" className="bg-[#091124]">Contact Number</option>
+                  <option value="Payment Number" className="bg-[#091124]">Payment Number</option>
                 </select>
               </div>
             </div>

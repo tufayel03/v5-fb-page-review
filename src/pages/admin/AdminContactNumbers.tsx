@@ -20,8 +20,7 @@ export default function AdminContactNumbers() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newNumberForm, setNewNumberForm] = useState({
     number: "",
-    type: "bKash",
-    account_type: "Personal",
+    type: "Contact Number",
     display_name: "",
   });
   const navigate = useNavigate();
@@ -302,7 +301,7 @@ export default function AdminContactNumbers() {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedNumbers = numbers;
-  const uniqueTypes = ["bKash", "Nagad", "Rocket", "Phone", "WhatsApp"];
+  const uniqueTypes = ["Contact Number", "Payment Number"];
 
   const handleAddNumber = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -488,11 +487,8 @@ export default function AdminContactNumbers() {
                     }
                     className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm font-medium focus:outline-none"
                   >
-                    <option value="bKash" className="bg-[#091124]">bKash</option>
-                    <option value="Nagad" className="bg-[#091124]">Nagad</option>
-                    <option value="Rocket" className="bg-[#091124]">Rocket</option>
-                    <option value="Phone" className="bg-[#091124]">Phone</option>
-                    <option value="WhatsApp" className="bg-[#091124]">WhatsApp</option>
+                    <option value="Contact Number" className="bg-[#091124]">Contact Number</option>
+                     <option value="Payment Number" className="bg-[#091124]">Payment Number</option>
                   </select>
                 </div>
 
@@ -609,8 +605,8 @@ export default function AdminContactNumbers() {
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('type')}>
                   <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
-                <th className="px-6 py-4 border-b border-white/5 text-center">
-                  Linked Pages
+                <th className="px-6 py-4 border-b border-white/5 text-center cursor-pointer hover:bg-white/5" onClick={() => handleSort('linked_page_count')}>
+                  <div className="flex items-center justify-center gap-1">Linked Pages <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('status_badge')}>
                   <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>

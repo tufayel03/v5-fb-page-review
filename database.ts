@@ -396,6 +396,17 @@ try { db.exec('ALTER TABLE FacebookPages ADD COLUMN fraud_internal_note TEXT;');
 
 try { db.exec("ALTER TABLE FacebookPages ADD COLUMN added_by TEXT DEFAULT 'admin';"); } catch (e) {}
 try { db.exec("ALTER TABLE ContactNumbers ADD COLUMN added_by TEXT DEFAULT 'admin';"); } catch (e) {}
+try { db.exec("ALTER TABLE ContactNumbers ADD COLUMN linked_page_count INTEGER DEFAULT 0;"); } catch (e) {}
+
+// Backfill linked_page_count from existing linked_page_ids
+try {
+  const _cnRows = db.prepare("SELECT id, linked_page_ids FROM ContactNumbers WHERE linked_page_ids IS NOT NULL AND linked_page_ids != ''").all() as any[];
+  const _updCn = db.prepare("UPDATE ContactNumbers SET linked_page_count = ? WHERE id = ?");
+  for (const _row of _cnRows) {
+    const _cnt = _row.linked_page_ids.split(',').filter((s: string) => s.trim()).length;
+    _updCn.run(_cnt, _row.id);
+  }
+} catch (e) {}
 
 try { db.exec('ALTER TABLE Users ADD COLUMN reset_token TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE Users ADD COLUMN reset_token_expires DATETIME;'); } catch (e) {}
