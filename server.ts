@@ -5305,7 +5305,10 @@ function normalizeName(str: string): string {
             }
 
             if (extractedName && !extractedName.toLowerCase().includes('error')) {
-              let cleanedName = decodeHTMLEntities(extractedName);
+              let decodedName = extractedName.replace(/\\{1,2}u([0-9a-fA-F]{4})/gi, (match, grp) => {
+                return String.fromCharCode(parseInt(grp, 16));
+              });
+              let cleanedName = decodeHTMLEntities(decodedName);
               if (cleanedName.includes('-') || cleanedName.includes('_')) {
                 cleanedName = cleanedName.replace(/[-_]/g, ' ');
               }
@@ -7044,6 +7047,16 @@ function normalizeName(str: string): string {
         console.log(`[Auto-Migration] Decoding name for page ID ${page.id}: "${page.current_name}" -> "${decoded}"`);
         db.prepare("UPDATE FacebookPages SET current_name = ? WHERE id = ?").run(decoded, page.id);
       }
+    }
+
+    const pagesWithUnicode = db.prepare("SELECT id, current_name FROM FacebookPages WHERE current_name LIKE '%\\u%' OR current_name LIKE '%\\U%'").all() as any[];
+    console.log(`[Auto-Migration] Found ${pagesWithUnicode.length} pages containing Unicode escape sequences in their names.`);
+    for (const page of pagesWithUnicode) {
+      const decoded = page.current_name.replace(/\\{1,2}u([0-9a-fA-F]{4})/gi, (match, grp) => {
+        return String.fromCharCode(parseInt(grp, 16));
+      });
+      console.log(`[Auto-Migration] Decoding unicode name for page ID ${page.id}: "${page.current_name}" -> "${decoded}"`);
+      db.prepare("UPDATE FacebookPages SET current_name = ? WHERE id = ?").run(decoded, page.id);
     }
   } catch (migErr) {
     console.error(`[Auto-Migration] Failed decoding existing entity page names:`, migErr);
