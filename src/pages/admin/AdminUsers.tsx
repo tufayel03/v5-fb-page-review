@@ -136,7 +136,7 @@ export default function AdminUsers() {
       const url = isEditing ? `/api/admin/users/${editingId}` : '/api/admin/users';
       const method = isEditing ? 'PUT' : 'POST';
       
-      const payload = isEditing ? { role: formData.role } : formData;
+      const payload = isEditing ? { role: formData.role, password: formData.password } : formData;
 
       const res = await fetch(url, {
         method,
@@ -320,7 +320,7 @@ export default function AdminUsers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050b18]/60 backdrop-blur-sm animate-fade-in animate-duration-150">
           <div className="bg-[#091124] border border-white/5 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#050b18]/40">
-              <h2 className="text-lg font-black text-white">{isEditing ? 'Edit User Role' : 'Add New User'}</h2>
+              <h2 className="text-lg font-black text-white">{isEditing ? 'Edit User' : 'Add New User'}</h2>
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-white transition-colors font-bold text-xl leading-none"
@@ -337,40 +337,47 @@ export default function AdminUsers() {
               )}
               
               <div className="space-y-4">
-                {!isEditing && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-300 mb-1">Full Name</label>
-                      <input 
-                        type="text" 
-                        required
-                        value={formData.full_name}
-                        onChange={e => setFormData({...formData, full_name: e.target.value})}
-                        className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-300 mb-1">Email</label>
-                      <input 
-                        type="email" 
-                        required
-                        value={formData.email}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                        className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-300 mb-1">Password</label>
-                      <input 
-                        type="password" 
-                        required
-                        value={formData.password}
-                        onChange={e => setFormData({...formData, password: e.target.value})}
-                        className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
-                      />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    required
+                    disabled={isEditing}
+                    value={formData.full_name}
+                    onChange={e => setFormData({...formData, full_name: e.target.value})}
+                    className={`w-full border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium ${isEditing ? 'bg-[#050b18]/60 text-slate-400 cursor-not-allowed' : 'bg-[#050b18]'}`}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">Email</label>
+                  <input 
+                    type="email" 
+                    required
+                    disabled={isEditing}
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    className={`w-full border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium ${isEditing ? 'bg-[#050b18]/60 text-slate-400 cursor-not-allowed' : 'bg-[#050b18]'}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">
+                    {isEditing ? (
+                      <>New Password <span className="text-slate-500 font-semibold text-xs">(leave blank to keep current)</span></>
+                    ) : (
+                      'Password'
+                    )}
+                  </label>
+                  <input 
+                    type="password" 
+                    required={!isEditing}
+                    placeholder={isEditing ? "••••••••" : ""}
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-1">Role</label>

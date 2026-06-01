@@ -3742,7 +3742,7 @@ function normalizeName(str: string): string {
 
   app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
     try {
-      const { role } = req.body;
+      const { role, password } = req.body;
       const targetUser = db.prepare('SELECT role FROM Users WHERE id = ?').get(req.params.id) as any;
       if (!targetUser) return res.status(404).json({ error: 'Not found' });
       
@@ -3755,9 +3755,15 @@ function normalizeName(str: string): string {
          return res.status(403).json({ error: 'Cannot promote to Super Admin' });
       }
       
-      db.prepare('UPDATE Users SET role = ? WHERE id = ?').run(role, req.params.id);
+      if (password && password.trim().length > 0) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        db.prepare('UPDATE Users SET role = ?, password_hash = ? WHERE id = ?').run(role, hashedPassword, req.params.id);
+      } else {
+        db.prepare('UPDATE Users SET role = ? WHERE id = ?').run(role, req.params.id);
+      }
       res.json({ success: true });
     } catch(e) {
+      console.error('Admin update user error:', e);
       res.status(500).json({ error: 'Server error' });
     }
   });
