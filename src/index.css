@@ -187,3 +187,13 @@
 .business-panel.theme-dark .bg-amber-50, .business-panel.theme-dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.1) !important; color: #fbbf24 !important; border-color: rgba(245, 158, 11, 0.2) !important; }
 .business-panel.theme-dark .bg-rose-50, .business-panel.theme-dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.1) !important; color: #fb7185 !important; border-color: rgba(244, 63, 94, 0.2) !important; }
 .business-panel.theme-dark [class*="text-amber-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-indigo-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-emerald-"]:not([class*="bg-"]), .business-panel.theme-dark [class*="text-rose-"]:not([class*="bg-"]) { filter: brightness(1.3); }
+
+/* Infinite Scrolling Marquee Carousel */
+@keyframes marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}

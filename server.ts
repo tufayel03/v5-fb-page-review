@@ -4940,7 +4940,7 @@ function normalizeName(str: string): string {
       FROM FacebookPages p
       WHERE p.is_fraud_listed = 1
       ORDER BY p.fraud_listed_at DESC, p.created_at DESC 
-      LIMIT 10
+      LIMIT 25
     `).all();
     res.json(pages);
   });
