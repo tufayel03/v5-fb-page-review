@@ -5309,10 +5309,6 @@ function normalizeName(str: string): string {
                 return String.fromCharCode(parseInt(grp, 16));
               });
               let cleanedName = decodeHTMLEntities(decodedName);
-              if (cleanedName.includes('-') || cleanedName.includes('_')) {
-                cleanedName = cleanedName.replace(/[-_]/g, ' ');
-              }
-              cleanedName = cleanedName.replace(/\b\w/g, c => c.toUpperCase());
               rawTitle = cleanedName;
               
               console.log(`[AutoScrape] Successfully extracted page name via Page Plugin: "${rawTitle}"`);
