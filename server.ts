@@ -1166,7 +1166,8 @@ async function startServer() {
 
   app.get('/api/admin/backup-db', requireAdmin, async (req, res) => {
     try {
-      const archiver = (await import("archiver")).default;
+      const archiverModule = await import("archiver");
+      const archiver = (archiverModule.default || archiverModule) as any;
       const archive = archiver('zip', { zlib: { level: 9 } });
       
       res.attachment('website_full_backup.zip');
@@ -1227,7 +1228,8 @@ async function startServer() {
   // 2. Trigger creation of a new backup on the server
   app.post('/api/admin/backups', requireAdmin, async (req, res) => {
     try {
-      const archiver = (await import("archiver")).default;
+      const archiverModule = await import("archiver");
+      const archiver = (archiverModule.default || archiverModule) as any;
       if (!fs.existsSync(backupsDir)) {
         fs.mkdirSync(backupsDir, { recursive: true });
       }
@@ -1307,7 +1309,8 @@ async function startServer() {
         return res.status(404).json({ error: 'Backup file not found' });
       }
 
-      const extract = (await import("extract-zip")).default;
+      const extractModule = await import("extract-zip");
+      const extract = (extractModule.default || extractModule) as any;
       const os = await import("os");
       const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
 
