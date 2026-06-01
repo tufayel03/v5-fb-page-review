@@ -3868,7 +3868,7 @@ function normalizeName(str: string): string {
       const finalSortColumn = validSortOptions.includes(sortBy) ? sortBy : 'created_at';
 
       const numbers = db.prepare(`
-        SELECT id, number, type, account_type, display_name, status, total_mentions, fraud_report_count, suspicious_report_count, first_reported_at, last_reported_at, created_at, updated_at, added_by
+        SELECT id, number, type, account_type, display_name, status, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids, first_reported_at, last_reported_at, created_at, updated_at, added_by
         ${baseQuery}
         ORDER BY ${finalSortColumn} ${sortOrder}
         LIMIT ? OFFSET ?

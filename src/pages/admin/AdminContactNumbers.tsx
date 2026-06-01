@@ -12,7 +12,6 @@ export default function AdminContactNumbers() {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [accountTypeFilter, setAccountTypeFilter] = useState('all');
   const [addedByFilter, setAddedByFilter] = useState('all');
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -118,7 +117,6 @@ export default function AdminContactNumbers() {
       const params = new URLSearchParams({
         search: debouncedSearch,
         type: typeFilter,
-        account_type: accountTypeFilter,
         status: statusFilter,
         addedBy: addedByFilter,
         sortBy,
@@ -156,7 +154,6 @@ export default function AdminContactNumbers() {
 
       queryParams.append("search", debouncedSearch);
       queryParams.append("type", typeFilter);
-      queryParams.append("account_type", accountTypeFilter);
       queryParams.append("status", statusFilter);
       queryParams.append("addedBy", addedByFilter);
       queryParams.append("sortBy", sortBy);
@@ -260,7 +257,6 @@ export default function AdminContactNumbers() {
       limit: String(itemsPerPage),
       search: debouncedSearch,
       type: typeFilter,
-      account_type: accountTypeFilter,
       status: statusFilter,
       addedBy: addedByFilter,
       sortBy,
@@ -290,7 +286,7 @@ export default function AdminContactNumbers() {
       });
 
     return () => controller.abort();
-  }, [currentPage, itemsPerPage, debouncedSearch, typeFilter, accountTypeFilter, statusFilter, addedByFilter, sortConfig, refreshTrigger]);
+  }, [currentPage, itemsPerPage, debouncedSearch, typeFilter, statusFilter, addedByFilter, sortConfig, refreshTrigger]);
 
   const fetchNumbers = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -356,17 +352,6 @@ export default function AdminContactNumbers() {
               </select>
 
               <select
-                 value={accountTypeFilter}
-                 onChange={(e) => { setAccountTypeFilter(e.target.value); setCurrentPage(1); }}
-                 className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                 <option value="all" className="bg-[#091124]">All Account Types</option>
-                 <option value="Personal" className="bg-[#091124]">Personal</option>
-                 <option value="Agent" className="bg-[#091124]">Agent</option>
-                 <option value="Merchant" className="bg-[#091124]">Merchant</option>
-              </select>
-
-              <select
                  value={statusFilter}
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -423,12 +408,11 @@ export default function AdminContactNumbers() {
       </div>
 
       {/* Clear filter indicator */}
-      {(typeFilter !== "all" || accountTypeFilter !== "all" || statusFilter !== "all" || addedByFilter !== "all" || searchQuery !== "") && (
+      {(typeFilter !== "all" || statusFilter !== "all" || addedByFilter !== "all" || searchQuery !== "") && (
         <div className="flex justify-end">
           <button
             onClick={() => {
               setTypeFilter("all");
-              setAccountTypeFilter("all");
               setStatusFilter("all");
               setAddedByFilter("all");
               setSearchQuery("");
@@ -511,25 +495,7 @@ export default function AdminContactNumbers() {
                     <option value="WhatsApp" className="bg-[#091124]">WhatsApp</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">
-                    Account Type
-                  </label>
-                  <select
-                    value={newNumberForm.account_type}
-                    onChange={(e) =>
-                      setNewNumberForm({
-                        ...newNumberForm,
-                        account_type: e.target.value,
-                      })
-                    }
-                    className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm font-medium focus:outline-none"
-                  >
-                    <option value="Personal" className="bg-[#091124]">Personal</option>
-                    <option value="Agent" className="bg-[#091124]">Agent</option>
-                    <option value="Merchant" className="bg-[#091124]">Merchant</option>
-                  </select>
-                </div>
+
               </div>
               <div className="pt-4 flex justify-end gap-2 border-t border-white/5">
                 <button
@@ -643,6 +609,9 @@ export default function AdminContactNumbers() {
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('type')}>
                   <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
+                <th className="px-6 py-4 border-b border-white/5 text-center">
+                  Linked Pages
+                </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('status_badge')}>
                   <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
@@ -708,8 +677,7 @@ export default function AdminContactNumbers() {
                       </td>
                       <td className="px-6 py-4 font-medium">
                         <div className="text-slate-300">
-                          {number.type || "Unknown"} -{" "}
-                          {number.account_type || "Unknown"}
+                          {number.type || "Unknown"}
                         </div>
                         <div className="mt-0.5">
                           <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
@@ -720,6 +688,26 @@ export default function AdminContactNumbers() {
                             {number.added_by === 'users' ? 'User' : 'Admin'}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {(() => {
+                          const count = number.linked_page_ids
+                            ? number.linked_page_ids.split(',').filter((s: string) => s.trim()).length
+                            : 0;
+                          return count > 0 ? (
+                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-black ${
+                              count >= 3
+                                ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
+                                : count === 2
+                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                                  : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'
+                            }`}>
+                              {count} {count === 1 ? 'page' : 'pages'}
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 font-medium">—</span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         <span
