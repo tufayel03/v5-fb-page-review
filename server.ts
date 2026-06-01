@@ -1167,8 +1167,13 @@ async function startServer() {
   app.get('/api/admin/backup-db', requireAdmin, async (req, res) => {
     try {
       const archiverLib = require("archiver");
-      const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+      let archive;
+      if (archiverLib.ZipArchive) {
+        archive = new archiverLib.ZipArchive({ zlib: { level: 9 } });
+      } else {
+        const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
+        archive = archiver('zip', { zlib: { level: 9 } });
+      }
       
       res.attachment('website_full_backup.zip');
       archive.pipe(res);
@@ -1210,10 +1215,28 @@ async function startServer() {
         .map(file => {
           const filePath = path.join(backupsDir, file);
           const stats = fs.statSync(filePath);
+          let createdAt = stats.mtime;
+          const match = file.match(/backup_(.*)\.zip/);
+          if (match && match[1]) {
+            try {
+              const rawTs = match[1];
+              const parts = rawTs.split('T');
+              if (parts.length === 2) {
+                const datePart = parts[0];
+                const timePart = parts[1].replace(/-/g, ':');
+                const lastColon = timePart.lastIndexOf(':');
+                const formattedTime = timePart.substring(0, lastColon) + '.' + timePart.substring(lastColon + 1);
+                const parsedDate = new Date(`${datePart}T${formattedTime}`);
+                if (!isNaN(parsedDate.getTime())) {
+                  createdAt = parsedDate;
+                }
+              }
+            } catch (err) {}
+          }
           return {
             filename: file,
             size: stats.size, // bytes
-            createdAt: stats.birthtime || stats.mtime
+            createdAt: createdAt.toISOString()
           };
         })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1229,7 +1252,6 @@ async function startServer() {
   app.post('/api/admin/backups', requireAdmin, async (req, res) => {
     try {
       const archiverLib = require("archiver");
-      const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
       if (!fs.existsSync(backupsDir)) {
         fs.mkdirSync(backupsDir, { recursive: true });
       }
@@ -1239,7 +1261,14 @@ async function startServer() {
       const zipPath = path.join(backupsDir, filename);
 
       const output = fs.createWriteStream(zipPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      let archive;
+      if (archiverLib.ZipArchive) {
+        archive = new archiverLib.ZipArchive({ zlib: { level: 9 } });
+      } else {
+        const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
+        archive = archiver('zip', { zlib: { level: 9 } });
+      }
 
       archive.on('error', (err) => {
         throw err;
