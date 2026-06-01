@@ -31,8 +31,12 @@ let lastTrackedPath = "";
 
 function VisitTracker() {
   const location = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (user && ["admin", "Admin", "Super Admin", "Moderator"].includes(user.role)) {
+      return;
+    }
     if (lastTrackedPath === location.pathname) return;
     lastTrackedPath = location.pathname;
 

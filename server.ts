@@ -830,14 +830,40 @@ async function startServer() {
       if (!visitorId || !path) {
         return res.status(400).json({ error: "Missing tracking metrics" });
       }
-      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+
+      const rawIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      const ip = String(rawIp).trim();
       const userAgent = req.headers['user-agent'] || '';
+
+      // 1. Exclude localhost / loopbacks
+      if (ip === '127.0.0.1' || ip === '::1' || ip.includes('localhost')) {
+        return res.json({ success: true, message: "Excluded (Localhost)" });
+      }
+
+      // 2. Exclude administrator's active IP
+      if (ip.includes('103.92.155.92')) {
+        return res.json({ success: true, message: "Excluded (Admin IP)" });
+      }
+
+      // 3. Exclude configured dynamic IPs in the database Settings
+      try {
+        const excludedRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('excluded_tracking_ips') as any;
+        if (excludedRow && excludedRow.value && excludedRow.value.trim()) {
+          const excludedList = excludedRow.value.split(',').map((item: string) => item.trim()).filter(Boolean);
+          for (const exc of excludedList) {
+            if (ip.includes(exc)) {
+              return res.json({ success: true, message: "Excluded (Configured Excluded IP)" });
+            }
+          }
+        }
+      } catch (err) {}
+
       const id = crypto.randomUUID();
 
       db.prepare(`
         INSERT INTO VisitorLogs (id, visitor_id, ip_address, user_agent, path)
         VALUES (?, ?, ?, ?, ?)
-      `).run(id, visitorId, String(ip), String(userAgent), String(path));
+      `).run(id, visitorId, ip, String(userAgent), String(path));
 
       res.json({ success: true });
     } catch (e) {

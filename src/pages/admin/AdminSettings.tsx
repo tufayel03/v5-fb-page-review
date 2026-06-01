@@ -350,6 +350,12 @@ export default function AdminSettings() {
                   </button>
                 </div>
               </div>
+
+              <div className="mt-6 border-t border-white/5 pt-6 space-y-2">
+                <label className="block text-sm font-bold text-slate-300">Exclude IPs from Visitor Count</label>
+                <p className="text-xs text-slate-400">Enter comma-separated IP addresses (e.g. 103.92.155.92, 192.168.1.1) to exclude them from the visitor and traffic analytics on the dashboard overview.</p>
+                <input type="text" value={getSettingValue('excluded_tracking_ips', '')} onChange={e => updateSetting('excluded_tracking_ips', e.target.value, 'general')} className="w-full border border-white/5 bg-[#050b18]/45 text-slate-100 rounded-lg p-3 focus:ring-2 focus:ring-emerald-500/20 outline-none text-sm font-mono placeholder-slate-500" placeholder="103.92.155.92, 192.168.1.1" />
+              </div>
             </div>
           )}
 
