@@ -42,11 +42,10 @@ export default function AdminContactNumberDetails() {
                 { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
               );
               if (pagesRes.ok) {
-                const pagesData = await pagesRes.json();
-                const pageList = Array.isArray(pagesData) ? pagesData : (pagesData.data || []);
+                const pageList = await pagesRes.json();
                 // Preserve order of linked IDs
                 const map: Record<string, any> = {};
-                pageList.forEach((p: any) => { map[p.id] = p; });
+                (Array.isArray(pageList) ? pageList : []).forEach((p: any) => { map[p.id] = p; });
                 setLinkedPages(ids.map((pid: string) => map[pid]).filter(Boolean));
               }
             } catch (_) {}
@@ -157,71 +156,83 @@ export default function AdminContactNumberDetails() {
             </div>
           </div>
 
-          <hr className="border-white/5" />
+          {/* Linked Pages Section — only when linked to more than 1 page */}
+          {linkedCount > 1 && (
+            <>
+              <hr className="border-white/5" />
+              <div className="space-y-3">
+                <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-emerald-400" />
+                  Linked Facebook Pages
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${
+                    linkedCount >= 3 ? "bg-rose-500/15 text-rose-400" :
+                    linkedCount === 2 ? "bg-amber-500/15 text-amber-400" :
+                    "bg-slate-500/15 text-slate-400"
+                  }`}>
+                    {linkedCount}
+                  </span>
+                </h3>
 
-          {/* Linked Pages Section */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-slate-200 flex items-center gap-2">
-              <ExternalLink className="h-4 w-4 text-emerald-400" />
-              Linked Facebook Pages
-              {linkedCount > 0 && (
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${
-                  linkedCount >= 3 ? "bg-rose-500/15 text-rose-400" :
-                  linkedCount === 2 ? "bg-amber-500/15 text-amber-400" :
-                  "bg-slate-500/15 text-slate-400"
-                }`}>
-                  {linkedCount}
-                </span>
-              )}
-            </h3>
-
-            {linkedPages.length === 0 ? (
-              <p className="text-sm text-slate-500 italic py-2">
-                No linked pages found — this number was added directly without a page association.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {linkedPages.map((page: any, i: number) => (
-                  <div
-                    key={page.id}
-                    className="flex items-center justify-between bg-[#050b18]/60 border border-white/5 rounded-lg px-4 py-3 hover:border-emerald-500/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs font-mono text-slate-600 shrink-0">{i + 1}.</span>
-                      {page.profile_picture && (
-                        <img
-                          src={page.profile_picture}
-                          alt=""
-                          className="h-8 w-8 rounded-full object-cover shrink-0 border border-white/10"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-bold text-white text-sm truncate">{page.current_name || "Unknown Page"}</p>
-                        <p className="text-xs text-slate-500 truncate">{page.facebook_url || ""}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                        page.status_badge === "Reported as Fraud"
-                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          : page.status_badge === "Suspicious"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
-                      }`}>
-                        {page.status_badge || "Unknown"}
-                      </span>
-                      <Link
-                        to={`/tufayel/pages/${page.id}`}
-                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
-                      >
-                        View <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    </div>
+                {linkedPages.length === 0 ? (
+                  <p className="text-sm text-slate-500 italic py-1">
+                    Loading linked pages...
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {linkedPages.map((page: any, i: number) => {
+                      const fbUrl = page.facebook_url || '';
+                      const displayUrl = fbUrl.startsWith('http') ? fbUrl : `https://facebook.com/${fbUrl}`;
+                      return (
+                        <div
+                          key={page.id}
+                          className="flex items-center justify-between bg-[#050b18]/60 border border-white/5 rounded-lg px-4 py-3 hover:border-emerald-500/20 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs font-mono text-slate-600 shrink-0">{i + 1}.</span>
+                            {page.profile_picture && (
+                              <img
+                                src={page.profile_picture}
+                                alt=""
+                                className="h-8 w-8 rounded-full object-cover shrink-0 border border-white/10"
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-bold text-white text-sm truncate">{page.current_name || "Unknown Page"}</p>
+                              <a
+                                href={displayUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline truncate block"
+                              >
+                                {fbUrl || "No URL"}
+                              </a>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-3">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              page.status_badge === "Reported as Fraud"
+                                ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                : page.status_badge === "Suspicious"
+                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                  : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                            }`}>
+                              {page.status_badge || "Unknown"}
+                            </span>
+                            <Link
+                              to={`/tufayel/pages/${page.id}`}
+                              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                            >
+                              View <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           <hr className="border-white/5" />
 

@@ -11,7 +11,7 @@ export default function AdminContactNumbers() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'created_at', direction: 'desc' });
   const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('Reported');
   const [addedByFilter, setAddedByFilter] = useState('all');
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -407,12 +407,12 @@ export default function AdminContactNumbers() {
       </div>
 
       {/* Clear filter indicator */}
-      {(typeFilter !== "all" || statusFilter !== "all" || addedByFilter !== "all" || searchQuery !== "") && (
+      {(typeFilter !== "all" || statusFilter !== "Reported" || addedByFilter !== "all" || searchQuery !== "") && (
         <div className="flex justify-end">
           <button
             onClick={() => {
               setTypeFilter("all");
-              setStatusFilter("all");
+              setStatusFilter("Reported");
               setAddedByFilter("all");
               setSearchQuery("");
               setCurrentPage(1);
@@ -609,8 +609,8 @@ export default function AdminContactNumbers() {
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('status_badge')}>
                   <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
-                <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5 text-center">
-                  Fraud Reports
+                <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5 text-center" onClick={() => handleSort('fraud_report_count')}>
+                  <div className="flex items-center justify-center gap-1">Fraud Reports <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
                   Actions
@@ -669,15 +669,7 @@ export default function AdminContactNumbers() {
                           {number.display_name || "No Name"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 font-medium">
-                        <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
-                          number.added_by === 'users'
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
-                            : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                        }`}>
-                          {number.added_by === 'users' ? 'User' : 'Admin'}
-                        </span>
-                      </td>
+
                       <td className="px-6 py-4 text-center">
                         {(() => {
                           const count = number.linked_page_ids
