@@ -3170,6 +3170,22 @@ function normalizeName(str: string): string {
       res.status(500).json({ error: (e as any).message });
     }
   });
+  // IMPORTANT: must come before /api/admin/pages/:id to avoid Express swallowing 'by-ids' as an :id param
+  app.get('/api/admin/pages/by-ids', requireModerator, (req, res) => {
+    try {
+      const raw = typeof req.query.ids === 'string' ? req.query.ids : '';
+      const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+      if (ids.length === 0) return res.json([]);
+      const placeholders = ids.map(() => '?').join(',');
+      const pages = db.prepare(
+        `SELECT id, current_name, facebook_url, profile_picture, status_badge FROM FacebookPages WHERE id IN (${placeholders})`
+      ).all(...ids);
+      res.json(pages);
+    } catch(e) {
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   app.get('/api/admin/pages/:id', requireModerator, (req, res) => {
     try {
       const page = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(req.params.id);
@@ -4038,21 +4054,6 @@ function normalizeName(str: string): string {
     }
   });
 
-  // Lightweight endpoint to fetch pages by a list of IDs (used by contact number details)
-  app.get('/api/admin/pages/by-ids', requireModerator, (req, res) => {
-    try {
-      const raw = typeof req.query.ids === 'string' ? req.query.ids : '';
-      const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
-      if (ids.length === 0) return res.json([]);
-      const placeholders = ids.map(() => '?').join(',');
-      const pages = db.prepare(
-        `SELECT id, current_name, facebook_url, profile_picture, status_badge FROM FacebookPages WHERE id IN (${placeholders})`
-      ).all(...ids);
-      res.json(pages);
-    } catch(e) {
-      res.status(500).json({ error: 'Server error' });
-    }
-  });
 
   app.get('/api/admin/contact-numbers/:id', requireAdmin, (req, res) => {
     try {
