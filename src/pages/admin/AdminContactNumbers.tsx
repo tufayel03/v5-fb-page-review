@@ -602,9 +602,7 @@ export default function AdminContactNumbers() {
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('number')}>
                   <div className="flex items-center gap-1">Number <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
-                <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('type')}>
-                  <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3"/></div>
-                </th>
+
                 <th className="px-6 py-4 border-b border-white/5 text-center cursor-pointer hover:bg-white/5" onClick={() => handleSort('linked_page_count')}>
                   <div className="flex items-center justify-center gap-1">Linked Pages <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
@@ -623,14 +621,14 @@ export default function AdminContactNumbers() {
             <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center">
+                  <td colSpan={5} className="px-6 py-8 text-center">
                     <div className="animate-pulse h-4 w-32 bg-white/5 mx-auto rounded"></div>
                   </td>
                 </tr>
               ) : paginatedNumbers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
                     No numbers found.
@@ -672,18 +670,13 @@ export default function AdminContactNumbers() {
                         </p>
                       </td>
                       <td className="px-6 py-4 font-medium">
-                        <div className="text-slate-300">
-                          {number.type || "Unknown"}
-                        </div>
-                        <div className="mt-0.5">
-                          <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
-                            number.added_by === 'users'
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
-                              : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                          }`}>
-                            {number.added_by === 'users' ? 'User' : 'Admin'}
-                          </span>
-                        </div>
+                        <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-black uppercase ${
+                          number.added_by === 'users'
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/10"
+                            : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                        }`}>
+                          {number.added_by === 'users' ? 'User' : 'Admin'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         {(() => {

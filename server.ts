@@ -3171,6 +3171,41 @@ function normalizeName(str: string): string {
     }
   });
 
+  // Helper: sync a page's contact/payment numbers into the ContactNumbers table
+  function upsertPageNumbers(pageId: string, contactNumber: string | null, paymentMethods: string | null) {
+    const numberEntries: { num: string; type: string }[] = [];
+
+    if (contactNumber && contactNumber.trim()) {
+      contactNumber.split(',').map(n => n.trim()).filter(Boolean).forEach(n => {
+        numberEntries.push({ num: n, type: 'Contact Number' });
+      });
+    }
+    if (paymentMethods && paymentMethods.trim()) {
+      paymentMethods.split(',').map(n => n.trim()).filter(Boolean).forEach(n => {
+        numberEntries.push({ num: n, type: 'Payment Number' });
+      });
+    }
+
+    for (const entry of numberEntries) {
+      try {
+        const existing = db.prepare('SELECT id, linked_page_ids, linked_page_count FROM ContactNumbers WHERE number = ?').get(entry.num) as any;
+        if (existing) {
+          let links: string[] = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+          if (!links.includes(pageId)) {
+            links.push(pageId);
+          }
+          db.prepare(`UPDATE ContactNumbers SET linked_page_ids = ?, linked_page_count = ?, type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+          ).run(links.join(','), links.length, entry.type, existing.id);
+        } else {
+          db.prepare(`INSERT INTO ContactNumbers (id, number, type, linked_page_ids, linked_page_count, status, added_by) VALUES (?, ?, ?, ?, 1, 'Normal', 'admin')`
+          ).run(crypto.randomUUID(), entry.num, entry.type, pageId);
+        }
+      } catch (e) {
+        console.error('[upsertPageNumbers] error for', entry.num, e);
+      }
+    }
+  }
+
   app.post('/api/admin/pages', requireAdmin, async (req, res) => {
     try {
       const { 
@@ -3208,7 +3243,10 @@ function normalizeName(str: string): string {
               crypto.randomUUID(), (req as any).user.id, 'Business Badge Added/Updated', 'FacebookPage', id, `Status set to ${business_verification_status}. Note: ${business_verification_note || ''}`
           );
       }
-      
+
+      // Sync contact/payment numbers into ContactNumbers table
+      upsertPageNumbers(id, contact_number, payment_methods);
+
       res.json({ success: true, id });
     } catch(e) {
       res.status(500).json({ error: (e as any).message });
@@ -3330,11 +3368,14 @@ function normalizeName(str: string): string {
           req.params.id
         );
       }
+      // Sync contact/payment numbers into ContactNumbers table
+      upsertPageNumbers(req.params.id, contact_number, payment_methods);
       res.json({ success: true });
     } catch(e) {
       res.status(500).json({ error: (e as any).message });
     }
   });
+
 
   app.post('/api/admin/pages/:id/recalculate-trust', requireAdmin, (req, res) => {
     try {
