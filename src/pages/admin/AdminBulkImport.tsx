@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Upload, Download, FileText, CheckCircle, XCircle } from "lucide-react";
+import { Upload, Download, FileText, CheckCircle, XCircle, ShieldAlert, RefreshCw, Archive } from "lucide-react";
 import AdminGoogleSheetSync from "./AdminGoogleSheetSync";
 
 export default function AdminBulkImport() {
@@ -15,6 +15,87 @@ export default function AdminBulkImport() {
   const [importProgress, setImportProgress] = useState<number | null>(null);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+
+  // Backup / Restore states
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoreProgress, setRestoreProgress] = useState<number | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleDownloadBackup = () => {
+    setBackupLoading(true);
+    const token = localStorage.getItem('token');
+    const url = `/api/admin/backup-db?token=${token}`;
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `website_full_backup_${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    
+    setTimeout(() => {
+      setBackupLoading(false);
+    }, 2000);
+  };
+
+  const handleRestore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreFile) return alert("Please select a valid website_full_backup.zip file");
+
+    if (!confirm("⚠️ WARNING: This will completely overwrite your database and all uploaded media files! Are you absolutely sure you want to proceed?")) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('dbfile', restoreFile);
+
+    setRestoreProgress(0);
+    setRestoreMessage(null);
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/admin/restore-db');
+      xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setRestoreProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          setRestoreProgress(100);
+          const resData = JSON.parse(xhr.responseText);
+          setRestoreMessage({ type: 'success', text: resData.message || "Website restored successfully! Server is restarting..." });
+          setTimeout(() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          }, 4000);
+        } else {
+          let errMsg = "Restore failed";
+          try {
+            const resData = JSON.parse(xhr.responseText);
+            errMsg = resData.error || errMsg;
+          } catch(e) {}
+          setRestoreMessage({ type: 'error', text: errMsg });
+          setRestoreProgress(null);
+        }
+      };
+
+      xhr.onerror = () => {
+        setRestoreMessage({ type: 'error', text: "Network error during restore." });
+        setRestoreProgress(null);
+      };
+
+      xhr.send(formData);
+    } catch(err) {
+      setRestoreMessage({ type: 'error', text: "An unexpected error occurred." });
+      setRestoreProgress(null);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -160,7 +241,7 @@ export default function AdminBulkImport() {
         </p>
       </div>
 
-      <div className="flex space-x-1 bg-[#050b18]/45 p-1 rounded-lg w-full sm:max-w-2xl overflow-x-auto border border-white/5">
+      <div className="flex space-x-1 bg-[#050b18]/45 p-1 rounded-lg w-full sm:max-w-3xl overflow-x-auto border border-white/5">
         <button
           onClick={() => setActiveTab("import")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "import" ? "bg-white/5 text-white shadow-md border border-white/5" : "text-slate-400 hover:text-white"}`}
@@ -184,6 +265,12 @@ export default function AdminBulkImport() {
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "google-sheet" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"}`}
         >
           Google Sheet Sync
+        </button>
+        <button
+          onClick={() => setActiveTab("backup-restore")}
+          className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "backup-restore" ? "bg-amber-600 text-white shadow border border-amber-500/20" : "text-slate-400 hover:text-amber-400 hover:bg-amber-500/10"}`}
+        >
+          Full Backup & Restore
         </button>
       </div>
 
@@ -435,6 +522,124 @@ export default function AdminBulkImport() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+      {activeTab === "backup-restore" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Full Backup Card */}
+          <div className="bg-[#091124] rounded-xl border border-white/5 shadow-xl p-6 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20">
+                  <Archive className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Full Server Backup</h2>
+                  <p className="text-xs text-slate-400">Download everything in one single package</p>
+                </div>
+              </div>
+              
+              <div className="bg-[#050b18]/45 border border-white/5 rounded-lg p-4 space-y-2">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">What is included in this backup:</h3>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-slate-400">
+                  <li><strong>Complete Database (`data.db`)</strong>: All pages, reviews, user profiles, claims, disputes, settings, BKash configurations, visitor analytics logs, and audit logs.</li>
+                  <li><strong>All Uploaded Media Assets (`/uploads/`)</strong>: All page logos, user-uploaded proof screenshots, fraud evidences, avatars, and customized blog images.</li>
+                </ul>
+              </div>
+              
+              <p className="text-xs text-slate-400 leading-relaxed">
+                This is a comprehensive, self-contained archive (.zip). If your VPS gets completely deleted, you can pull this codebase from GitHub onto a fresh server, upload this zip file, and your platform will be immediately operational with all data restored exactly as it was.
+              </p>
+            </div>
+
+            <button
+              onClick={handleDownloadBackup}
+              disabled={backupLoading}
+              className={`w-full py-3 rounded-lg font-bold text-sm text-white transition-all flex items-center justify-center gap-2 ${backupLoading ? 'bg-amber-600/30 text-amber-300 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/10'}`}
+            >
+              {backupLoading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Generating Full Zip Archive...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Download Full Zip Backup
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Full Restore Card */}
+          <div className="bg-[#091124] rounded-xl border border-white/5 shadow-xl p-6 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 border border-rose-500/20">
+                  <Upload className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Full System Restore</h2>
+                  <p className="text-xs text-slate-400">Upload & overwrite existing database/media</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-rose-950/20 border border-rose-500/20 rounded-lg flex gap-3">
+                <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-rose-300">CRITICAL WARNING</h4>
+                  <p className="text-[11px] text-rose-200 leading-relaxed">
+                    Restoring a backup will **completely replace** the current database and deletes any newly uploaded files since the backup was made. This action is **irreversible**.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleRestore} className="space-y-4">
+                <div className={`border border-dashed border-white/10 rounded-lg p-4 text-center hover:bg-white/[0.01] transition-colors relative overflow-hidden ${restoreProgress !== null ? 'bg-indigo-950/20 border-indigo-500/30' : ''}`}>
+                  {restoreProgress !== null ? (
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+                        <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300" style={{ width: `${restoreProgress}%` }}></div>
+                      </div>
+                      <div className="text-xs font-bold text-indigo-400">{restoreProgress}% Uploaded</div>
+                      <p className="text-[10px] text-slate-400 mt-1">Extracting zip and replacing database...</p>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept=".zip"
+                      onChange={(e) => setRestoreFile(e.target.files ? e.target.files[0] : null)}
+                      className="text-xs text-slate-400 mx-auto block w-full"
+                    />
+                  )}
+                </div>
+
+                {restoreMessage && (
+                  <div className={`p-3 rounded-lg text-xs font-semibold ${restoreMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'}`}>
+                    {restoreMessage.text}
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={restoreProgress !== null || !restoreFile}
+                  className={`w-full py-3 rounded-lg font-bold text-sm text-white transition-all flex items-center justify-center gap-2 ${restoreProgress !== null || !restoreFile ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/10'}`}
+                >
+                  {restoreProgress !== null ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Restoring Platform...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload & Restore Website
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>
