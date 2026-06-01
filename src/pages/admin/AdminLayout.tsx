@@ -64,6 +64,8 @@ export default function AdminLayout() {
         if (data.openDisputes > 0) notifs.push({ type: 'dispute', count: data.openDisputes, message: 'Open disputes require action', link: '/tufayel/disputes' });
         if (data.pendingClaims > 0) notifs.push({ type: 'claim', count: data.pendingClaims, message: 'Pending page claims to verify', link: '/tufayel/page-claims' });
         if (data.pendingHighProfileFraudReports > 0) notifs.push({ type: 'fraud', count: data.pendingHighProfileFraudReports, message: 'High profile fraud reports pending', link: '/tufayel/reviews' });
+        if (data.isCookieExpired) notifs.push({ type: 'cookie_expired', count: 1, message: 'Facebook scraper session EXPIRED! Update your cookies.', link: '/tufayel/settings' });
+        else if (!data.isCookieConfigured) notifs.push({ type: 'cookie_missing', count: 1, message: 'No scraper cookie configured. Search scraping might fail.', link: '/tufayel/settings' });
         
         setNotifications(notifs);
 

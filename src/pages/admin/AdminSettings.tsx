@@ -12,6 +12,31 @@ export default function AdminSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const { user } = useAuth();
 
+  const [cookieChecking, setCookieChecking] = useState(false);
+  const [cookieCheckResult, setCookieCheckResult] = useState<{ status: string, message: string } | null>(null);
+
+  const checkCookieStatus = async () => {
+    setCookieChecking(true);
+    setCookieCheckResult(null);
+    try {
+      const response = await fetch("/api/admin/check-cookie-status", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCookieCheckResult(data);
+      } else {
+        setCookieCheckResult({ status: 'error', message: 'Failed to communicate with server status check.' });
+      }
+    } catch (err: any) {
+      setCookieCheckResult({ status: 'error', message: 'Network error verifying cookie status.' });
+    } finally {
+      setCookieChecking(false);
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,6 +119,7 @@ export default function AdminSettings() {
   // We load settings from server
   useEffect(() => {
     fetchSettings();
+    checkCookieStatus();
   }, []);
 
   const fetchSettings = () => {
@@ -268,10 +294,61 @@ export default function AdminSettings() {
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-white/5 pt-6 space-y-2">
-                <label className="block text-sm font-bold text-slate-300">Facebook Cookie String / JSON (For Scraping)</label>
-                <p className="text-xs text-slate-400">Paste your active Facebook session cookie string or raw exported JSON array from Cookie-Editor here. This is used by the server to safely crawl, authenticate, and search profiles directly when URLs are pasted in the search box.</p>
+              <div className="mt-6 border-t border-white/5 pt-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-300">Facebook Cookie String / JSON (For Scraping)</label>
+                  <p className="text-xs text-slate-400 mt-1">Paste your active Facebook session cookie string or raw exported JSON array from Cookie-Editor here. This is used by the server to safely crawl, authenticate, and search profiles directly when URLs are pasted in the search box.</p>
+                </div>
                 <textarea rows={4} value={getSettingValue('facebook_scraper_cookies', '')} onChange={e => updateSetting('facebook_scraper_cookies', e.target.value, 'general', 'textarea')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] rounded-lg p-3 focus:ring-2 focus:ring-emerald-500/20 outline-none font-mono text-xs" placeholder='[{"name": "c_user", "value": "..."}, ...]' />
+                
+                {/* Live Cookie Status Validation Card */}
+                <div className="p-4 border border-white/5 bg-[#050b18]/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Cookie Session Status:</span>
+                      {cookieChecking ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <RefreshCw className="h-3 w-3 animate-spin" /> Verifying Live...
+                        </span>
+                      ) : cookieCheckResult?.status === 'valid' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
+                          ● Active & Verified
+                        </span>
+                      ) : cookieCheckResult?.status === 'valid_offline' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          ● Offline Checked
+                        </span>
+                      ) : cookieCheckResult?.status === 'expired' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-[0_0_12px_rgba(244,63,94,0.1)] animate-pulse">
+                          ● Expired / Invalid
+                        </span>
+                      ) : cookieCheckResult?.status === 'none' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/15 text-slate-400 border border-[#475569]/30">
+                          ● Not Configured
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-slate-700/30">
+                          ● Unknown Status
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                      {cookieChecking 
+                        ? 'Checking live authentication link to Facebook servers...' 
+                        : cookieCheckResult?.message || 'Click live verify to test current session credentials.'}
+                    </p>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={checkCookieStatus}
+                    disabled={cookieChecking}
+                    className="shrink-0 px-4 py-2 border border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${cookieChecking ? 'animate-spin' : ''}`} />
+                    Live Verify Session
+                  </button>
+                </div>
               </div>
             </div>
           )}

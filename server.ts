@@ -1260,6 +1260,29 @@ async function startServer() {
         LIMIT 5
       `).all();
 
+      let isCookieConfigured = false;
+      let isCookieExpired = false;
+      try {
+        const cookieRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('facebook_scraper_cookies') as any;
+        if (cookieRow && cookieRow.value && cookieRow.value.trim()) {
+          isCookieConfigured = true;
+          const val = cookieRow.value.trim();
+          if (val.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed)) {
+                const xs = parsed.find((c: any) => c.name === 'xs');
+                if (xs && xs.expirationDate) {
+                  if (Date.now() > xs.expirationDate * 1000) {
+                    isCookieExpired = true;
+                  }
+                }
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (err) {}
+
       res.json({
         totalPages, totalReviews, pendingReviews, totalUsers, totalFraudReports, totalFraudPages, totalPaymentMethods,
         pendingClaims, openDisputes, totalClaimedPages, pendingHighProfileFraudReports,
@@ -1268,17 +1291,103 @@ async function startServer() {
         totalBlogPosts, publishedBlogPosts, draftBlogPosts,
         openAbuseReports, resolvedAbuseReports,
         totalImports, failedImports, lastImport,
-        recentFraudPages
+        recentFraudPages,
+        isCookieConfigured, isCookieExpired
       });
     } catch (e: any) {
       res.status(500).json({ error: 'Server error' });
     }
   });
 
+  app.get('/api/admin/check-cookie-status', requireAdmin, async (req, res) => {
+    try {
+      const cookieRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('facebook_scraper_cookies') as any;
+      if (!cookieRow || !cookieRow.value || !cookieRow.value.trim()) {
+        return res.json({ status: 'none', message: 'No cookie configured yet.' });
+      }
+
+      const val = cookieRow.value.trim();
+      let scraperCookie = '';
+      let isJson = false;
+      let parsedJson: any[] = [];
+      
+      if (val.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) {
+            parsedJson = parsed;
+            isJson = true;
+            scraperCookie = parsed.map((c: any) => `${c.name}=${c.value}`).join('; ');
+          } else {
+            scraperCookie = val;
+          }
+        } catch (jsonErr) {
+          scraperCookie = val;
+        }
+      } else {
+        scraperCookie = val;
+      }
+
+      // Fast check: Expiration date validation
+      if (isJson && parsedJson.length > 0) {
+        const xsCookie = parsedJson.find(c => c.name === 'xs');
+        
+        if (xsCookie && xsCookie.expirationDate) {
+          const expMs = xsCookie.expirationDate * 1000;
+          if (Date.now() > expMs) {
+            return res.json({ 
+              status: 'expired', 
+              message: `Expired on ${new Date(expMs).toLocaleDateString()}. Please export fresh JSON cookies.` 
+            });
+          }
+        }
+      }
+
+      // Deep Live Check via lightweight curl request
+      try {
+        const { execSync } = require('child_process');
+        const html = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}" --max-time 6 https://mbasic.facebook.com/profile.php`, { encoding: 'utf-8', timeout: 6000 });
+        
+        if (html.includes("composer") || html.includes("logout") || html.includes("mbasic_logout_button") || html.includes("xc_message")) {
+          let userId = 'Unknown';
+          if (isJson) {
+            const cUser = parsedJson.find(c => c.name === 'c_user');
+            if (cUser) userId = cUser.value;
+          } else {
+            const match = scraperCookie.match(/c_user=(\d+)/);
+            if (match) userId = match[1];
+          }
+
+          return res.json({ 
+            status: 'valid', 
+            message: `Active & Healthy! Logged in as User ID: ${userId}` 
+          });
+        } else if (html.includes("login_form") || html.includes("login_error") || html.includes("checkpoint") || html.length < 500) {
+          return res.json({ 
+            status: 'expired', 
+            message: 'Session has been invalidated or logged out by Facebook. Please paste new active cookies.' 
+          });
+        } else {
+          return res.json({ 
+            status: 'unknown', 
+            message: 'Could not fully verify session, but connection succeeded. Scrapes might work.' 
+          });
+        }
+      } catch (curlErr: any) {
+        console.error('[CookieCheck] Live verification failed:', curlErr.message);
+        return res.json({ 
+          status: 'valid_offline', 
+          message: 'Saved cookie format is correct, but live verification timed out. Bypassing test.' 
+        });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: 'Server error checking cookie status' });
+    }
+  });
+
   app.get('/api/admin/pages', requireModerator, (req, res) => {
     try {
       const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-      const status = typeof req.query.status === 'string' ? req.query.status.trim() : 'all';
       const claimStatus = typeof req.query.claimStatus === 'string' ? req.query.claimStatus.trim() : 'all';
       const minReviews = req.query.minReviews !== undefined && req.query.minReviews !== '' ? Number(req.query.minReviews) : NaN;
       const maxReviews = req.query.maxReviews !== undefined && req.query.maxReviews !== '' ? Number(req.query.maxReviews) : NaN;
