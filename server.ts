@@ -6636,7 +6636,52 @@ function normalizeName(str: string): string {
                 return res.status(500).json({ error: 'Server error', message: err.message });
             }
         }
-        
+
+        // Auto-recalculate page stats so admin columns always reflect real counts
+        try {
+          const getScore = (key: string, def: number) => {
+            try {
+              const s = db.prepare("SELECT value FROM Settings WHERE key_name = ?").get(key) as any;
+              return s ? Number(s.value) : def;
+            } catch { return def; }
+          };
+          const score_safe = getScore('score_safe', 5);
+          const score_suspicious = getScore('score_suspicious', -10);
+          const score_fraud = getScore('score_fraud', -25);
+
+          const pageReviews = db.prepare('SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ("Published", "Verified", "Approved")').all(page_id) as any[];
+          let total_score = 50;
+          let totalReviews = pageReviews.length;
+          let sumRatings = 0, safeCount = 0, neutralCount = 0, suspiciousCount = 0, fraudCount = 0;
+          for (const r of pageReviews) {
+            sumRatings += r.star_rating || 5;
+            if (r.review_type === 'Safe' || r.review_type === 'Good') { total_score += score_safe; safeCount++; }
+            else if (r.review_type === 'Suspicious' || r.review_type === 'Bad') { total_score += score_suspicious; suspiciousCount++; }
+            else if (r.review_type === 'Fraud Report') { total_score += score_fraud; fraudCount++; }
+            else if (r.review_type === 'Neutral') { neutralCount++; }
+          }
+          const avgRating = totalReviews > 0 ? sumRatings / totalReviews : 0;
+          const trustedScore = total_score + (avgRating * 5) + (safeCount * 2) - (fraudCount * 10);
+
+          let new_badge = 'Under Review';
+          if (total_score >= 80) new_badge = 'Verified Marketplace Seller';
+          else if (total_score < 0) new_badge = 'Reported as Fraud';
+          else if (total_score < 50) new_badge = 'Suspicious';
+
+          // Preserve manual fraud listing overrides
+          const pageRow = db.prepare('SELECT status_badge, is_fraud_listed FROM FacebookPages WHERE id = ?').get(page_id) as any;
+          if (pageRow?.is_fraud_listed === 1) new_badge = 'Reported as Fraud';
+
+          db.prepare(`
+            UPDATE FacebookPages
+            SET total_reviews = ?, fraud_report_count = ?, safe_review_count = ?, neutral_review_count = ?, suspicious_report_count = ?,
+                average_rating = ?, trust_score = ?, status_badge = ?, trusted_ranking_score = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(totalReviews, fraudCount, safeCount, neutralCount, suspiciousCount, avgRating, total_score, new_badge, trustedScore, page_id);
+        } catch (recalcErr) {
+          console.error('[Review] Auto-recalculate stats failed:', recalcErr);
+        }
+
         res.json({ success: true, id, page_id });
     } catch (e: any) {
         console.error(e);
