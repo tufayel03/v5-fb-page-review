@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { AlertTriangle, ArrowLeft, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Save, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 
 export default function AdminContactNumberDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [number, setNumber] = useState<any>(null);
+  const [linkedPages, setLinkedPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -22,7 +23,7 @@ export default function AdminContactNumberDetails() {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         setNumber(data);
         setFormData({
           status: data.status || "Normal",
@@ -30,6 +31,28 @@ export default function AdminContactNumberDetails() {
           type: data.type || "Contact Number",
           display_name: data.display_name || "",
         });
+
+        // Fetch linked page details
+        if (data.linked_page_ids) {
+          const ids = data.linked_page_ids.split(",").map((s: string) => s.trim()).filter(Boolean);
+          if (ids.length > 0) {
+            try {
+              const pagesRes = await fetch(
+                `/api/admin/pages/by-ids?ids=${ids.join(",")}`,
+                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+              );
+              if (pagesRes.ok) {
+                const pagesData = await pagesRes.json();
+                const pageList = Array.isArray(pagesData) ? pagesData : (pagesData.data || []);
+                // Preserve order of linked IDs
+                const map: Record<string, any> = {};
+                pageList.forEach((p: any) => { map[p.id] = p; });
+                setLinkedPages(ids.map((pid: string) => map[pid]).filter(Boolean));
+              }
+            } catch (_) {}
+          }
+        }
+
         setLoading(false);
       });
   }, [id]);
@@ -66,6 +89,8 @@ export default function AdminContactNumberDetails() {
         Number not found.
       </div>
     );
+
+  const linkedCount = number.linked_page_count || linkedPages.length || 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -104,7 +129,8 @@ export default function AdminContactNumberDetails() {
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4 text-sm font-semibold">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 text-sm font-semibold">
             <div>
               <p className="text-slate-400">Mentions in Reviews</p>
               <p className="font-bold text-white text-lg mt-1">
@@ -123,22 +149,83 @@ export default function AdminContactNumberDetails() {
             <div>
               <p className="text-slate-400">Linked Pages</p>
               <p className={`font-bold text-lg mt-1 ${
-                (number.linked_page_count || 0) >= 3 ? 'text-rose-400' :
-                (number.linked_page_count || 0) === 2 ? 'text-amber-400' : 'text-white'
+                linkedCount >= 3 ? "text-rose-400" :
+                linkedCount === 2 ? "text-amber-400" : "text-white"
               }`}>
-                {number.linked_page_count || 0} {(number.linked_page_count || 0) === 1 ? 'page' : 'pages'}
-              </p>
-            </div>
-            <div>
-              <p className="text-slate-400">First Reported</p>
-              <p className="font-medium text-slate-200 mt-1">
-                {new Date(number.first_reported_at).toLocaleDateString()}
+                {linkedCount} {linkedCount === 1 ? "page" : "pages"}
               </p>
             </div>
           </div>
 
           <hr className="border-white/5" />
 
+          {/* Linked Pages Section */}
+          <div className="space-y-3">
+            <h3 className="font-bold text-slate-200 flex items-center gap-2">
+              <ExternalLink className="h-4 w-4 text-emerald-400" />
+              Linked Facebook Pages
+              {linkedCount > 0 && (
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${
+                  linkedCount >= 3 ? "bg-rose-500/15 text-rose-400" :
+                  linkedCount === 2 ? "bg-amber-500/15 text-amber-400" :
+                  "bg-slate-500/15 text-slate-400"
+                }`}>
+                  {linkedCount}
+                </span>
+              )}
+            </h3>
+
+            {linkedPages.length === 0 ? (
+              <p className="text-sm text-slate-500 italic py-2">
+                No linked pages found — this number was added directly without a page association.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {linkedPages.map((page: any, i: number) => (
+                  <div
+                    key={page.id}
+                    className="flex items-center justify-between bg-[#050b18]/60 border border-white/5 rounded-lg px-4 py-3 hover:border-emerald-500/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xs font-mono text-slate-600 shrink-0">{i + 1}.</span>
+                      {page.profile_picture && (
+                        <img
+                          src={page.profile_picture}
+                          alt=""
+                          className="h-8 w-8 rounded-full object-cover shrink-0 border border-white/10"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-bold text-white text-sm truncate">{page.current_name || "Unknown Page"}</p>
+                        <p className="text-xs text-slate-500 truncate">{page.facebook_url || ""}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                        page.status_badge === "Reported as Fraud"
+                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          : page.status_badge === "Suspicious"
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                      }`}>
+                        {page.status_badge || "Unknown"}
+                      </span>
+                      <Link
+                        to={`/tufayel/pages/${page.id}`}
+                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                      >
+                        View <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <hr className="border-white/5" />
+
+          {/* Edit Form */}
           <div className="space-y-4">
             <h3 className="font-bold text-slate-250">Manage Details</h3>
 

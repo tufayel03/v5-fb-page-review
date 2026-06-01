@@ -2320,6 +2320,11 @@ function normalizeName(str: string): string {
           pageId
         );
 
+        // Sync contact/payment numbers into ContactNumbers table
+        const pm = pmList.length ? pmList.join(',') : (paymentMethods || null);
+        const cn = mainContact || null;
+        upsertPageNumbers(pageId, cn, pm);
+
         return res.json({ success: true, message: 'Page details updated successfully!', id: pageId });
       }
 
@@ -2347,6 +2352,10 @@ function normalizeName(str: string): string {
         isFraud ? 1 : 0,
         profilePicPath
       );
+
+      // Sync contact/payment numbers into ContactNumbers table
+      const pmStr = pmList.length ? pmList.join(',') : null;
+      upsertPageNumbers(pageId, mainContact || null, pmStr);
 
       return res.json({ success: true, message: 'Page successfully added to database!', id: pageId });
     } catch (e: any) {
@@ -4026,6 +4035,22 @@ function normalizeName(str: string): string {
       res.send(buffer);
     } catch(e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Lightweight endpoint to fetch pages by a list of IDs (used by contact number details)
+  app.get('/api/admin/pages/by-ids', requireModerator, (req, res) => {
+    try {
+      const raw = typeof req.query.ids === 'string' ? req.query.ids : '';
+      const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+      if (ids.length === 0) return res.json([]);
+      const placeholders = ids.map(() => '?').join(',');
+      const pages = db.prepare(
+        `SELECT id, current_name, facebook_url, profile_picture, status_badge FROM FacebookPages WHERE id IN (${placeholders})`
+      ).all(...ids);
+      res.json(pages);
+    } catch(e) {
+      res.status(500).json({ error: 'Server error' });
     }
   });
 
