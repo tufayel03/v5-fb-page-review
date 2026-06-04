@@ -383,14 +383,20 @@ export default function Home() {
                               )}
                             </div>
                             <p className="text-[13px] text-slate-500 truncate">
-                              {page.current_username
-                                ? `@${page.current_username}`
-                                : "Facebook Page"}{" "}
-                              • {page.review_count || 0} reviews
+                              {page.is_contact_only ? (
+                                <>{page.category || "Contact Number"} • {page.review_count || 0} reports</>
+                              ) : (
+                                <>
+                                  {page.current_username
+                                    ? `@${page.current_username}`
+                                    : "Facebook Page"}{" "}
+                                  • {page.review_count || 0} reviews
+                                </>
+                              )}
                             </p>
                           </div>
                           <div className="shrink-0 flex items-center gap-2">
-                            {(page.fraud_report_count || 0) > 0 && (
+                            {(page.fraud_report_count || 0) > 0 && !page.is_contact_only && (
                               <div
                                 title="Risk Reports"
                                 className="flex items-center bg-rose-50 border border-rose-100 px-2 py-1 rounded"
@@ -401,14 +407,24 @@ export default function Home() {
                                 </span>
                               </div>
                             )}
-                            <div className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Star
-                                className={`h-3 w-3 mr-1 ${rating > 0 ? "text-emerald-500 fill-emerald-500" : "text-slate-400 fill-slate-400"}`}
-                              />
-                              <span className="text-sm font-bold text-emerald-700">
-                                {rating > 0 ? rating.toFixed(1) : "0.0"}
-                              </span>
-                            </div>
+                            {!page.is_contact_only && (
+                              <div className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                <Star
+                                  className={`h-3 w-3 mr-1 ${rating > 0 ? "text-emerald-500 fill-emerald-500" : "text-slate-400 fill-slate-400"}`}
+                                />
+                                <span className="text-sm font-bold text-emerald-700">
+                                  {rating > 0 ? rating.toFixed(1) : "0.0"}
+                                </span>
+                              </div>
+                            )}
+                            {page.is_contact_only && (
+                              <div className="flex items-center bg-rose-50 px-2 py-1 rounded border border-rose-100">
+                                <AlertTriangle className="h-3 w-3 mr-1 text-rose-500" />
+                                <span className="text-xs font-bold text-rose-700">
+                                  {page.status_badge === 'Reported as Fraud' ? 'Reported' : page.status_badge || 'Suspicious'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </Link>
                       );

@@ -185,35 +185,49 @@ export default function GlobalSearch() {
                         )}
                       </div>
                       
-                      {page.facebook_url && (
+                      {page.facebook_url && !page.is_contact_only && (
                         <div className="text-sm text-[#696969] mb-2 truncate">
                            {page.facebook_url.replace(/^https?:\/\/(www\.)?/, '')}
                         </div>
                       )}
                       
                       <div className="flex items-center text-sm gap-2 mt-1">
-                        {/* Rating Stars (Trustpilot style array) */}
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => {
-                             const isFilled = rating >= star;
-                             const isHalf = rating >= star - 0.5 && rating < star;
-                             const bg = isFilled ? 'bg-[#00b67a]' : isHalf ? 'bg-gradient-to-r from-[#00b67a] 50% to-[#dcdce6] 50%' : 'bg-[#dcdce6]';
-                             return (
-                              <div key={star} className={`w-[18px] h-[18px] flex items-center justify-center ${bg}`}>
-                                <Star className="w-3 h-3 text-white fill-white" />
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="text-[#1c1c1c] font-medium text-[14px]">
-                           {rating > 0 ? rating.toFixed(1) : '0'} 
-                           <span className="text-[#696969] ml-2 font-normal">・ {page.review_count || 0} reviews</span>
-                        </div>
+                        {!page.is_contact_only ? (
+                          <>
+                            {/* Rating Stars (Trustpilot style array) */}
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => {
+                                 const isFilled = rating >= star;
+                                 const isHalf = rating >= star - 0.5 && rating < star;
+                                 const bg = isFilled ? 'bg-[#00b67a]' : isHalf ? 'bg-gradient-to-r from-[#00b67a] 50% to-[#dcdce6] 50%' : 'bg-[#dcdce6]';
+                                 return (
+                                  <div key={star} className={`w-[18px] h-[18px] flex items-center justify-center ${bg}`}>
+                                    <Star className="w-3 h-3 text-white fill-white" />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="text-[#1c1c1c] font-medium text-[14px]">
+                               {rating > 0 ? rating.toFixed(1) : '0'} 
+                               <span className="text-[#696969] ml-2 font-normal">・ {page.review_count || 0} reviews</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-[#1c1c1c] font-medium text-[14px]">
+                             <span className="text-[#696969] font-normal">{page.category || "Contact Number"} ・ {page.review_count || 0} reports</span>
+                          </div>
+                        )}
                         
-                        {(page.fraud_report_count || 0) > 0 && (
+                        {(page.fraud_report_count || 0) > 0 && !page.is_contact_only && (
                            <div className="flex items-center gap-1.5 text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded ml-2 text-xs">
                               <ShieldAlert className="w-3.5 h-3.5" />
                               {page.fraud_report_count} Fraud Reports
+                           </div>
+                        )}
+                        {page.is_contact_only && (
+                           <div className="flex items-center gap-1.5 text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded ml-2 text-xs border border-rose-100">
+                              <ShieldAlert className="w-3.5 h-3.5" />
+                              {page.status_badge === 'Reported as Fraud' ? 'Reported' : page.status_badge || 'Suspicious'}
                            </div>
                         )}
                       </div>

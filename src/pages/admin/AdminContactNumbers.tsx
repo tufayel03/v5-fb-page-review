@@ -22,6 +22,7 @@ export default function AdminContactNumbers() {
     number: "",
     type: "Contact Number",
     display_name: "",
+    status: "Reported",
   });
   const navigate = useNavigate();
 
@@ -489,6 +490,26 @@ export default function AdminContactNumbers() {
                   >
                     <option value="Contact Number" className="bg-[#091124]">Contact Number</option>
                      <option value="Payment Number" className="bg-[#091124]">Payment Number</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={newNumberForm.status}
+                    onChange={(e) =>
+                      setNewNumberForm({
+                        ...newNumberForm,
+                        status: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm font-medium focus:outline-none"
+                  >
+                    <option value="Reported" className="bg-[#091124]">Reported</option>
+                    <option value="Suspicious" className="bg-[#091124]">Suspicious</option>
+                    <option value="Verified Merchant" className="bg-[#091124]">Verified Merchant</option>
+                    <option value="Safe" className="bg-[#091124]">Safe</option>
                   </select>
                 </div>
 
