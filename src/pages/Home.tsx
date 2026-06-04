@@ -136,19 +136,26 @@ export default function Home() {
         }, 1500);
       };
 
+      const handleScroll = () => {
+        const halfScroll = container.scrollWidth / 2;
+        if (halfScroll > 0) {
+          if (container.scrollLeft >= halfScroll) {
+            container.scrollLeft = container.scrollLeft - halfScroll;
+          } else if (container.scrollLeft <= 0.5 && isPaused) {
+            container.scrollLeft = halfScroll;
+          }
+        }
+      };
+
       container.addEventListener("mouseenter", onMouseEnter);
       container.addEventListener("mouseleave", onMouseLeave);
       container.addEventListener("touchstart", onTouchStart);
       container.addEventListener("touchend", onTouchEnd);
+      container.addEventListener("scroll", handleScroll, { passive: true });
 
       intervalId = setInterval(() => {
         if (!isPaused) {
-          const maxScroll = container.scrollWidth - container.clientWidth;
-          if (container.scrollLeft >= maxScroll - 1) {
-            container.scrollLeft = 0;
-          } else {
-            container.scrollLeft += 0.8;
-          }
+          container.scrollLeft += 1;
         }
       }, 30);
 
@@ -159,6 +166,7 @@ export default function Home() {
         container.removeEventListener("mouseleave", onMouseLeave);
         container.removeEventListener("touchstart", onTouchStart);
         container.removeEventListener("touchend", onTouchEnd);
+        container.removeEventListener("scroll", handleScroll);
       };
     }
   }, [recentPages, isMobile]);
@@ -293,6 +301,7 @@ export default function Home() {
   };
 
   const displayedPages = isMobile ? recentPages.slice(0, 10) : recentPages.slice(0, 25);
+  const loopedPages = [...displayedPages, ...displayedPages];
 
   return (
     <div className="flex flex-col bg-slate-50 min-h-screen">
@@ -776,9 +785,9 @@ export default function Home() {
 
               <div
                 ref={scrollContainerRefPages}
-                className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth py-1.5 px-4 snap-x"
+                className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar py-1.5 px-4"
               >
-                {displayedPages.map((page, index) => {
+                {loopedPages.map((page, index) => {
                   const letter = page.current_name
                     ? page.current_name.charAt(0).toUpperCase()
                     : "F";
@@ -793,7 +802,7 @@ export default function Home() {
                     <Link
                       to={`/page/${page.id}`}
                       key={`${page.id}-${index}`}
-                      className="flex flex-col bg-white p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[185px] md:w-[240px] shrink-0 snap-start"
+                      className="flex flex-col bg-white p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[185px] md:w-[240px] shrink-0"
                     >
                       <div className="flex items-center gap-2.5 md:gap-3.5">
                         {page.profile_picture ? (
