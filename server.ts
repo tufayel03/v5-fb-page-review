@@ -2126,6 +2126,9 @@ function normalizeName(str: string): string {
               trust_score = -100 
           WHERE id IN (${placeholders})
         `).run(...ids);
+        for (const id of ids) {
+          syncPageNumbers(id);
+        }
         return res.json({ success: true, message: `Successfully marked ${ids.length} pages as fraud` });
       }
 
@@ -2138,6 +2141,9 @@ function normalizeName(str: string): string {
               trust_score = 0 
           WHERE id IN (${placeholders})
         `).run(...ids);
+        for (const id of ids) {
+          syncPageNumbers(id);
+        }
         return res.json({ success: true, message: `Successfully cleared fraud for ${ids.length} pages` });
       }
 
@@ -2151,6 +2157,9 @@ function normalizeName(str: string): string {
               updated_at = CURRENT_TIMESTAMP
           WHERE id IN (${placeholders})
         `).run(value, ...ids);
+        for (const id of ids) {
+          syncPageNumbers(id);
+        }
         return res.json({ success: true, message: `Successfully changed status of ${ids.length} pages to ${value}` });
       }
 
@@ -3197,38 +3206,116 @@ function normalizeName(str: string): string {
   });
 
   // Helper: sync a page's contact/payment numbers into the ContactNumbers table
-  function upsertPageNumbers(pageId: string, contactNumber: string | null, paymentMethods: string | null) {
-    const numberEntries: { num: string; type: string }[] = [];
+  // Helper: sync a page's contact/payment numbers into the ContactNumbers table
+  function syncPageNumbers(pageId: string) {
+    try {
+      const page = db.prepare('SELECT contact_number, extra_contacts, payment_methods, status_badge, is_fraud_listed FROM FacebookPages WHERE id = ?').get(pageId) as any;
+      if (!page) return;
 
-    if (contactNumber && contactNumber.trim()) {
-      contactNumber.split(',').map(n => n.trim()).filter(Boolean).forEach(n => {
-        numberEntries.push({ num: n, type: 'Contact Number' });
-      });
-    }
-    if (paymentMethods && paymentMethods.trim()) {
-      paymentMethods.split(',').map(n => n.trim()).filter(Boolean).forEach(n => {
-        numberEntries.push({ num: n, type: 'Payment Number' });
-      });
-    }
+      const parseNumbers = (val: string | null) => {
+        if (!val) return [];
+        const trimmed = val.trim();
+        if (!trimmed) return [];
+        let list: string[] = [];
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              list = parsed.map(x => String(x).trim());
+            } else {
+              list = [trimmed];
+            }
+          } catch (e) {
+            list = trimmed.split(',');
+          }
+        } else {
+          list = trimmed.split(',');
+        }
+        return list
+          .map(x => x.trim())
+          .filter(x => x && /\d{5,}/.test(x));
+      };
 
-    for (const entry of numberEntries) {
-      try {
-        const existing = db.prepare('SELECT id, linked_page_ids, linked_page_count FROM ContactNumbers WHERE number = ?').get(entry.num) as any;
-        if (existing) {
-          let links: string[] = existing.linked_page_ids ? existing.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+      const contactNums = new Set<string>();
+      const paymentNums = new Set<string>();
+
+      parseNumbers(page.contact_number).forEach(n => contactNums.add(n));
+      parseNumbers(page.extra_contacts).forEach(n => contactNums.add(n));
+      parseNumbers(page.payment_methods).forEach(n => paymentNums.add(n));
+
+      const allPageNumbers = new Map<string, { number: string; type: string }>();
+      for (const n of contactNums) {
+        allPageNumbers.set(n, { number: n, type: 'Contact Number' });
+      }
+      for (const n of paymentNums) {
+        if (!allPageNumbers.has(n)) {
+          allPageNumbers.set(n, { number: n, type: 'Payment Number' });
+        }
+      }
+
+      let determinedStatus = 'Reported';
+      if (page.is_fraud_listed === 1) {
+        determinedStatus = 'Reported';
+      } else if (page.status_badge) {
+        const sb = page.status_badge.toLowerCase();
+        if (sb.includes('fraud') || sb.includes('reported')) {
+          determinedStatus = 'Reported';
+        } else if (sb.includes('suspicious')) {
+          determinedStatus = 'Suspicious';
+        } else if (sb.includes('gold') || sb.includes('verified') || sb.includes('safe') || sb.includes('marketplace')) {
+          determinedStatus = 'Verified Merchant';
+        } else {
+          determinedStatus = 'Reported';
+        }
+      }
+
+      // Unlink numbers no longer associated with this page
+      const existingLinked = db.prepare('SELECT id, number, linked_page_ids FROM ContactNumbers WHERE linked_page_ids LIKE ?').all(`%${pageId}%`) as any[];
+      for (const item of existingLinked) {
+        if (!allPageNumbers.has(item.number)) {
+          let links = item.linked_page_ids ? item.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+          links = links.filter((id: string) => id !== pageId);
+          db.prepare('UPDATE ContactNumbers SET linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(links.join(','), links.length, item.id);
+        }
+      }
+
+      // Upsert current numbers
+      for (const [num, info] of allPageNumbers.entries()) {
+        const existingCn = db.prepare('SELECT id, linked_page_ids, status FROM ContactNumbers WHERE number = ?').get(num) as any;
+        if (existingCn) {
+          let links = existingCn.linked_page_ids ? existingCn.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
           if (!links.includes(pageId)) {
             links.push(pageId);
           }
-          db.prepare(`UPDATE ContactNumbers SET linked_page_ids = ?, linked_page_count = ?, type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-          ).run(links.join(','), links.length, entry.type, existing.id);
+
+          let newStatus = existingCn.status || 'Normal';
+          const severity = (s: string) => {
+            if (s === 'Reported') return 3;
+            if (s === 'Suspicious') return 2;
+            if (s === 'Verified Merchant' || s === 'Safe') return 1;
+            return 0;
+          };
+          if (severity(determinedStatus) > severity(newStatus) || newStatus === 'Normal') {
+            newStatus = determinedStatus;
+          }
+
+          db.prepare('UPDATE ContactNumbers SET type = ?, status = ?, linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(info.type, newStatus, links.join(','), links.length, existingCn.id);
         } else {
-          db.prepare(`INSERT INTO ContactNumbers (id, number, type, linked_page_ids, linked_page_count, status, added_by) VALUES (?, ?, ?, ?, 1, 'Normal', 'admin')`
-          ).run(crypto.randomUUID(), entry.num, entry.type, pageId);
+          db.prepare(`
+            INSERT INTO ContactNumbers (id, number, type, linked_page_ids, linked_page_count, status, added_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 1, ?, 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `).run(crypto.randomUUID(), info.number, info.type, pageId, determinedStatus);
         }
-      } catch (e) {
-        console.error('[upsertPageNumbers] error for', entry.num, e);
       }
+    } catch (err) {
+      console.error('[syncPageNumbers] error for pageId:', pageId, err);
     }
+  }
+
+  function upsertPageNumbers(pageId: string, contactNumber: string | null = null, paymentMethods: string | null = null) {
+    syncPageNumbers(pageId);
   }
 
   app.post('/api/admin/pages', requireAdmin, async (req, res) => {
@@ -3458,6 +3545,8 @@ function normalizeName(str: string): string {
           WHERE id = ?
       `).run(total_score, new_badge, averageRating, totalReviews, safeReviews, neutralReviews, suspiciousReviews, fraudReviews, trustedRankingScore, req.params.id);
       
+      syncPageNumbers(req.params.id);
+      
       res.json({ success: true, trust_score: total_score, status_badge: new_badge });
     } catch(e: any) {
       res.status(500).json({ error: e.message });
@@ -3526,6 +3615,7 @@ function normalizeName(str: string): string {
           updatePage.run(
               total_score, new_badge, averageRating, totalReviews, safeReviews, neutralReviews, suspiciousReviews, fraudReviews, trustedRankingScore, page.id
           );
+          syncPageNumbers(page.id);
         }
       })();
 
@@ -6458,6 +6548,7 @@ function normalizeName(str: string): string {
             page_id, page_name, page_url || '', website_url || null, category || null, sub_category || null, contact_number || null,
             extra_contacts || null, payment_methods || null, other_urls || null, profile_picture || null, page_details || null
           );
+          syncPageNumbers(page_id);
         } else {
           // Update existing page with new info
           const page = db.prepare('SELECT contact_number, website_url, extra_contacts, payment_methods, other_urls, profile_picture, page_details FROM FacebookPages WHERE id = ?').get(page_id) as any;
@@ -6506,6 +6597,7 @@ function normalizeName(str: string): string {
                const query = `UPDATE FacebookPages SET ${updates.join(', ')} WHERE id = ?`;
                params.push(page_id);
                db.prepare(query).run(...params);
+               syncPageNumbers(page_id);
             }
           }
         }
@@ -6563,6 +6655,7 @@ function normalizeName(str: string): string {
                     }
                     db.prepare('UPDATE FacebookPages SET extra_contacts = ? WHERE id = ?').run(updatedExtra, page_id);
                   }
+                  syncPageNumbers(page_id);
                 }
               }
             } catch (err) {
