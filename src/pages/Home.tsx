@@ -560,7 +560,7 @@ export default function Home() {
                   {(stats?.totalPagesScanned || 0).toLocaleString()}
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Total Pages Indexed
+                  Total Pages Scanned
                 </span>
               </div>
 
@@ -573,7 +573,7 @@ export default function Home() {
                   {(stats?.totalFraudPages || 0).toLocaleString()}
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Blacklisted Pages
+                  Fraud Pages
                 </span>
               </div>
 
@@ -599,7 +599,7 @@ export default function Home() {
                   {stats?.todaysDetectedFraudPages || 0}
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Flagged Today
+                  New Scams Today
                 </span>
               </div>
             </div>
