@@ -608,4 +608,37 @@ for (const stmt of indexStatements) {
   }
 }
 
+// -------------------------------------------------------------------------
+// AUTO-HEAL: Purge any invalid Facebook URLs added as pages (e.g., photo, posts, reels)
+// -------------------------------------------------------------------------
+try {
+  const invalidPatterns = [
+    '%facebook.com/photo%', '%facebook.com/permalink.php%', '%facebook.com/posts%', 
+    '%facebook.com/groups%', '%facebook.com/reels%', '%facebook.com/stories%', 
+    '%facebook.com/watch%', '%facebook.com/videos%', '%fb.com/photo%', 
+    '%fb.com/permalink.php%', '%fb.com/posts%', '%fb.com/groups%', 
+    '%fb.com/reels%', '%fb.com/stories%', '%fb.com/watch%', '%fb.com/videos%',
+    '%?fbid=%', '%&fbid=%', '%?story_fbid=%', '%&story_fbid=%'
+  ];
+
+  const placeholders = invalidPatterns.map(() => 'facebook_url LIKE ?').join(' OR ');
+  const invalidPages = db.prepare(`
+    SELECT id, facebook_url FROM FacebookPages 
+    WHERE ${placeholders}
+  `).all(...invalidPatterns) as { id: string, facebook_url: string }[];
+
+  if (invalidPages.length > 0) {
+    const pageIds = invalidPages.map(p => p.id);
+    const idPlaceholders = pageIds.map(() => '?').join(',');
+
+    db.prepare(`DELETE FROM Reviews WHERE page_id IN (${idPlaceholders})`).run(...pageIds);
+    db.prepare(`DELETE FROM Claims WHERE page_id IN (${idPlaceholders})`).run(...pageIds);
+    db.prepare(`DELETE FROM FacebookPages WHERE id IN (${idPlaceholders})`).run(...pageIds);
+
+    console.log(`[Auto-Heal] Successfully purged ${invalidPages.length} invalid page URLs (photos, posts, groups) from database:`, invalidPages.map(p => p.facebook_url));
+  }
+} catch (e) {
+  console.error('[Auto-Heal] Failed to purge invalid Facebook URL page records:', e);
+}
+
 export { db };

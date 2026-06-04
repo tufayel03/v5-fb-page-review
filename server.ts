@@ -5239,11 +5239,55 @@ function normalizeName(str: string): string {
   });
 
   
+  function isValidFacebookPageUrl(url: string): boolean {
+    try {
+      const lowerUrl = url.toLowerCase();
+      // Must be a Facebook domain
+      if (!lowerUrl.includes('facebook.com') && !lowerUrl.includes('fb.com')) {
+        return false;
+      }
+
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname.toLowerCase();
+
+      // List of path segments that represent non-page / non-profile elements
+      const invalidSegments = [
+        'photo', 'photos', 'photo.php', 'permalink.php', 'posts', 'groups', 'reels', 
+        'stories', 'watch', 'videos', 'videos.php', 'share', 'events', 'marketplace', 
+        'gaming', 'ads', 'messages', 'notifications', 'checkpoint', 'login', 
+        'recover', 'search', 'settings'
+      ];
+
+      // Split path into segments
+      const segments = pathname.split('/').filter(Boolean);
+      
+      for (const seg of segments) {
+        if (invalidSegments.includes(seg)) {
+          return false;
+        }
+      }
+
+      // Check query parameters to prevent photo/post fbid
+      if (urlObj.searchParams.has('fbid') || urlObj.searchParams.has('story_fbid')) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function scrapeAndAddFacebookPage(facebookUrl: string): Promise<any | null> {
     try {
       let url = facebookUrl.trim();
       if (!url.startsWith('http')) {
         url = 'https://' + url;
+      }
+
+      if (!isValidFacebookPageUrl(url)) {
+        console.warn(`[AutoScrape] Blocked scraping of invalid Facebook page URL: ${url}`);
+        return null;
       }
 
       // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
@@ -5820,6 +5864,13 @@ function normalizeName(str: string): string {
       url = 'https://' + url;
     }
 
+    if (!isValidFacebookPageUrl(url)) {
+      return res.json({ 
+        success: false, 
+        error: 'Invalid Facebook Page/Profile URL. Posts, photos, videos, groups, and reels are not allowed.' 
+      });
+    }
+
     // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
     if (url.includes('profile.php') && url.includes('id=')) {
       try {
@@ -6062,6 +6113,10 @@ function normalizeName(str: string): string {
       let normalized = rawTrim;
       if (!normalized.startsWith('http')) {
         normalized = 'https://' + normalized;
+      }
+
+      if (!isValidFacebookPageUrl(normalized)) {
+        return res.json([]);
       }
 
       // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
