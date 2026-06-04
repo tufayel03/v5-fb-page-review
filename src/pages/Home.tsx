@@ -556,7 +556,7 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Action Buttons: Report a Fraud / Claim My Page */}
+          {/* Action Buttons: Report a Fraud / Write a Review */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4 mb-4 select-none">
             <Link
               to="/write-review?type=fraud"
@@ -566,11 +566,11 @@ export default function Home() {
               Report a Fraud
             </Link>
             <Link
-              to="/business/register"
+              to="/write-review"
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:text-emerald-800 rounded-2xl font-bold hover:bg-emerald-100 active:scale-98 transition-all shadow-3xs"
             >
-              <ShieldCheck className="h-5 w-5 text-[#0fbc6f] shrink-0" />
-              Claim My Page
+              <SquarePen className="h-5 w-5 text-[#0fbc6f] shrink-0" />
+              Write a Review
             </Link>
           </div>
 
