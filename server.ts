@@ -7549,6 +7549,95 @@ async function startServer() {
     }
   });
 
+  // ==================== SEO: robots.txt ====================
+  app.get('/robots.txt', (req, res) => {
+    const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://fbpagereview.com/sitemap.xml`;
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(robotsTxt);
+  });
+
+  // ==================== SEO: sitemap.xml ====================
+  app.get('/sitemap.xml', (req, res) => {
+    try {
+      const BASE = 'https://fbpagereview.com';
+      const today = new Date().toISOString().split('T')[0];
+
+      // Static pages
+      const staticPages = [
+        { loc: '/', priority: '1.0', changefreq: 'daily' },
+        { loc: '/fraud-pages', priority: '0.9', changefreq: 'daily' },
+        { loc: '/write-review', priority: '0.7', changefreq: 'monthly' },
+        { loc: '/search', priority: '0.6', changefreq: 'daily' },
+      ];
+
+      // Dynamic page profiles - only public, non-deleted pages
+      const pages = db.prepare(`
+        SELECT id, updated_at FROM FacebookPages 
+        WHERE is_deleted = 0 
+        ORDER BY updated_at DESC 
+        LIMIT 5000
+      `).all() as any[];
+
+      // Blog posts
+      const blogs = db.prepare(`
+        SELECT slug, updated_at FROM BlogPosts 
+        WHERE status = 'published' 
+        ORDER BY updated_at DESC 
+        LIMIT 500
+      `).all() as any[];
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+      for (const sp of staticPages) {
+        xml += `
+  <url>
+    <loc>${BASE}${sp.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${sp.changefreq}</changefreq>
+    <priority>${sp.priority}</priority>
+  </url>`;
+      }
+
+      for (const page of pages) {
+        const lastmod = page.updated_at ? page.updated_at.split('T')[0].split(' ')[0] : today;
+        xml += `
+  <url>
+    <loc>${BASE}/page/${page.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+      }
+
+      for (const blog of blogs) {
+        const lastmod = blog.updated_at ? blog.updated_at.split('T')[0].split(' ')[0] : today;
+        xml += `
+  <url>
+    <loc>${BASE}/blog/${blog.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+      }
+
+      xml += `\n</urlset>`;
+
+      res.setHeader('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (e) {
+      console.error('Error generating sitemap:', e);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -7605,6 +7694,95 @@ async function startServer() {
           const row = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('head_verification_code') as any;
           if (row && row.value) {
             html = html.replace('</head>', `${row.value}\n</head>`);
+          }
+
+          // ==================== SEO: Dynamic meta tags for crawlers ====================
+          const reqPath = req.path;
+          const BASE_URL = 'https://fbpagereview.com';
+
+          // Update canonical URL for the current page
+          html = html.replace(
+            /<link rel="canonical" href="[^"]*" \/>/,
+            `<link rel="canonical" href="${BASE_URL}${reqPath === '/' ? '/' : reqPath}" />`
+          );
+          html = html.replace(
+            /<meta property="og:url" content="[^"]*" \/>/,
+            `<meta property="og:url" content="${BASE_URL}${reqPath === '/' ? '/' : reqPath}" />`
+          );
+
+          // Inject page-specific meta tags for /page/:id routes
+          const pageMatch = reqPath.match(/^\/page\/([\w-]+)$/);
+          if (pageMatch) {
+            const pageId = pageMatch[1];
+            const pageData = db.prepare(`
+              SELECT current_name, current_username, profile_picture, category,
+                     status_badge, review_count, average_rating, fraud_report_count
+              FROM FacebookPages WHERE id = ? AND is_deleted = 0
+            `).get(pageId) as any;
+
+            if (pageData) {
+              const pageName = pageData.current_name || 'Unknown Page';
+              const badge = pageData.status_badge || 'Under Review';
+              const rating = pageData.average_rating ? Number(pageData.average_rating).toFixed(1) : '0.0';
+              const reviews = pageData.review_count || 0;
+              const fraudReports = pageData.fraud_report_count || 0;
+              const category = pageData.category || 'Facebook Page';
+
+              const pageTitle = `${pageName} - ${badge} | FB Page Review`;
+              let pageDesc = `Check ${pageName} on FB Page Review. Status: ${badge}. Rating: ${rating}/5 from ${reviews} reviews.`;
+              if (fraudReports > 0) {
+                pageDesc += ` ${fraudReports} fraud reports filed.`;
+              }
+              pageDesc += ` Category: ${category}. Verify before you pay.`;
+
+              const pageImage = pageData.profile_picture || `${BASE_URL}/og-preview.png`;
+
+              html = html.replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`);
+              html = html.replace(
+                /<meta name="description" content="[^"]*" \/>/,
+                `<meta name="description" content="${pageDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:title" content="[^"]*" \/>/,
+                `<meta property="og:title" content="${pageTitle.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:description" content="[^"]*" \/>/,
+                `<meta property="og:description" content="${pageDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:image" content="[^"]*" \/>/,
+                `<meta property="og:image" content="${pageImage}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:title" content="[^"]*" \/>/,
+                `<meta name="twitter:title" content="${pageTitle.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:description" content="[^"]*" \/>/,
+                `<meta name="twitter:description" content="${pageDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:image" content="[^"]*" \/>/,
+                `<meta name="twitter:image" content="${pageImage}" />`
+              );
+            }
+          }
+
+          // Inject meta for /fraud-pages
+          if (reqPath === '/fraud-pages') {
+            html = html.replace(/<title>[^<]*<\/title>/, `<title>Fraud Pages Directory | FB Page Review</title>`);
+            html = html.replace(
+              /<meta name="description" content="[^"]*" \/>/,
+              `<meta name="description" content="Browse the complete directory of reported fraud Facebook pages in Bangladesh. Check seller fraud reports, bKash scam numbers, and protect yourself from online fraud." />`
+            );
+          }
+
+          // Inject meta for /search
+          if (reqPath === '/search') {
+            const q = (req.query.q as string) || '';
+            const searchTitle = q ? `Search results for '${q}' | FB Page Review` : 'Search Facebook Pages | FB Page Review';
+            html = html.replace(/<title>[^<]*<\/title>/, `<title>${searchTitle.replace(/"/g, '&quot;')}</title>`);
           }
 
           res.setHeader('Content-Type', 'text/html');
