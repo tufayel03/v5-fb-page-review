@@ -7580,7 +7580,6 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
       // Dynamic page profiles - only public, non-deleted pages
       const pages = db.prepare(`
         SELECT id, updated_at FROM FacebookPages 
-        WHERE is_deleted = 0 
         ORDER BY updated_at DESC 
         LIMIT 5000
       `).all() as any[];
@@ -7717,7 +7716,7 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
             const pageData = db.prepare(`
               SELECT current_name, current_username, profile_picture, category,
                      status_badge, review_count, average_rating, fraud_report_count
-              FROM FacebookPages WHERE id = ? AND is_deleted = 0
+              FROM FacebookPages WHERE id = ?
             `).get(pageId) as any;
 
             if (pageData) {
