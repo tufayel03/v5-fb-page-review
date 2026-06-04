@@ -2122,7 +2122,7 @@ function normalizeName(str: string): string {
           UPDATE FacebookPages 
           SET status_badge = 'Reported as Fraud', 
               is_fraud_listed = 1, 
-              fraud_listed_at = CURRENT_TIMESTAMP, 
+              fraud_listed_at = COALESCE(fraud_listed_at, CURRENT_TIMESTAMP), 
               trust_score = -100 
           WHERE id IN (${placeholders})
         `).run(...ids);
@@ -2307,7 +2307,7 @@ function normalizeName(str: string): string {
               status_badge = ?,
               trust_score = ?,
               is_fraud_listed = ?,
-              fraud_listed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE fraud_listed_at END,
+              fraud_listed_at = CASE WHEN ? = 1 THEN COALESCE(fraud_listed_at, CURRENT_TIMESTAMP) ELSE NULL END,
               contact_number = COALESCE(?, contact_number),
               extra_contacts = COALESCE(?, extra_contacts),
               payment_methods = COALESCE(?, payment_methods),
@@ -3433,7 +3433,9 @@ function normalizeName(str: string): string {
         }
       }
 
-      const fraudListedAtVal = resolvedIsFraudListed ? new Date().toISOString() : (prevPage ? prevPage.fraud_listed_at : null);
+      const fraudListedAtVal = resolvedIsFraudListed 
+        ? (prevPage && prevPage.fraud_listed_at ? prevPage.fraud_listed_at : new Date().toISOString()) 
+        : null;
 
       if (business_verification_status !== undefined) {
           db.prepare(`
@@ -3945,7 +3947,7 @@ function normalizeName(str: string): string {
         UPDATE FacebookPages 
         SET status_badge = 'Reported as Fraud', 
             is_fraud_listed = 1, 
-            fraud_listed_at = CURRENT_TIMESTAMP, 
+            fraud_listed_at = COALESCE(fraud_listed_at, CURRENT_TIMESTAMP), 
             trust_score = -100 
         WHERE id = ?
       `).run(req.params.id);
