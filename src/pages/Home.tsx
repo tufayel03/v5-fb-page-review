@@ -66,6 +66,12 @@ export default function Home() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [popularSearches, setPopularSearches] = useState<string[]>([]);
   const [publicSettings, setPublicSettings] = useState<any>({});
+  const [stats, setStats] = useState<any>({
+    totalPagesScanned: 0,
+    totalFraudNumbers: 0,
+    totalFraudPages: 0,
+    todaysDetectedFraudPages: 0,
+  });
   const scrollContainerRefPages = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -116,6 +122,16 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => setPublicSettings(data || {}))
       .catch((err) => console.error("Error fetching public settings:", err));
+
+    fetch("/api/public-stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data || {
+        totalPagesScanned: 0,
+        totalFraudNumbers: 0,
+        totalFraudPages: 0,
+        todaysDetectedFraudPages: 0,
+      }))
+      .catch((err) => console.error("Error fetching public stats:", err));
   }, []);
 
   useEffect(() => {
@@ -532,59 +548,59 @@ export default function Home() {
           <AdBanner htmlCode={publicSettings.homepage_adsterra_code} />
           <AdBanner htmlCode={publicSettings.homepage_adsense_code} />
 
-          {/* Core Feature Row with Divider spacing */}
+          {/* Real-time Statistics Cards */}
           <div className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-100 select-none">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 md:divide-x md:divide-slate-200">
-              {/* Feature 1 */}
-              <div className="flex flex-col items-center text-center px-2">
-                <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-3 border border-emerald-100/50 shadow-3xs">
-                  <ShieldCheck className="w-[19px] h-[19px]" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {/* Card 1: Total Pages Scanned */}
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+                <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-2.5 border border-emerald-100/50">
+                  <Search className="w-5 h-5" />
                 </div>
-                <h4 className="font-extrabold text-[13.5px] text-slate-800 mb-1">
-                  Avoid Scams
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal max-w-[150px]">
-                  Check risky pages before you buy
-                </p>
+                <span className="text-xl md:text-2xl font-black text-slate-900 leading-none">
+                  {(stats?.totalPagesScanned || 0).toLocaleString()}
+                </span>
+                <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
+                  Total Pages Indexed
+                </span>
               </div>
 
-              {/* Feature 2 */}
-              <div className="flex flex-col items-center text-center px-2">
-                <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-3 border border-emerald-100/50 shadow-3xs">
-                  <Users className="w-[19px] h-[19px]" />
+              {/* Card 2: Total Fraud Pages */}
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+                <div className="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 border border-rose-100/50">
+                  <ShieldAlert className="w-5 h-5" />
                 </div>
-                <h4 className="font-extrabold text-[13.5px] text-slate-800 mb-1">
-                  Real Reviews
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal max-w-[150px]">
-                  See real experiences from buyers
-                </p>
+                <span className="text-xl md:text-2xl font-black text-rose-600 leading-none">
+                  {(stats?.totalFraudPages || 0).toLocaleString()}
+                </span>
+                <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
+                  Blacklisted Pages
+                </span>
               </div>
 
-              {/* Feature 3 */}
-              <div className="flex flex-col items-center text-center px-2">
-                <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-3 border border-emerald-100/50 shadow-3xs">
-                  <Lock className="w-[19px] h-[19px]" />
+              {/* Card 3: Total Fraud Numbers */}
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+                <div className="w-11 h-11 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 border border-amber-100/50">
+                  <AlertTriangle className="w-5 h-5" />
                 </div>
-                <h4 className="font-extrabold text-[13.5px] text-slate-800 mb-1">
-                  Trusted Community
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal max-w-[150px]">
-                  Help build safer shopping pages
-                </p>
+                <span className="text-xl md:text-2xl font-black text-amber-600 leading-none">
+                  {(stats?.totalFraudNumbers || 0).toLocaleString()}
+                </span>
+                <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
+                  Scam Numbers
+                </span>
               </div>
 
-              {/* Feature 4 */}
-              <div className="flex flex-col items-center text-center px-2">
-                <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-3 border border-emerald-100/50 shadow-3xs">
-                  <Zap className="w-[19px] h-[19px]" />
+              {/* Card 4: Today's Scams Detected */}
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+                <div className="w-11 h-11 rounded-full bg-[#f0f9ff] text-sky-600 flex items-center justify-center mb-2.5 border border-sky-100/50">
+                  <Zap className="w-5 h-5" />
                 </div>
-                <h4 className="font-extrabold text-[13.5px] text-slate-800 mb-1">
-                  Fast & Easy
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal max-w-[150px]">
-                  Quick search, instant results
-                </p>
+                <span className="text-xl md:text-2xl font-black text-sky-600 leading-none">
+                  {stats?.todaysDetectedFraudPages || 0}
+                </span>
+                <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
+                  Flagged Today
+                </span>
               </div>
             </div>
           </div>

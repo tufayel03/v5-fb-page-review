@@ -6255,6 +6255,25 @@ function normalizeName(str: string): string {
     res.json(pages);
   });
 
+  app.get('/api/public-stats', (req, res) => {
+    try {
+      const totalPages = (db.prepare('SELECT COUNT(*) as count FROM FacebookPages').get() as any).count;
+      const totalFraudNumbers = (db.prepare("SELECT COUNT(*) as count FROM ContactNumbers WHERE status = 'Reported'").get() as any).count;
+      const totalFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE is_fraud_listed = 1 OR status_badge = 'Reported as Fraud'").get() as any).count;
+      const todaysFraudPages = (db.prepare("SELECT COUNT(*) as count FROM FacebookPages WHERE (is_fraud_listed = 1 OR status_badge = 'Reported as Fraud') AND date(fraud_listed_at) = date('now')").get() as any).count;
+
+      res.json({
+        totalPagesScanned: totalPages,
+        totalFraudNumbers: totalFraudNumbers,
+        totalFraudPages: totalFraudPages,
+        todaysDetectedFraudPages: todaysFraudPages
+      });
+    } catch (e: any) {
+      console.error('[public-stats] error:', e);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   app.get('/api/reviews/recent', (req, res) => {
     const reviews = db.prepare(`
       SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
