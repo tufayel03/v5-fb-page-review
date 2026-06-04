@@ -6366,7 +6366,8 @@ async function startServer() {
       pages = pages.map(p => ({ ...p, fraud_report_count: Math.max(p.fraud_report_count || 0, p.dynamic_fraud_count || 0) }));
 
       if (q && typeof q === 'string') {
-        const isLikeNumber = /^[\d\+\-\s]+$/.test(q.trim());
+        const digitsOnly = q.replace(/\D/g, '');
+        const isLikeNumber = /^[\d\+\-\s]+$/.test(q.trim()) && digitsOnly.length >= 11;
         if (isLikeNumber) {
           const numSearchTerm = `%${q.trim()}%`;
           const contacts = db.prepare("SELECT id, number, type, status, fraud_report_count, linked_page_ids FROM ContactNumbers WHERE number LIKE ? AND status IN ('Reported', 'Suspicious') LIMIT 5").all(numSearchTerm) as any[];
@@ -6403,7 +6404,8 @@ async function startServer() {
 
     const rawTrim = q.trim();
     const queryLike = `%${rawTrim}%`;
-    const isLikeNumber = /^[\d\+\-\s]+$/.test(rawTrim) || (rawTrim.replace(/\D/g, '').length >= 8);
+    const searchDigits = rawTrim.replace(/\D/g, '');
+    const isLikeNumber = searchDigits.length >= 11;
 
     // If search query is a Facebook URL, check if we have it or scrape & add it instantly
     const isUrlQuery = rawTrim.toLowerCase().startsWith('http') ||
@@ -6491,11 +6493,11 @@ async function startServer() {
     // Normalize phone numbers to make contact search bulletproof
     const digits = rawTrim.replace(/\D/g, '');
     let basePhone = '';
-    let phoneLike1 = queryLike;
-    let phoneLike2 = queryLike;
-    let phoneLike3 = queryLike;
+    let phoneLike1 = '%__NEVER_MATCH_PHONE__%';
+    let phoneLike2 = '%__NEVER_MATCH_PHONE__%';
+    let phoneLike3 = '%__NEVER_MATCH_PHONE__%';
 
-    if (digits.length >= 8 && digits.length <= 15) {
+    if (digits.length >= 11 && digits.length <= 15) {
       if (digits.startsWith('0')) {
         basePhone = digits.substring(1);
       } else if (digits.startsWith('880')) {
