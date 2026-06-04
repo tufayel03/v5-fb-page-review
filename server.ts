@@ -3294,7 +3294,7 @@ async function startServer() {
         }
       }
 
-      let determinedStatus = 'Reported';
+      let determinedStatus = 'Normal';
       if (page.is_fraud_listed === 1) {
         determinedStatus = 'Reported';
       } else if (page.status_badge) {
@@ -3306,9 +3306,48 @@ async function startServer() {
         } else if (sb.includes('gold') || sb.includes('verified') || sb.includes('safe') || sb.includes('marketplace')) {
           determinedStatus = 'Verified Merchant';
         } else {
-          determinedStatus = 'Reported';
+          determinedStatus = 'Normal';
         }
       }
+
+      const severity = (s: string) => {
+        if (s === 'Reported') return 3;
+        if (s === 'Suspicious') return 2;
+        if (s === 'Verified Merchant' || s === 'Safe') return 1;
+        return 0; // 'Normal'
+      };
+
+      const recalculateStatus = (links: string[]) => {
+        let calculatedStatus = 'Normal';
+        let maxSeverity = 0;
+
+        if (links.length > 0) {
+          const placeholders = links.map(() => '?').join(',');
+          const linkedPages = db.prepare(`SELECT status_badge, is_fraud_listed FROM FacebookPages WHERE id IN (${placeholders})`).all(...links) as any[];
+          
+          for (const lp of linkedPages) {
+            let lpStatus = 'Normal';
+            if (lp.is_fraud_listed === 1) {
+              lpStatus = 'Reported';
+            } else if (lp.status_badge) {
+              const sb = lp.status_badge.toLowerCase();
+              if (sb.includes('fraud') || sb.includes('reported')) {
+                lpStatus = 'Reported';
+              } else if (sb.includes('suspicious')) {
+                lpStatus = 'Suspicious';
+              } else if (sb.includes('gold') || sb.includes('verified') || sb.includes('safe') || sb.includes('marketplace')) {
+                lpStatus = 'Verified Merchant';
+              }
+            }
+            const sev = severity(lpStatus);
+            if (sev > maxSeverity) {
+              maxSeverity = sev;
+              calculatedStatus = lpStatus;
+            }
+          }
+        }
+        return calculatedStatus;
+      };
 
       // Unlink numbers no longer associated with this page
       const existingLinked = db.prepare('SELECT id, number, linked_page_ids FROM ContactNumbers WHERE linked_page_ids LIKE ?').all(`%${pageId}%`) as any[];
@@ -3316,8 +3355,9 @@ async function startServer() {
         if (!allPageNumbers.has(item.number)) {
           let links = item.linked_page_ids ? item.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
           links = links.filter((id: string) => id !== pageId);
-          db.prepare('UPDATE ContactNumbers SET linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-            .run(links.join(','), links.length, item.id);
+          const newStatus = recalculateStatus(links);
+          db.prepare('UPDATE ContactNumbers SET status = ?, linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(newStatus, links.join(','), links.length, item.id);
         }
       }
 
@@ -3330,16 +3370,7 @@ async function startServer() {
             links.push(pageId);
           }
 
-          let newStatus = existingCn.status || 'Normal';
-          const severity = (s: string) => {
-            if (s === 'Reported') return 3;
-            if (s === 'Suspicious') return 2;
-            if (s === 'Verified Merchant' || s === 'Safe') return 1;
-            return 0;
-          };
-          if (severity(determinedStatus) > severity(newStatus) || newStatus === 'Normal') {
-            newStatus = determinedStatus;
-          }
+          const newStatus = recalculateStatus(links);
 
           db.prepare('UPDATE ContactNumbers SET type = ?, status = ?, linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(info.type, newStatus, links.join(','), links.length, existingCn.id);

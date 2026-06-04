@@ -155,9 +155,9 @@ export default function Home() {
 
       intervalId = setInterval(() => {
         if (!isPaused) {
-          container.scrollLeft += 1;
+          container.scrollLeft += 1.5;
         }
-      }, 30);
+      }, 25);
 
       return () => {
         clearInterval(intervalId);
