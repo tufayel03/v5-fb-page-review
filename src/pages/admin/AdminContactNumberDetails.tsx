@@ -90,7 +90,7 @@ export default function AdminContactNumberDetails() {
       </div>
     );
 
-  const linkedCount = number.linked_page_count || linkedPages.length || 0;
+  const linkedCount = pagesLoaded ? linkedPages.length : (number.linked_page_count || 0);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

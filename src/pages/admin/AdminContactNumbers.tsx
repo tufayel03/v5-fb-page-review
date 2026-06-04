@@ -715,9 +715,7 @@ export default function AdminContactNumbers() {
 
                       <td className="px-6 py-4 text-center">
                         {(() => {
-                          const count = number.linked_page_ids
-                            ? number.linked_page_ids.split(',').filter((s: string) => s.trim()).length
-                            : 0;
+                          const count = number.linked_pages_info ? number.linked_pages_info.length : 0;
                           return count > 0 ? (
                             <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-black ${
                               count >= 3
