@@ -248,13 +248,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
 
-      // 4. Extract Email Address
+      // 4. Extract Email Address (Disabled)
       let emailAddress = '';
-      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-      const emailMatches = text.match(emailRegex);
-      if (emailMatches && emailMatches.length > 0) {
-        emailAddress = emailMatches[0];
-      }
 
       // Send the extracted details back to the popup!
       sendResponse({

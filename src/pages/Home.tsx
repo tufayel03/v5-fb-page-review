@@ -116,16 +116,52 @@ export default function Home() {
 
   const isDesktopDropdownOpen = showDropdown && !isMobileSearchActive;
   
-  const scrollPages = (direction: "left" | "right") => {
-    if (scrollContainerRefPages.current) {
-      const container = scrollContainerRefPages.current;
-      const scrollAmount = direction === "left" ? -300 : 300;
-      container.scrollBy({
-        left: scrollAmount,
-        behavior: "smooth",
-      });
+  useEffect(() => {
+    let intervalId: any;
+    const container = scrollContainerRefPages.current;
+    if (container && recentPages.length > 0) {
+      let isPaused = false;
+      let resumeTimeout: any;
+      
+      const onMouseEnter = () => { isPaused = true; };
+      const onMouseLeave = () => { isPaused = false; };
+      const onTouchStart = () => { 
+        isPaused = true; 
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+      };
+      const onTouchEnd = () => {
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+        resumeTimeout = setTimeout(() => {
+          isPaused = false;
+        }, 1500);
+      };
+
+      container.addEventListener("mouseenter", onMouseEnter);
+      container.addEventListener("mouseleave", onMouseLeave);
+      container.addEventListener("touchstart", onTouchStart);
+      container.addEventListener("touchend", onTouchEnd);
+
+      intervalId = setInterval(() => {
+        if (!isPaused) {
+          const maxScroll = container.scrollWidth - container.clientWidth;
+          if (container.scrollLeft >= maxScroll - 1) {
+            container.scrollLeft = 0;
+          } else {
+            container.scrollLeft += 0.8;
+          }
+        }
+      }, 30);
+
+      return () => {
+        clearInterval(intervalId);
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+        container.removeEventListener("mouseenter", onMouseEnter);
+        container.removeEventListener("mouseleave", onMouseLeave);
+        container.removeEventListener("touchstart", onTouchStart);
+        container.removeEventListener("touchend", onTouchEnd);
+      };
     }
-  };
+  }, [recentPages, isMobile]);
 
   useEffect(() => {
     fetch("/api/pages/recent-fraud")
@@ -732,26 +768,8 @@ export default function Home() {
               Currently no threat entries indexed.
             </div>
           ) : (
-            /* User-controlled horizontal scrollable carousel with navigation buttons */
-            <div className="w-full relative py-2 group select-none">
-              {/* Left Navigation Button */}
-              <button
-                onClick={() => scrollPages("left")}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 active:scale-95 transition-all cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 duration-200"
-                aria-label="Scroll Left"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              {/* Right Navigation Button */}
-              <button
-                onClick={() => scrollPages("right")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 active:scale-95 transition-all cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 duration-200"
-                aria-label="Scroll Right"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
+            /* Auto-scrollable horizontal carousel controlled by touch/swipe */
+            <div className="w-full relative py-2 select-none">
               {/* Left and Right overlay gradients for beautiful fade effect */}
               <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />

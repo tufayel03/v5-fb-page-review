@@ -568,10 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveDraft();
     }
     
-    if (data.emailAddress && !pageDetails.value.includes(data.emailAddress)) {
-      pageDetails.value = `Email: ${data.emailAddress}\n` + pageDetails.value;
-      saveDraft();
-    }
+    // Email address parsing is disabled
 
     // Check if page already exists in database
     if (data.url) {
