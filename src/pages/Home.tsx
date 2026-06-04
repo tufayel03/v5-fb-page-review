@@ -581,40 +581,40 @@ export default function Home() {
           {/* Real-time Statistics Cards */}
           <div className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-100 select-none">
             {/* Mobile View: High-density compact flat bar without outer border/card container */}
-            <div className="grid grid-cols-4 md:hidden py-2 divide-x divide-slate-200">
-              <div className="flex flex-col items-center justify-center text-center px-1">
-                <Search className="w-3.5 h-3.5 text-[#0fbc6f] mb-1" />
-                <span className="text-[13px] font-black text-slate-900 leading-none">
+            <div className="grid grid-cols-4 md:hidden py-3 divide-x divide-slate-200 -mx-2 px-2">
+              <div className="flex flex-col items-center justify-center text-center px-0.5">
+                <Search className="w-5 h-5 text-[#0fbc6f] mb-1.5" />
+                <span className="text-[16px] font-black text-slate-900 leading-none">
                   <AnimatedCounter value={stats?.totalPagesScanned || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
                   Pages Scanned
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center text-center px-1">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 mb-1" />
-                <span className="text-[13px] font-black text-rose-600 leading-none">
+              <div className="flex flex-col items-center justify-center text-center px-0.5">
+                <ShieldAlert className="w-5 h-5 text-rose-600 mb-1.5" />
+                <span className="text-[16px] font-black text-rose-600 leading-none">
                   <AnimatedCounter value={stats?.totalFraudPages || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
                   Fraud Pages
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center text-center px-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mb-1" />
-                <span className="text-[13px] font-black text-amber-600 leading-none">
+              <div className="flex flex-col items-center justify-center text-center px-0.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mb-1.5" />
+                <span className="text-[16px] font-black text-amber-600 leading-none">
                   <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
                   Scam Numbers
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center text-center px-1">
-                <Zap className="w-3.5 h-3.5 text-sky-600 mb-1" />
-                <span className="text-[13px] font-black text-sky-600 leading-none">
+              <div className="flex flex-col items-center justify-center text-center px-0.5">
+                <Zap className="w-5 h-5 text-sky-600 mb-1.5" />
+                <span className="text-[16px] font-black text-sky-600 leading-none">
                   <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
                   Scams Today
                 </span>
               </div>
