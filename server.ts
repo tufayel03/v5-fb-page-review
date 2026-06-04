@@ -1662,9 +1662,9 @@ async function startServer() {
       let params: any[] = [];
 
       if (search) {
-        whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ?)');
+        whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ? OR contact_number LIKE ? OR extra_contacts LIKE ? OR official_contact_number LIKE ? OR payment_methods LIKE ?)');
         const likePattern = `%${search}%`;
-        params.push(likePattern, likePattern);
+        params.push(likePattern, likePattern, likePattern, likePattern, likePattern, likePattern);
       }
 
       if (dateRange !== 'all') {
@@ -1743,7 +1743,7 @@ async function startServer() {
       const total = countResult ? countResult.total : 0;
 
       const items = db.prepare(`
-        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count, added_by, profile_picture 
+        SELECT id, current_name, facebook_url, status_badge, created_at, claim_status, total_reviews, fraud_report_count, added_by, profile_picture, contact_number, payment_methods 
         FROM FacebookPages 
         ${whereSQL} 
         ORDER BY ${sortBy} ${sortOrder} 
@@ -3096,9 +3096,9 @@ async function startServer() {
           let params: any[] = [];
 
           if (search) {
-            whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ?)');
+            whereClauses.push('(current_name LIKE ? OR facebook_url LIKE ? OR contact_number LIKE ? OR extra_contacts LIKE ? OR official_contact_number LIKE ? OR payment_methods LIKE ?)');
             const likePattern = `%${search}%`;
-            params.push(likePattern, likePattern);
+            params.push(likePattern, likePattern, likePattern, likePattern, likePattern, likePattern);
           }
 
           if (dateRange !== 'all') {

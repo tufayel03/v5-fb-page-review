@@ -51,6 +51,36 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
   );
 }
 
+interface AnimatedCounterProps {
+  value: number;
+  duration?: number;
+}
+
+function AnimatedCounter({ value, duration = 1200 }: AnimatedCounterProps) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    let animationFrameId: number;
+    
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      setCount(Math.floor(progress * value));
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(step);
+      }
+    };
+    
+    animationFrameId = window.requestAnimationFrame(step);
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [value, duration]);
+
+  return <>{count.toLocaleString()}</>;
+}
+
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -550,14 +580,14 @@ export default function Home() {
 
           {/* Real-time Statistics Cards */}
           <div className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-100 select-none">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="flex flex-row md:grid md:grid-cols-4 overflow-x-auto md:overflow-x-visible snap-x pb-3 md:pb-0 gap-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
               {/* Card 1: Total Pages Scanned */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
                 <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-2.5 border border-emerald-100/50">
                   <Search className="w-5 h-5" />
                 </div>
                 <span className="text-xl md:text-2xl font-black text-slate-900 leading-none">
-                  {(stats?.totalPagesScanned || 0).toLocaleString()}
+                  <AnimatedCounter value={stats?.totalPagesScanned || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
                   Total Pages Scanned
@@ -565,12 +595,12 @@ export default function Home() {
               </div>
 
               {/* Card 2: Total Fraud Pages */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
                 <div className="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 border border-rose-100/50">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <span className="text-xl md:text-2xl font-black text-rose-600 leading-none">
-                  {(stats?.totalFraudPages || 0).toLocaleString()}
+                  <AnimatedCounter value={stats?.totalFraudPages || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
                   Fraud Pages
@@ -578,12 +608,12 @@ export default function Home() {
               </div>
 
               {/* Card 3: Total Fraud Numbers */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
                 <div className="w-11 h-11 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 border border-amber-100/50">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <span className="text-xl md:text-2xl font-black text-amber-600 leading-none">
-                  {(stats?.totalFraudNumbers || 0).toLocaleString()}
+                  <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
                   Scam Numbers
@@ -591,12 +621,12 @@ export default function Home() {
               </div>
 
               {/* Card 4: Today's Scams Detected */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
                 <div className="w-11 h-11 rounded-full bg-[#f0f9ff] text-sky-600 flex items-center justify-center mb-2.5 border border-sky-100/50">
                   <Zap className="w-5 h-5" />
                 </div>
                 <span className="text-xl md:text-2xl font-black text-sky-600 leading-none">
-                  {stats?.todaysDetectedFraudPages || 0}
+                  <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
                   New Scams Today

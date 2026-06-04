@@ -1164,6 +1164,33 @@ export default function AdminPages() {
                             >
                               {page.facebook_url}
                             </a>
+                            {page.contact_number && (
+                              <div className="text-[11px] text-slate-350 mt-1 flex items-center gap-1">
+                                <span className="text-slate-500 font-medium text-[10px]">Contact:</span>
+                                <span className="font-mono text-emerald-400">{page.contact_number}</span>
+                              </div>
+                            )}
+                            {page.payment_methods && (() => {
+                              try {
+                                const parsed = typeof page.payment_methods === 'string' && page.payment_methods.startsWith('[')
+                                  ? JSON.parse(page.payment_methods)
+                                  : page.payment_methods;
+                                const methods = Array.isArray(parsed) ? parsed : (typeof parsed === 'string' ? parsed.split(',').map((s: string)=>s.trim()).filter(Boolean) : []);
+                                if (methods.length > 0) {
+                                  return (
+                                    <div className="text-[10px] text-slate-400 mt-1 flex flex-wrap gap-1 items-center">
+                                      <span className="text-slate-500 font-medium text-[9px]">Payments:</span>
+                                      {methods.map((m: string, i: number) => (
+                                        <span key={i} className="px-1 py-0.5 bg-slate-800 text-slate-350 rounded border border-white/10 font-black text-[9px] uppercase tracking-wide">
+                                          {m}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  );
+                                }
+                              } catch(e) {}
+                              return null;
+                            })()}
                           </div>
                         </div>
                       </td>
