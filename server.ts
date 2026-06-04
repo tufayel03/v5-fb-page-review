@@ -6369,8 +6369,12 @@ async function startServer() {
         const isLikeNumber = /^[\d\+\-\s]+$/.test(q.trim());
         if (isLikeNumber) {
           const numSearchTerm = `%${q.trim()}%`;
-          const contacts = db.prepare("SELECT id, number, type, status, fraud_report_count FROM ContactNumbers WHERE number LIKE ? AND status IN ('Reported', 'Suspicious') LIMIT 5").all(numSearchTerm) as any[];
+          const contacts = db.prepare("SELECT id, number, type, status, fraud_report_count, linked_page_ids FROM ContactNumbers WHERE number LIKE ? AND status IN ('Reported', 'Suspicious') LIMIT 5").all(numSearchTerm) as any[];
           for (const contact of contacts) {
+            const links = contact.linked_page_ids ? contact.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+            if (links.length > 0) {
+              continue;
+            }
             pages.push({
               id: 'number-' + contact.id,
               current_name: contact.number,
@@ -6571,13 +6575,17 @@ async function startServer() {
     // Add standalone reported numbers if query resembles a number
     if (isLikeNumber) {
       const contacts = db.prepare(`
-          SELECT id, number, type, status, fraud_report_count 
+          SELECT id, number, type, status, fraud_report_count, linked_page_ids 
           FROM ContactNumbers 
           WHERE number LIKE ? OR number LIKE ? OR number LIKE ? OR number LIKE ?
           LIMIT 5
         `).all(queryLike, phoneLike1, phoneLike2, phoneLike3) as any[];
 
       for (const contact of contacts) {
+        const links = contact.linked_page_ids ? contact.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        if (links.length > 0) {
+          continue;
+        }
         if (pages.some((p: any) => p.current_name === contact.number || p.contact_number === contact.number)) {
           continue;
         }
