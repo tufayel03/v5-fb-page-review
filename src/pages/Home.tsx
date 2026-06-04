@@ -680,13 +680,13 @@ export default function Home() {
 
       {/* Main Content Layout */}
       <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-        {/* Recently Blacklisted Section */}
+        {/* Recently Detected Fraud Pages Section */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <ShieldAlert className="w-[21px] h-[21px] text-[#f43f5e] shrink-0" />
               <h2 className="text-[16px] sm:text-[18px] lg:text-[21px] font-black tracking-tight text-slate-900 leading-none">
-                Recently Blacklisted Fraud Pages
+                Recently Detected Fraud Pages
               </h2>
             </div>
             <Link
@@ -718,69 +718,14 @@ export default function Home() {
             <div className="bg-white p-6 rounded-2xl border border-slate-150 text-center text-slate-500 italic text-sm">
               Currently no threat entries indexed.
             </div>
-          ) : isMobile ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {recentPages.slice(0, 4).map((page) => {
-                const letter = page.current_name
-                  ? page.current_name.charAt(0).toUpperCase()
-                  : "F";
-                const listedDate = page.fraud_listed_at
-                  ? new Date(page.fraud_listed_at).toLocaleDateString("en", {
-                      day: "numeric",
-                      month: "short",
-                    })
-                  : "May 22";
-
-                return (
-                  <Link
-                    to={`/page/${page.id}`}
-                    key={page.id}
-                    className="flex flex-col bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-sm transition-all relative group"
-                  >
-                    <div className="flex items-center gap-3.5 mb-4">
-                      {page.profile_picture ? (
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-205 shrink-0 bg-slate-100">
-                          <img
-                            referrerPolicy="no-referrer"
-                            src={page.profile_picture}
-                            alt=""
-                            width="40"
-                            height="40"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-rose-50 text-[#f43f5e] border border-rose-200/60 flex items-center justify-center font-extrabold text-[15px] shrink-0 select-none">
-                          {letter}
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="font-extrabold text-slate-850 text-[13.5px] truncate leading-tight group-hover:text-[#f43f5e] transition-colors">
-                          {page.current_name}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[11px] text-slate-400 font-bold truncate">
-                            {listedDate}
-                          </span>
-                          <span className="shrink-0 bg-rose-50 text-[#f43f5e] border border-rose-100/85 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
-                            Fraud
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
           ) : (
-            /* PC Version: Smooth Infinite Scrolling Marquee Carousel */
+            /* Smooth Infinite Scrolling Marquee Carousel (Responsive: compact on mobile) */
             <div className="w-full overflow-hidden relative py-2 select-none">
               {/* Left and Right overlay gradients for beautiful fade effect */}
-              <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
+              <div className="absolute left-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
               
-              <div className="flex gap-4 w-max animate-[marquee_45s_linear_infinite] hover:[animation-play-state:paused] will-change-transform">
+              <div className="flex gap-3 md:gap-4 w-max animate-[marquee_45s_linear_infinite] hover:[animation-play-state:paused] will-change-transform">
                 {/* Duplicate items for a perfect seamless infinite loop */}
                 {[...recentPages, ...recentPages].map((page, index) => {
                   const letter = page.current_name
@@ -797,11 +742,11 @@ export default function Home() {
                     <Link
                       to={`/page/${page.id}`}
                       key={`${page.id}-${index}`}
-                      className="flex flex-col bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[240px] shrink-0"
+                      className="flex flex-col bg-white p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[185px] md:w-[240px] shrink-0"
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-2.5 md:gap-3.5">
                         {page.profile_picture ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-205 shrink-0 bg-slate-100">
+                          <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full overflow-hidden border border-slate-205 shrink-0 bg-slate-100">
                             <img
                               referrerPolicy="no-referrer"
                               src={page.profile_picture}
@@ -812,20 +757,20 @@ export default function Home() {
                             />
                           </div>
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-rose-50 text-[#f43f5e] border border-rose-200/60 flex items-center justify-center font-extrabold text-[15px] shrink-0 select-none">
+                          <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full bg-rose-50 text-[#f43f5e] border border-rose-200/60 flex items-center justify-center font-extrabold text-[12px] md:text-[15px] shrink-0 select-none">
                             {letter}
                           </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                          <div className="font-extrabold text-slate-850 text-[13.5px] truncate leading-tight group-hover:text-[#f43f5e] transition-colors">
+                          <div className="font-extrabold text-slate-850 text-xs md:text-[13.5px] truncate leading-tight group-hover:text-[#f43f5e] transition-colors">
                             {page.current_name}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className="text-[11px] text-slate-400 font-bold truncate">
+                          <div className="flex items-center gap-1 md:gap-1.5 mt-0.5 md:mt-1 flex-wrap">
+                            <span className="text-[10px] md:text-[11px] text-slate-400 font-bold truncate">
                               {listedDate}
                             </span>
-                            <span className="shrink-0 bg-rose-50 text-[#f43f5e] border border-rose-100/85 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
+                            <span className="shrink-0 bg-rose-50 text-[#f43f5e] border border-rose-100/85 text-[8px] md:text-[9px] font-black uppercase tracking-widest px-1 py-0.5 md:px-1.5 rounded-md">
                               Fraud
                             </span>
                           </div>
