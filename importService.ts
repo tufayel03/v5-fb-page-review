@@ -409,7 +409,6 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
       console.log(`[Google Sheet Crawler] Crawling metadata for "${currentName || 'Unknown'}" (${url})...`);
       const fbRes = await fetch(addFacebookLocale(url), {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           'Accept-Language': 'en-US,en;q=0.9',
         }
       });
@@ -457,11 +456,7 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
                 .replace(/&quot;/g, '"')
                 .replace(/&#039;/g, "'");
 
-              const imgRes = await fetch(ogImageUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                }
-              });
+              const imgRes = await fetch(ogImageUrl);
 
               if (imgRes.ok) {
                 const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
@@ -774,7 +769,6 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
               console.log(`[Google Sheet Crawler] Crawling new page metadata for "${pageName || 'Unknown'}" (${urlParam})...`);
               const fbRes = await fetch(addFacebookLocale(urlParam), {
                 headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
                   'Accept-Language': 'en-US,en;q=0.9',
                 }
               });
@@ -820,11 +814,7 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
                         .replace(/&quot;/g, '"')
                         .replace(/&#039;/g, "'");
 
-                      const imgRes = await fetch(ogImageUrl, {
-                        headers: {
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                        }
-                      });
+                      const imgRes = await fetch(ogImageUrl);
 
                       if (imgRes.ok) {
                         const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
