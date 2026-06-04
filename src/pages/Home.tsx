@@ -115,6 +115,17 @@ export default function Home() {
   }, []);
 
   const isDesktopDropdownOpen = showDropdown && !isMobileSearchActive;
+  
+  const scrollPages = (direction: "left" | "right") => {
+    if (scrollContainerRefPages.current) {
+      const container = scrollContainerRefPages.current;
+      const scrollAmount = direction === "left" ? -300 : 300;
+      container.scrollBy({
+        left: scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   useEffect(() => {
     fetch("/api/pages/recent-fraud")
@@ -244,6 +255,8 @@ export default function Home() {
       navigate(`/search?q=${encodeURIComponent(query)}`);
     }
   };
+
+  const displayedPages = isMobile ? recentPages.slice(0, 10) : recentPages.slice(0, 25);
 
   return (
     <div className="flex flex-col bg-slate-50 min-h-screen">
@@ -719,15 +732,35 @@ export default function Home() {
               Currently no threat entries indexed.
             </div>
           ) : (
-            /* Smooth Infinite Scrolling Marquee Carousel (Responsive: compact on mobile) */
-            <div className="w-full overflow-hidden relative py-2 select-none">
+            /* User-controlled horizontal scrollable carousel with navigation buttons */
+            <div className="w-full relative py-2 group select-none">
+              {/* Left Navigation Button */}
+              <button
+                onClick={() => scrollPages("left")}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 active:scale-95 transition-all cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 duration-200"
+                aria-label="Scroll Left"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Right Navigation Button */}
+              <button
+                onClick={() => scrollPages("right")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 hover:bg-white shadow-md border border-slate-200/80 flex items-center justify-center text-slate-700 hover:text-slate-900 active:scale-95 transition-all cursor-pointer md:opacity-0 md:group-hover:opacity-100 opacity-100 duration-200"
+                aria-label="Scroll Right"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
               {/* Left and Right overlay gradients for beautiful fade effect */}
-              <div className="absolute left-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-12 md:w-24 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
-              
-              <div className="flex gap-3 md:gap-4 w-max animate-[marquee_45s_linear_infinite] hover:[animation-play-state:paused] will-change-transform">
-                {/* Duplicate items for a perfect seamless infinite loop */}
-                {[...recentPages, ...recentPages].map((page, index) => {
+              <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
+
+              <div
+                ref={scrollContainerRefPages}
+                className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth py-1.5 px-4 snap-x"
+              >
+                {displayedPages.map((page, index) => {
                   const letter = page.current_name
                     ? page.current_name.charAt(0).toUpperCase()
                     : "F";
@@ -742,7 +775,7 @@ export default function Home() {
                     <Link
                       to={`/page/${page.id}`}
                       key={`${page.id}-${index}`}
-                      className="flex flex-col bg-white p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[185px] md:w-[240px] shrink-0"
+                      className="flex flex-col bg-white p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-slate-200/80 hover:border-slate-350 hover:shadow-md transition-all relative group w-[185px] md:w-[240px] shrink-0 snap-start"
                     >
                       <div className="flex items-center gap-2.5 md:gap-3.5">
                         {page.profile_picture ? (
