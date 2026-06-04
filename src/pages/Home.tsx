@@ -580,9 +580,50 @@ export default function Home() {
 
           {/* Real-time Statistics Cards */}
           <div className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-100 select-none">
-            <div className="flex flex-row md:grid md:grid-cols-4 overflow-x-auto md:overflow-x-visible snap-x pb-3 md:pb-0 gap-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
+            {/* Mobile View: High-density compact flat bar that fits perfectly on one line without side scrolling */}
+            <div className="grid grid-cols-4 md:hidden bg-white border border-slate-150 rounded-2xl py-3 divide-x divide-slate-100 shadow-3xs">
+              <div className="flex flex-col items-center justify-center text-center px-1">
+                <Search className="w-3.5 h-3.5 text-[#0fbc6f] mb-1" />
+                <span className="text-[13px] font-black text-slate-900 leading-none">
+                  <AnimatedCounter value={stats?.totalPagesScanned || 0} />
+                </span>
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
+                  Scanned
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-1">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 mb-1" />
+                <span className="text-[13px] font-black text-rose-600 leading-none">
+                  <AnimatedCounter value={stats?.totalFraudPages || 0} />
+                </span>
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
+                  Frauds
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mb-1" />
+                <span className="text-[13px] font-black text-amber-600 leading-none">
+                  <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
+                </span>
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
+                  Scam Nos
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center text-center px-1">
+                <Zap className="w-3.5 h-3.5 text-sky-600 mb-1" />
+                <span className="text-[13px] font-black text-sky-600 leading-none">
+                  <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
+                </span>
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
+                  New Today
+                </span>
+              </div>
+            </div>
+
+            {/* PC/Desktop View: Original layout untouched */}
+            <div className="hidden md:grid md:grid-cols-4 gap-6">
               {/* Card 1: Total Pages Scanned */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
                 <div className="w-11 h-11 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center mb-2.5 border border-emerald-100/50">
                   <Search className="w-5 h-5" />
                 </div>
@@ -595,7 +636,7 @@ export default function Home() {
               </div>
 
               {/* Card 2: Total Fraud Pages */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
                 <div className="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-2.5 border border-rose-100/50">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
@@ -608,7 +649,7 @@ export default function Home() {
               </div>
 
               {/* Card 3: Total Fraud Numbers */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
                 <div className="w-11 h-11 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 border border-amber-100/50">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
@@ -621,7 +662,7 @@ export default function Home() {
               </div>
 
               {/* Card 4: Today's Scams Detected */}
-              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200 min-w-[130px] md:min-w-0 flex-1 snap-start">
+              <div className="flex flex-col items-center text-center p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-3xs hover:shadow-xs transition-all duration-200">
                 <div className="w-11 h-11 rounded-full bg-[#f0f9ff] text-sky-600 flex items-center justify-center mb-2.5 border border-sky-100/50">
                   <Zap className="w-5 h-5" />
                 </div>
