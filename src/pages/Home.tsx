@@ -640,19 +640,19 @@ export default function Home() {
           </div>
 
           {/* Action Buttons: Report a Fraud / Write a Review */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4 mb-4 select-none">
+          <div className="flex flex-row items-center justify-center gap-3 sm:gap-4 px-4 mb-4 select-none">
             <Link
               to="/write-review?type=fraud"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-rose-50 border border-rose-200 text-rose-700 hover:text-rose-800 rounded-2xl font-bold hover:bg-rose-100 active:scale-98 transition-all shadow-3xs"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 bg-rose-50 border border-rose-200 text-rose-700 hover:text-rose-800 rounded-2xl font-bold text-sm sm:text-base hover:bg-rose-100 active:scale-98 transition-all shadow-3xs"
             >
-              <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0" />
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 shrink-0" />
               Report a Fraud
             </Link>
             <Link
               to="/write-review"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:text-emerald-800 rounded-2xl font-bold hover:bg-emerald-100 active:scale-98 transition-all shadow-3xs"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:text-emerald-800 rounded-2xl font-bold text-sm sm:text-base hover:bg-emerald-100 active:scale-98 transition-all shadow-3xs"
             >
-              <SquarePen className="h-5 w-5 text-[#0fbc6f] shrink-0" />
+              <SquarePen className="h-4 w-4 sm:h-5 sm:w-5 text-[#0fbc6f] shrink-0" />
               Write a Review
             </Link>
           </div>
