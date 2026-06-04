@@ -4148,10 +4148,42 @@ async function startServer() {
         ${baseQuery}
         ORDER BY ${finalSortColumn} ${sortOrder}
         LIMIT ? OFFSET ?
-      `).all(...params, limit, offset);
+      `).all(...params, limit, offset) as any[];
+
+      // Fetch names for all linked pages in this page's numbers
+      const allPageIds = new Set<string>();
+      for (const num of numbers) {
+        if (num.linked_page_ids) {
+          num.linked_page_ids.split(',').map((id: string) => id.trim()).filter(Boolean).forEach((id: string) => allPageIds.add(id));
+        }
+      }
+
+      const pageMap = new Map<string, { id: string; name: string }>();
+      if (allPageIds.size > 0) {
+        const pageIdsArray = Array.from(allPageIds);
+        const placeholders = pageIdsArray.map(() => '?').join(',');
+        const pages = db.prepare(`SELECT id, current_name FROM FacebookPages WHERE id IN (${placeholders})`).all(...pageIdsArray) as any[];
+        for (const p of pages) {
+          pageMap.set(p.id, { id: p.id, name: p.current_name });
+        }
+      }
+
+      // Attach linked page objects to each number in the response
+      const dataWithPages = numbers.map(num => {
+        const links = num.linked_page_ids
+          ? num.linked_page_ids.split(',').map((id: string) => id.trim()).filter(Boolean)
+          : [];
+        const linkedPagesInfo = links
+          .map((id: string) => pageMap.get(id))
+          .filter(Boolean);
+        return {
+          ...num,
+          linked_pages_info: linkedPagesInfo
+        };
+      });
 
       res.json({
-        data: numbers,
+        data: dataWithPages,
         totalCount,
         page,
         limit,

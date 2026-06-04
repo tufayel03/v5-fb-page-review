@@ -692,9 +692,25 @@ export default function AdminContactNumbers() {
                         <p className="font-bold text-white">
                           {number.number}
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {number.display_name || "No Name"}
-                        </p>
+                        <div className="text-xs mt-0.5 flex flex-wrap gap-1 text-slate-400">
+                          {number.linked_pages_info && number.linked_pages_info.length > 0 ? (
+                            number.linked_pages_info.map((p: any, idx: number) => (
+                              <React.Fragment key={p.id}>
+                                {idx > 0 && <span className="text-slate-600">, </span>}
+                                <Link
+                                  to={`/tufayel/pages/${p.id}`}
+                                  className="text-emerald-400 hover:text-emerald-300 hover:underline font-medium"
+                                >
+                                  {p.name || "Unknown Page"}
+                                </Link>
+                              </React.Fragment>
+                            ))
+                          ) : number.display_name ? (
+                            <span>{number.display_name}</span>
+                          ) : (
+                            <span className="text-slate-500 italic">No Name</span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 text-center">
