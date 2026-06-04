@@ -3317,45 +3317,89 @@ async function startServer() {
         return 0; // 'Normal'
       };
 
-      const recalculateStatus = (links: string[]) => {
+      const recalculateStatus = (links: string[], currentStatus: string = 'Normal') => {
+        if (links.length === 0) {
+          return currentStatus;
+        }
+
+        const placeholders = links.map(() => '?').join(',');
+        const linkedPages = db.prepare(`SELECT status_badge, is_fraud_listed FROM FacebookPages WHERE id IN (${placeholders})`).all(...links) as any[];
+
+        let hasNonReportedPositivePage = false;
         let calculatedStatus = 'Normal';
         let maxSeverity = 0;
 
-        if (links.length > 0) {
-          const placeholders = links.map(() => '?').join(',');
-          const linkedPages = db.prepare(`SELECT status_badge, is_fraud_listed FROM FacebookPages WHERE id IN (${placeholders})`).all(...links) as any[];
-          
+        for (const lp of linkedPages) {
+          let lpStatus = 'Normal';
+          if (lp.is_fraud_listed === 1) {
+            lpStatus = 'Reported';
+          } else if (lp.status_badge) {
+            const sb = lp.status_badge.toLowerCase();
+            if (sb.includes('fraud') || sb.includes('reported')) {
+              lpStatus = 'Reported';
+            } else if (sb.includes('suspicious')) {
+              lpStatus = 'Suspicious';
+              hasNonReportedPositivePage = true;
+            } else if (sb.includes('gold') || sb.includes('verified') || sb.includes('safe') || sb.includes('marketplace')) {
+              lpStatus = 'Verified Merchant';
+              hasNonReportedPositivePage = true;
+            } else {
+              lpStatus = 'Normal';
+              hasNonReportedPositivePage = true;
+            }
+          } else {
+            lpStatus = 'Normal';
+            hasNonReportedPositivePage = true;
+          }
+
+          const sev = severity(lpStatus);
+          if (sev > maxSeverity) {
+            maxSeverity = sev;
+            calculatedStatus = lpStatus;
+          }
+        }
+
+        // Rule: if number has linked pages, and if linked pages status is under review / suspicious / verified seller,
+        // then the number status CANNOT be reported.
+        if (calculatedStatus === 'Reported' && hasNonReportedPositivePage) {
+          let fallbackStatus = 'Normal';
+          let fallbackSev = 0;
           for (const lp of linkedPages) {
             let lpStatus = 'Normal';
+            let isReported = false;
             if (lp.is_fraud_listed === 1) {
-              lpStatus = 'Reported';
+              isReported = true;
             } else if (lp.status_badge) {
               const sb = lp.status_badge.toLowerCase();
               if (sb.includes('fraud') || sb.includes('reported')) {
-                lpStatus = 'Reported';
+                isReported = true;
               } else if (sb.includes('suspicious')) {
                 lpStatus = 'Suspicious';
               } else if (sb.includes('gold') || sb.includes('verified') || sb.includes('safe') || sb.includes('marketplace')) {
                 lpStatus = 'Verified Merchant';
               }
             }
-            const sev = severity(lpStatus);
-            if (sev > maxSeverity) {
-              maxSeverity = sev;
-              calculatedStatus = lpStatus;
+            if (!isReported) {
+              const sev = severity(lpStatus);
+              if (sev > fallbackSev) {
+                fallbackSev = sev;
+                fallbackStatus = lpStatus;
+              }
             }
           }
+          calculatedStatus = fallbackStatus;
         }
+
         return calculatedStatus;
       };
 
       // Unlink numbers no longer associated with this page
-      const existingLinked = db.prepare('SELECT id, number, linked_page_ids FROM ContactNumbers WHERE linked_page_ids LIKE ?').all(`%${pageId}%`) as any[];
+      const existingLinked = db.prepare('SELECT id, number, linked_page_ids, status FROM ContactNumbers WHERE linked_page_ids LIKE ?').all(`%${pageId}%`) as any[];
       for (const item of existingLinked) {
         if (!allPageNumbers.has(item.number)) {
           let links = item.linked_page_ids ? item.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
           links = links.filter((id: string) => id !== pageId);
-          const newStatus = recalculateStatus(links);
+          const newStatus = recalculateStatus(links, item.status);
           db.prepare('UPDATE ContactNumbers SET status = ?, linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(newStatus, links.join(','), links.length, item.id);
         }
@@ -3370,15 +3414,17 @@ async function startServer() {
             links.push(pageId);
           }
 
-          const newStatus = recalculateStatus(links);
+          const newStatus = recalculateStatus(links, existingCn.status);
 
           db.prepare('UPDATE ContactNumbers SET type = ?, status = ?, linked_page_ids = ?, linked_page_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(info.type, newStatus, links.join(','), links.length, existingCn.id);
         } else {
+          const links = [pageId];
+          const newStatus = recalculateStatus(links, determinedStatus);
           db.prepare(`
             INSERT INTO ContactNumbers (id, number, type, linked_page_ids, linked_page_count, status, added_by, created_at, updated_at)
             VALUES (?, ?, ?, ?, 1, ?, 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          `).run(crypto.randomUUID(), info.number, info.type, pageId, determinedStatus);
+          `).run(crypto.randomUUID(), info.number, info.type, pageId, newStatus);
         }
       }
     } catch (err) {
