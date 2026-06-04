@@ -642,15 +642,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).catch(e => console.error('[Extension] Failed to silent-update fallback page:', e));
           }
           
-          // Pre-fill existing data from database conditionally
+          // Pre-fill and merge existing data from database
           let updated = false;
-          if (data.page.contactNumber && !contactNumber.value.trim()) {
-            contactNumber.value = data.page.contactNumber;
-            updated = true;
+          if (data.page.contactNumber) {
+            const dbNums = data.page.contactNumber.split(',').map(s => s.trim()).filter(Boolean);
+            const currentNums = contactNumber.value.split(',').map(s => s.trim()).filter(Boolean);
+            const mergedNums = Array.from(new Set([...currentNums, ...dbNums]));
+            const mergedStr = mergedNums.join(', ');
+            if (contactNumber.value.trim() !== mergedStr) {
+              contactNumber.value = mergedStr;
+              updated = true;
+            }
           }
-          if (data.page.paymentMethods && !paymentMethods.value.trim()) {
-            paymentMethods.value = data.page.paymentMethods;
-            updated = true;
+          if (data.page.paymentMethods) {
+            const dbPms = data.page.paymentMethods.split(',').map(s => s.trim()).filter(Boolean);
+            const currentPms = paymentMethods.value.split(',').map(s => s.trim()).filter(Boolean);
+            const mergedPms = Array.from(new Set([...currentPms, ...dbPms]));
+            const mergedStr = mergedPms.join(', ');
+            if (paymentMethods.value.trim() !== mergedStr) {
+              paymentMethods.value = mergedStr;
+              updated = true;
+            }
           }
           if (data.page.pageDetails && !pageDetails.value.trim()) {
             pageDetails.value = data.page.pageDetails;
