@@ -7,260 +7,163 @@ It acts as the ultimate guide to help developers in future sessions hit the grou
 running without requiring any manual explanation.
 
 -----------------------------------------------------------------------------
-1. SYSTEM ARCHITECTURE & FILE STRUCTURE
+1. DIRECTORY STRUCTURE & FILE ROLES
 -----------------------------------------------------------------------------
 The project is a Web Application (Vite + React frontend & Node.js + Express backend) 
 integrated with a specialized SQLite database and supported by a custom Chrome Extension 
-for administrative scraping/ fraud monitoring.
+for administrative scraping / fraud monitoring.
 
-Core Files & Roles:
-* /server.ts
-  Contains the backend API server (Express + TypeScript), including routing, 
-  moderator validation middleware, HTML entities decoding, and Image optimization.
-* /database.ts
-  Sets up and manages the SQLite database, handles connection settings, and exposes
-  prepared statements for high-performance WAL-mode transactions.
-* /chrome-extension/
-  * manifest.json: Extension configuration, permissions (activeTab, storage, scripting),
-                   matches facebook.com for the content script, current version (v1.4).
-  * content.js: Scrapes Facebook page name, page URL, and profile picture from the DOM.
-  * popup.html: Compact, high-fidelity dark-mode SaaS UI styled to perfectly match 
-                 the fbpagereview.com website theme (deep blue #050b18 & brand green #0fbc6f).
-  * popup.js: Handles extension authentication, checks database status in real-time,
-              populates input fields, and posts data securely to the backend API.
-* /chrome-extension.zip
-  The packed archive of the extension folder, ready to be extracted and loaded into Chrome.
+A. Backend Core:
+* /server.ts: The core entry point. Handles Express setup, API routing, moderator middlewares,
+  image processing (Sharp), shortlink resolution, Facebook scraping, Google Sheets sync schedules,
+  and DB transactions.
+* /database.ts: Creates SQLite tables, enables WAL mode, configures indices on all primary/foreign keys,
+  runs database migrations (e.g. adding columns), and auto-heals corrupted records on startup.
+* /importService.ts: Handles bulk Excel/CSV row importing for pages and contact numbers.
+* /business_endpoints.ts: Business owner features like updating business profiles, category management.
+* /fraud_endpoints.ts: Extensible module for fraud logs.
 
------------------------------------------------------------------------------
-2. DATABASE SCHEMA (SQLite in WAL Mode)
------------------------------------------------------------------------------
-Table: FacebookPages
-* id (TEXT, Primary Key): Unique identifier of the tracked page.
-* current_name (TEXT): UTF-8 decoded page title (e.g. including Bangla strings).
-* facebook_url (TEXT, Unique): Scraped page URL (canonical identifier).
-* contact_number (TEXT): Main scraped or manual mobile number.
-* extra_contacts (TEXT): Comma-separated alternative contact numbers.
-* payment_methods (TEXT): Comma-separated payment methods (e.g. bkash, nagad, rocket).
-* page_details (TEXT): Page details and custom notes.
-* status_badge (TEXT): The page's current verified status:
-  - 'Reported as Fraud' (Trust Score: -100)
-  - 'Verified Marketplace Seller' (Trust Score: 100)
-  - 'Under Review' (Trust Score: 0)
-* trust_score (INTEGER): Trust indicator between -100 and 100.
-* is_fraud_listed (INTEGER): Boolean flag (1 for fraud, 0 otherwise).
-* profile_picture (TEXT): WebP optimized filename located on the server (e.g. uploads/profile-id.webp).
+B. Chrome Extension (/chrome-extension/):
+* manifest.json: Configures standard activeTab, scripting, cookies, host permissions (facebook.com),
+  and details popup files.
+* content.js: Extracts page URL, name, and profile pictures from Facebook DOM (SVG image tags guest bypass).
+* popup.html: Compact dark-theme admin UI (#050b18 background) matching fbpagereview.com design.
+* popup.js: Handles login authentication, fetches current page state from backend database, pre-fills
+  inputs, and submits status/contact details directly to the VPS.
 
------------------------------------------------------------------------------
-3. CHROME EXTENSION SCRAEPR LOGIC (content.js)
------------------------------------------------------------------------------
-To avoid capturing the administrator's own top navigation profile avatar (a common FB bug),
-the scraper enforces a strict main container scoping rule:
-
-1. mainContainer Isolation:
-   The script locates `document.querySelector('[role="main"]')` to ensure it only scans the
-   main page content wrapper and completely ignores global header banners, chats, and top bars.
-2. SVG <image> Extraction:
-   Modern Facebook headers render profile avatars within SVG `<image xlink:href>` tags rather than standard `<img>`.
-   The scraper scans the mainContainer for `<image>` elements containing 'scontent' with common profile dimensions
-   (e.g., 'p160x160', 'p200x200', 'p320x320') and falls back to standard images if SVG is not found.
-3. UTF-8 Bangla Decoding:
-   Scraped titles often contain Bangla characters encoded as numeric HTML entities.
-   The backend's `decodeHTMLEntities()` handles converting these safely into standard UTF-8 Bangla text,
-   ensuring names like "ঊর্মি ফ্যাশন গ্যালারী বান্টি বাজার" display natively.
+C. React SPA Frontend (/src/):
+* main.tsx & App.tsx: Entry points & React Router configuration.
+* /src/pages/
+  - Home.tsx: Landing page displaying the search bar, category grids, stats, and infinite marquee.
+  - Dashboard.tsx: Public profile statistics and verified badges lists.
+  - GlobalSearch.tsx: Consolidated directory search page.
+  - PageProfile.tsx: Public detailed view of a Facebook Page (reviews, trust details, dispute stats).
+  - WriteReview.tsx: User form for filing review details with images, amounts, and be-half options.
+  - FraudDirectory.tsx & FraudList.tsx: Public indices showing blacklisted fraud entities.
+  - Login.tsx, Register.tsx, ForgotPassword.tsx, ResetPassword.tsx: Auth components.
+  - Blog.tsx & BlogPost.tsx: Public-facing blog layout.
+* /src/pages/admin/ (Administrator Dashboard pages):
+  - AdminDashboard.tsx: Overall stats panel (users, claims, reviews, pages).
+  - AdminPages.tsx: Primary page directory list with URL-driven persistent pagination state.
+  - AdminPageDetails.tsx: Edit panel for a page (change status, edit profile photo, manage contacts).
+  - AdminContactNumbers.tsx: Contact number manager showing linked pages as links with accurate count badges.
+  - AdminContactNumberDetails.tsx: Details view for a phone number with owner and page link mappings.
+  - AdminReviews.tsx & AdminReviewDetails.tsx: Moderation table for incoming reviews.
+  - AdminUsers.tsx: User account role configuration.
+  - AdminPageClaims.tsx & AdminPageClaimDetails.tsx: Claim request review center.
+  - AdminDisputes.tsx & AdminDisputeDetails.tsx: Disputes raised by page owners against reviews.
+  - AdminMediaLibrary.tsx: Uploaded media resource files.
+  - AdminLogs.tsx: Operational audit logs.
+  - AdminSettings.tsx: System configs, security options, and database backup generator.
+  - AdminGoogleSheetSync.tsx: Sheets sync configuration, auto-intervals, and raw logs.
+  - AdminBulkImport.tsx: Upload module for Excel templates.
+* /src/pages/business/ (Business Owner space):
+  - BusinessLayout.tsx, BusinessOverview.tsx: Workspace wrapper & stats.
+  - BusinessPages.tsx: Claims list of claimed pages.
+  - BusinessReviews.tsx: Customer review answers.
+  - BusinessContactNumbers.tsx: Business contact number manager.
+  - BusinessSettings.tsx & BusinessProfileInfo.tsx: Business metadata editors.
 
 -----------------------------------------------------------------------------
-4. BACKEND API ENDPOINTS FOR CHROME EXTENSION
+2. COMPLETE DATABASE SCHEMA (SQLite WAL Mode)
 -----------------------------------------------------------------------------
-The extension securely communicates with the backend via two main endpoints:
+Below is the full table mapping configured in database.ts:
 
-A. GET `/api/admin/chrome-extension/check-page?url=<facebook_url>`
-   - Authenticated with JWT token (`requireModerator` middleware).
-   - Searches the database by the URL to check if the page is already registered.
-   - Returns JSON: { exists: true/false, page: { status, contactNumber, paymentMethods, pageDetails } }.
-   - If the page exists, the extension's popup dynamically updates its UI:
-     * Displays a glowing neon status badge (Red for Fraud, Gold for Verified, Green for Under Review).
-     * Automatically pre-fills all input fields (contact number, payments, notes) with their database state.
-     * Updates button actions (e.g., "⭐ Verified Seller" updates to "⭐ Update Verified", etc.).
-
-B. POST `/api/admin/chrome-extension/add-page`
-   - Authenticated with JWT token (`requireModerator`).
-   - Receives payload: { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails }.
-   - Validates roles: Automatically maps lowercase database roles like `'admin'` to `'Super Admin'`
-     to ensure seamless extension authentication compatibility.
-   - Legacy entity decoder handles converting HTML strings to pristine UTF-8 text.
-   - High-Performance Image Optimization:
-     If the page is new or has a new profilePictureUrl, the server fetches the image and runs
-     `sharp` to resize it to `300x300` and save it directly in `uploads/` as a lightweight WebP image.
-   - Trust score mapping:
-     * 'Reported as Fraud' -> trust_score = -100, status_badge = 'Reported as Fraud'
-     * 'Verified Marketplace Seller' -> trust_score = 100, status_badge = 'Verified Marketplace Seller'
-     * 'Under Review' -> trust_score = 0, status_badge = 'Under Review'
+1. Users: Stores admin, moderator, business owner, and user accounts.
+   - id (TEXT, PK): Unique UUID.
+   - full_name (TEXT), username (TEXT, Unique), email (TEXT, Unique), password_hash (TEXT).
+   - role (TEXT): 'admin', 'moderator', 'business_owner', 'user'.
+   - reset_token (TEXT), reset_token_expires (DATETIME).
+2. FacebookPages: The core table cataloging indexed Facebook profiles.
+   - id (TEXT, PK): UUID.
+   - current_name (TEXT): Canonical page name.
+   - facebook_url (TEXT, Unique): Canonical URL.
+   - profile_picture (TEXT): WebP filename (uploads/...).
+   - status_badge (TEXT): 'Under Review', 'Verified Marketplace Seller', 'Suspicious', 'Reported as Fraud', 'Old/Dead Page'.
+   - trust_score (INTEGER): -100 to 100 indicator.
+   - is_fraud_listed (INTEGER): 0 or 1 indicator.
+   - contact_number (TEXT), extra_contacts (TEXT), payment_methods (TEXT), page_details (TEXT).
+   - website_url (TEXT), owner_id (TEXT, FK -> Users.id), claim_status (TEXT).
+   - average_rating (REAL), total_reviews (INTEGER).
+3. Reviews: User submissions about business transaction experiences.
+   - id (TEXT, PK), page_id (FK), user_id (FK), star_rating (INTEGER).
+   - title (TEXT), description (TEXT), status (TEXT: 'Approved', 'Pending', 'Rejected').
+   - bkash_number (TEXT), order_amount (TEXT), proof_image (TEXT).
+   - is_on_behalf (INTEGER), on_behalf_name (TEXT).
+4. ContactNumbers: Aggregated phone numbers associated with one or more pages.
+   - id (TEXT, PK), number (TEXT, Unique).
+   - type (TEXT: 'bKash', 'Nagad', 'Rocket', 'Personal', 'Agent').
+   - display_name (TEXT): User-defined name or page fallback name.
+   - linked_page_ids (TEXT): Comma-separated list of UUIDs.
+   - linked_page_count (INTEGER): Dynamic count of active pages.
+   - status (TEXT: 'Normal', 'Suspicious', 'Reported').
+   - admin_note (TEXT).
+5. Claims: Page ownership claims filed by business users.
+   - id (TEXT, PK), page_id (FK), user_id (FK), status (TEXT).
+6. Disputes: Dispute requests filed against reviews.
+   - id (TEXT, PK), page_id (TEXT), review_id (TEXT), status (TEXT).
+7. OwnerReplies: Business owner comments on page reviews.
+8. SearchQueries: Tracks user searches (query, count, updated_at).
+9. GoogleSheetSyncSettings: Configurations for automated imports.
+10. AdminLogs: Action details audit tracking.
 
 -----------------------------------------------------------------------------
-5. DEPLOYMENT & VPS OPERATIONS
+3. CRAWLER PIPELINE & GUEST BYPASS ROADBLOCKS
+-----------------------------------------------------------------------------
+The central function is `scrapeAndAddFacebookPage(url)` in server.ts:
+
+1. Canonical URL Conversion:
+   - Legacy URLs (like `facebook.com/123` or `profile.php?id=123`) are converted into SEO-friendly format `/people/Page/id/`.
+   - URL shortlinks (`facebook.com/share/X`) are followed via high-performance curl requests to parse final target URLs.
+2. Deduplication:
+   - Uses ID extraction to check database existence before executing scrapers, preventing duplication.
+3. Multi-Tier Scraping Fallbacks:
+   - Tier 1: Pulls the public Page Plugin widget iframe via curl to read clean HTML.
+   - Tier 2: Crawls public SEO page directly using guest headers.
+   - Tier 3: Passes crawls via a Google Translate proxy to bypass VPS IP restrictions.
+   - Tier 4: Public Graph API redirects.
+4. Image Optimization:
+   - Validates images through `sharp().metadata()`. Invalid formats are skipped.
+   - Saves processed avatars as optimized 300x300 WebP files.
+5. Multilingual Login-Wall Detection:
+   - Inspects page titles for keywords ("Log in", "लॉग इन", "সাইন আপ", "পাহण्यासाठी") and defaults page titles to the username to avoid saving junk names.
+6. Exact Title Parsing:
+   - Saves titles with exact dashes and punctuation intact (e.g. `Lovely Mart - লাভলি মার্ট`) without stripping symbols or forcing capitalization.
+
+-----------------------------------------------------------------------------
+4. FRONTEND UX & PERSISTENT ROUTING
+-----------------------------------------------------------------------------
+* Persistent URL Query Params:
+  - In `AdminPages.tsx`, pagination, filters, and searches are managed through React Router's `useSearchParams`.
+  - Details views handle browser back navigation via `navigate(-1)` to preserve pagination context.
+* Infinite Home Carousel:
+  - Scrolling marquee list containing fraud cards animated via pure CSS `translate3d` (hardware-accelerated looping). Pauses on hover.
+* Contact Number Mappings:
+  - The contact table displays linked page names as active links.
+  - Counts the number of active, non-deleted pages correctly in real-time.
+
+-----------------------------------------------------------------------------
+5. DELETION & DYNAMIC CLEANUP LOGIC (RECENT UPDATES v0.08 & v0.09)
+-----------------------------------------------------------------------------
+To ensure data is always synchronized and deleted pages do not leave ghost records:
+1. Deletion Hook:
+   - When a page is deleted from the Admin panel, `unlinkPagesFromContactNumbers(pageIds)` runs inside the SQLite transaction.
+   - It updates all associated `ContactNumbers` rows, removing the deleted page ID, reducing the `linked_page_count`, and recalculating the phone number's status badge.
+2. Dynamic Badge & Name:
+   - Display counts and link list names rely on the actual existing pages returned from the database rather than legacy string lengths.
+3. Database Startup Healer:
+   - Automatically unescapes Unicode sequences and checks database rows on launch to purge invalid links and restore Bangla texts.
+
+-----------------------------------------------------------------------------
+6. DEPLOYMENT & PRODUCTION MANAGEMENT
 -----------------------------------------------------------------------------
 * Hosting Platform: Oracle Cloud Ubuntu VPS.
 * Production IP: `168.138.115.223`
 * Systemd Service: `fbpagereview.service`
 * Deployment Commands:
-  To deploy any local code modifications, push changes to the `main` branch.
-  On the VPS, pull the main branch and rebuild Vite assets and server bundles:
   $ git pull origin main
   $ npm run build
   $ sudo systemctl restart fbpagereview.service
-
-* AI-Assistant One-Click VPS Deployment Command:
-  When the user asks the assistant to update or deploy to the VPS, the AI assistant can execute the following bash command directly on the host system to run the full remote build and restart the service in one click:
+* Automated VPS Deployment Script (Run from local project directory):
   $ ssh -i /home/tufayel/Videos/sshkey.key ubuntu@168.138.115.223 "sudo -u fbpagereview -i -- sh -c 'cd /home/fbpagereview/htdocs/fbpagereview.com && git pull origin main && PATH=/home/fbpagereview/.nvm/versions/node/v22.22.3/bin:\$PATH npm run build' && sudo systemctl restart fbpagereview.service"
-
------------------------------------------------------------------------------
-6. UPDATING & TESTING EXTENSION CHANGES
------------------------------------------------------------------------------
-1. Extract `/home/tufayel/Videos/fb page review/chrome-extension.zip`.
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. If not already active, toggle "Developer mode" in the top right.
-4. Click "Load unpacked" and select the `chrome-extension/` directory.
-5. If updating an existing version, simply overwrite the unpacked files on your drive
-   and click the circular **Reload (🔄)** icon on the extension's card.
-6. The current version (v1.4) features:
-   - Full layout optimization avoiding any vertical scrollbar.
-   - Side-by-side action buttons for quick marketplace verification & review tracking.
-   - Dedicated `textarea` notes field sized to match spacious typing requirements.
-   - Color styling seamlessly aligned with your main homepage layout.
-
------------------------------------------------------------------------------
-7. ADVANCED SEARCH & TIMELINE FILTER SYSTEM
------------------------------------------------------------------------------
-* Facebook Pages Filter Criteria:
-  - Specific Status Badge: Filter directly by "Reported as Fraud", "Verified Marketplace Seller", or "Under Review".
-  - Claim Status: Filter claimed or unclaimed pages.
-  - Added Time (Timeline Filters):
-    - Preset intervals: "Last 7 Days", "Last 15 Days", "Last 30 Days", "Last 6 Months".
-    - Dynamic Custom Range: Allows selecting a start date and an end date using inline calendar date pickers.
-* Export Consistency:
-  - All status and timeline date filter choices are automatically preserved and carried over to the Excel export (`/api/admin/pages/export`) to generate custom-tailored reports!
-
------------------------------------------------------------------------------
-8. LIVE REDIRECTION CHECK & OLD/DEAD PAGES WORKFLOW
------------------------------------------------------------------------------
-* Checking Live Relocations:
-  - Inside the Admin Pages list, select any number of pages and choose the bulk action "🔍 Check Name/URL Redirects".
-  - Click "Apply to Chosen" to trigger the backend scraper (`/api/admin/pages/check-redirects`).
-  - The checker fetches the live Facebook URLs, follows any redirects, and parses the canonical `<link rel="canonical">` or `<meta property="og:url">` along with the live profile name.
-* Tracing URL/Name updates:
-  - If a page has changed its unique Username/URL or display Name, it displays in a high-fidelity modal as "URL CHANGED", "NAME CHANGED", or "BOTH CHANGED".
-* Confirming & Listing Replacements:
-  - Admin confirms and applies changes by clicking "Apply & List New Pages".
-  - The backend:
-    1. Updates the old page's status to 'Old/Dead Page'.
-    2. Lists the new page with its active name & URL while keeping reviews, metadata, and the original status (e.g. Reported as Fraud, Under Review).
-    3. Old pages are preserved in the database (never deleted) and tagged as 'Old/Dead Page'.
-  - Added filter '💀 Old/Dead Pages' in the dashboard status filter to easily view, review, and track them at any time!
-
------------------------------------------------------------------------------
-9. LOCAL REDIRECT & NAME CHECKER UTILITIES
------------------------------------------------------------------------------
-This system includes two specialized local link and name checkers that run on your local network (where Facebook blocks are less strict) to avoid datacenter IP bans.
-
-UTILITY 1: Local Sheet Link Checker (check-redirects.js)
-* What it does: 
-  Processes a local exported Excel (`.xlsx`) or CSV sheet of Facebook pages. It crawls each page using keep-alive browser-mimicking headers, follows redirects, handles the `/about` guest bypass, detects URL/Name relocations, and outputs a formatted report.
-* How to run:
-  1. Export your tracked pages to an Excel or CSV file from the Admin dashboard.
-  2. Put the exported file inside this project root directory.
-  3. Run the following command:
-     $ node check-redirects.js
-  4. The script will automatically scan the file and save the changes to 'url_changes_report.xlsx' (or .csv).
-
-UTILITY 2: Direct Interactive Database Checker (local-db-checker.js)
-* What it does: 
-  The ultimate automated utility. It automatically connects to your live production VPS using your SSH key, securely downloads the active 'data.db' SQLite file, scans all live pages locally, shows detected changes, prompts you to review them, and then automatically updates the database, uploads it back to the VPS, and restarts the live service in a single click!
-* How to run:
-  1. Ensure your SSH Key is placed at '/home/tufayel/Videos/sshkey.key' (or edit the SSH_KEY_PATH inside the script).
-  2. Run the following command:
-     $ node local-db-checker.js
-  3. Review the reported changes in the terminal.
-  4. Type 'yes' (or 'y') when prompted:
-     "Do you want to apply these changes to the database and upload to VPS? (yes/no): "
-  5. The utility will automatically rewrite the local DB transaction, upload it back, and restart your live VPS site instantly!
-=============================================================================
-10. DUAL-MODE PROFILE PICTURE MANAGEMENT (SYNC vs UPDATE)
------------------------------------------------------------------------------
-* Multi-Tier Profile Picture Scraper:
-  The crawler pipeline follows a four-tier fallback structure:
-  1) Public Page Plugin widget iframe -> 2) Direct Page HTML -> 3) Google Translate Proxy -> 4) Graph API redirect.
-* Tiered Validation (Sharp Integration):
-  Every fallback tier immediately validates downloaded content using `sharp().metadata()`. If Facebook or the CDN blocks the request and returns an invalid format (like a 403 Forbidden HTML error page instead of a binary image), the system automatically deletes the corrupt file and falls back to the next tier without throwing/crashing.
-* Sync Mode (Auto-Fetch Profile Pictures):
-  Exclusively targets page records with no existing profile picture (where the database lists the picture as NULL, "", or "failed"). Skips pages that already have valid pictures.
-* Update Mode (Update Profile Pictures):
-  Forced refresh of existing images. Fetches the latest profile picture from Facebook, automatically deletes both the old full-sized WebP and old thumbnail WebP files from the server's uploads/ folder to prevent storage bloat, and updates the database record.
-
------------------------------------------------------------------------------
-11. AUTOMATIC FACEBOOK SHARE SHORTLINK RESOLUTION
------------------------------------------------------------------------------
-* Shortlink Redirect Resolution:
-  Users searching/adding pages using Facebook share shortlinks (e.g., `https://www.facebook.com/share/18Dhxpq5Je`) are supported natively.
-* Execution Flow:
-  - The backend detects `/share/` in the input URL query.
-  - Resolves the 302 location header using a lightweight curl request.
-  - Automatically cleans parameters from the resolved location URL (stripping `?rdid=...` and `#...`).
-  - The central scraper (`scrapeAndAddFacebookPage`) continues using the resolved canonical page URL, avoiding wrong shortlink usernames as names, and seamlessly matching existing page records in the database.
-=============================================================================
-12. MULTILINGUAL LOGIN-WALL FILTER & IGNORE JUNK NAMES
------------------------------------------------------------------------------
-* Bulletproof Multilingual Filter:
-  Prevent saving incorrect localized page names (like "Log in or sign up to view" / "पाहण्यासाठी लॉग इन किंवा সাইন আপ") when a page is private, restricted, or unreachable from the VPS network location.
-* Detection & Interception:
-  The central scraper inspects the parsed rawTitle using an extensive multilingual keyword check:
-  - English: "log in", "sign up", "sign in", "roadblock", "checkpoint".
-  - Marathi/Hindi: "लॉग इन" (log in), "साইন আপ" (sign up), "पाहण्यासाठी" (to view).
-  - Bengali: "লগ ইন", "সাইন আপ", "প্রবেশ করুন", "নিবন্ধন করুন".
-* Dynamic Defaulting:
-  If a login wall title is detected, the title is safely cleared and the scraper falls back to beautifully formatting the Facebook username segment (e.g. `wasifinityofficial` -> `Wasifinityofficial`), keeping the directory clean and professional.
-
------------------------------------------------------------------------------
-13. ADMIN PANEL BROWSER CACHE OPTIMIZATION
------------------------------------------------------------------------------
-* Natively Enabled Caching:
-  Removed the mounting-time cache-busting timestamp (`?t=${cacheBust}`) from profile pictures within the main Admin directory list (`AdminPages.tsx`).
-* Resource & Bandwidth Preservation:
-  This allows modern browsers to natively and aggressively cache all page avatars locally. Admin navigation, pagination, sorting, and search now load profile images instantly from local disk cache, saving massive VPS server bandwidth and drastically improving directory speed.
-* Dual-Mode Preservation:
-  The individual Edit Form (`AdminPageDetails.tsx`) retains cache-busting to ensure that when an administrator explicitly uploads a new custom avatar, the update renders instantly.
-
------------------------------------------------------------------------------
-14. LEGACY URL AUTO-CONVERSION TO SEO-FRIENDLY FORMATS
------------------------------------------------------------------------------
-* Facebook Routing Hack:
-  Facebook's public routing only validates the numeric ID at the end of the public SEO URL path `/people/{slug}/{id}/` (the middle name slug is completely ignored by Facebook routers).
-* Seamless ID Conversion:
-  When a user searches or adds a legacy query URL (like `profile.php?id=61572741565378` or a direct numeric path `facebook.com/61572741565378`), the system automatically extracts the ID and converts the URL into:
-  `https://www.facebook.com/people/Page/{id}/`
-* Complete Guest Bypass:
-  Instead of hitting legacy Facebook pages (which are aggressively guest-blocked and redirect to login screens), the scraper crawls the newly constructed SEO-friendly URL. Since Facebook permits guest search engines to crawl these paths, the scraper successfully extracts the direct profile picture CDN link and the canonical page name without any block roadblocks!
-* Universal Normalization:
-  This normalization is unified across the scraper, the `/api/pages/by-url` endpoint (extension lookup), and the main `/api/pages/search` bar, ensuring zero duplicate database rows and pristine caching.
-=============================================================================
-15. BACKUP SYSTEM ARCHIVER COMPATIBILITY (v8.x ESM)
------------------------------------------------------------------------------
-* The Problem: Upgraded archiver v8.x package broke traditional factory functional exports, causing type crashes during automated backups.
-* Refactored Execution: Integrated ESM-friendly `new archiverLib.ZipArchive()` with robust runtime detection. Fully safeguards database backup creations.
-
------------------------------------------------------------------------------
-16. UNICODE UNESCAPER & STARTUP DATABASE HEALER
------------------------------------------------------------------------------
-* Scraper Unicode Fix: Pre-processes Unicode escape sequences (converting escaped formats to UTF-8 letters) before any word boundary operations. Fully solves non-English character displays (like Bangla text).
-* Startup Auto-Migration: Runs a system check during server bootstrap. Automatically cleans historical database pages containing corrupted unescaped Unicode entities, ensuring pristine rendering.
-
------------------------------------------------------------------------------
-17. EXACT FACEBOOK PAGE NAME PRESERVATION
------------------------------------------------------------------------------
-* Raw Title Fetching: Completely disabled forced replacement of dashes (`-`) and underscores (`_`) into spaces, and disabled word capitalization on crawled names inside the main scraper function. Ensures page titles (e.g. `Lovely Mart - লাভলি মার্ট`) match Facebook precisely.
-
------------------------------------------------------------------------------
-18. HARDWARE-ACCELERATED PC HOMEPAGE MARQUEE CAROUSEL
------------------------------------------------------------------------------
-* Infinite Scrolling Ticker: Designed a GPU-driven `translate3d` CSS carousel scrolling automatically from left to right on PC.
-* Rich UI Details: Increased card limits to 25 items for a spacious view, built beautiful fading gradient borders, and enabled hover scrolling pause for interactive user clicks.
 =============================================================================
