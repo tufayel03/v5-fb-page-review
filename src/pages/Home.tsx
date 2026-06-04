@@ -116,60 +116,7 @@ export default function Home() {
 
   const isDesktopDropdownOpen = showDropdown && !isMobileSearchActive;
   
-  useEffect(() => {
-    let intervalId: any;
-    const container = scrollContainerRefPages.current;
-    if (container && recentPages.length > 0) {
-      let isPaused = false;
-      let resumeTimeout: any;
-      
-      const onMouseEnter = () => { isPaused = true; };
-      const onMouseLeave = () => { isPaused = false; };
-      const onTouchStart = () => { 
-        isPaused = true; 
-        if (resumeTimeout) clearTimeout(resumeTimeout);
-      };
-      const onTouchEnd = () => {
-        if (resumeTimeout) clearTimeout(resumeTimeout);
-        resumeTimeout = setTimeout(() => {
-          isPaused = false;
-        }, 1500);
-      };
 
-      const handleScroll = () => {
-        const halfScroll = container.scrollWidth / 2;
-        if (halfScroll > 0) {
-          if (container.scrollLeft >= halfScroll) {
-            container.scrollLeft = container.scrollLeft - halfScroll;
-          } else if (container.scrollLeft <= 0.5 && isPaused) {
-            container.scrollLeft = halfScroll;
-          }
-        }
-      };
-
-      container.addEventListener("mouseenter", onMouseEnter);
-      container.addEventListener("mouseleave", onMouseLeave);
-      container.addEventListener("touchstart", onTouchStart);
-      container.addEventListener("touchend", onTouchEnd);
-      container.addEventListener("scroll", handleScroll, { passive: true });
-
-      intervalId = setInterval(() => {
-        if (!isPaused) {
-          container.scrollLeft += 1.5;
-        }
-      }, 25);
-
-      return () => {
-        clearInterval(intervalId);
-        if (resumeTimeout) clearTimeout(resumeTimeout);
-        container.removeEventListener("mouseenter", onMouseEnter);
-        container.removeEventListener("mouseleave", onMouseLeave);
-        container.removeEventListener("touchstart", onTouchStart);
-        container.removeEventListener("touchend", onTouchEnd);
-        container.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [recentPages, isMobile]);
 
   useEffect(() => {
     fetch("/api/pages/recent-fraud")
@@ -778,15 +725,12 @@ export default function Home() {
             </div>
           ) : (
             /* Auto-scrollable horizontal carousel controlled by touch/swipe */
-            <div className="w-full relative py-2 select-none">
+            <div className="w-full relative py-2 overflow-hidden select-none">
               {/* Left and Right overlay gradients for beautiful fade effect */}
               <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
 
-              <div
-                ref={scrollContainerRefPages}
-                className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar py-1.5 px-4"
-              >
+              <div className="flex gap-3 md:gap-4 animate-marquee py-1.5 px-4">
                 {loopedPages.map((page, index) => {
                   const letter = page.current_name
                     ? page.current_name.charAt(0).toUpperCase()
