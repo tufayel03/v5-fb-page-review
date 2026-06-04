@@ -116,7 +116,85 @@ export default function Home() {
 
   const isDesktopDropdownOpen = showDropdown && !isMobileSearchActive;
   
+  useEffect(() => {
+    const container = scrollContainerRefPages.current;
+    if (container && recentPages.length > 0) {
+      let isPaused = false;
+      let resumeTimeout: any;
+      let animationFrameId: number;
+      let lastTimestamp = 0;
+      
+      const speed = 55; // Pixels per second
 
+      const step = (timestamp: number) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const elapsed = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+
+        if (!isPaused && elapsed < 100) {
+          const distance = (speed * elapsed) / 1000;
+          container.scrollLeft += distance;
+
+          const halfScroll = container.scrollWidth / 2;
+          if (halfScroll > 0) {
+            if (container.scrollLeft >= halfScroll) {
+              container.scrollLeft -= halfScroll;
+            } else if (container.scrollLeft <= 0) {
+              container.scrollLeft += halfScroll;
+            }
+          }
+        }
+        animationFrameId = window.requestAnimationFrame(step);
+      };
+
+      const pause = () => {
+        isPaused = true;
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+      };
+
+      const resume = () => {
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+        resumeTimeout = setTimeout(() => {
+          isPaused = false;
+          lastTimestamp = 0;
+        }, 1500);
+      };
+
+      const onMouseEnter = pause;
+      const onMouseLeave = resume;
+      const onTouchStart = pause;
+      const onTouchEnd = resume;
+
+      const onScroll = () => {
+        const halfScroll = container.scrollWidth / 2;
+        if (halfScroll > 0) {
+          if (container.scrollLeft >= halfScroll) {
+            container.scrollLeft -= halfScroll;
+          } else if (container.scrollLeft <= 0.1 && isPaused) {
+            container.scrollLeft = halfScroll;
+          }
+        }
+      };
+
+      container.addEventListener("mouseenter", onMouseEnter);
+      container.addEventListener("mouseleave", onMouseLeave);
+      container.addEventListener("touchstart", onTouchStart, { passive: true });
+      container.addEventListener("touchend", onTouchEnd, { passive: true });
+      container.addEventListener("scroll", onScroll, { passive: true });
+
+      animationFrameId = window.requestAnimationFrame(step);
+
+      return () => {
+        window.cancelAnimationFrame(animationFrameId);
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+        container.removeEventListener("mouseenter", onMouseEnter);
+        container.removeEventListener("mouseleave", onMouseLeave);
+        container.removeEventListener("touchstart", onTouchStart);
+        container.removeEventListener("touchend", onTouchEnd);
+        container.removeEventListener("scroll", onScroll);
+      };
+    }
+  }, [recentPages, isMobile]);
 
   useEffect(() => {
     fetch("/api/pages/recent-fraud")
@@ -725,12 +803,15 @@ export default function Home() {
             </div>
           ) : (
             /* Auto-scrollable horizontal carousel controlled by touch/swipe */
-            <div className="w-full relative py-2 overflow-hidden select-none">
+            <div className="w-full relative py-2 select-none">
               {/* Left and Right overlay gradients for beautiful fade effect */}
               <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#f8fafc] to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#f8fafc] to-transparent z-10 pointer-events-none" />
 
-              <div className="flex gap-3 md:gap-4 animate-marquee py-1.5 px-4">
+              <div
+                ref={scrollContainerRefPages}
+                className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar py-1.5 px-4"
+              >
                 {loopedPages.map((page, index) => {
                   const letter = page.current_name
                     ? page.current_name.charAt(0).toUpperCase()
