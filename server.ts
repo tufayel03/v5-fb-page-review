@@ -20,8 +20,8 @@ if (!fs.existsSync(uploadsDir)) {
 function decodeHTMLEntities(str: string): string {
   if (!str) return '';
   return str
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -29,6 +29,21 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&#039;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/&nbsp;/g, ' ');
+}
+
+function addFacebookLocale(urlStr: string): string {
+  if (!urlStr || !urlStr.includes('facebook.com')) return urlStr;
+  try {
+    const urlObj = new URL(urlStr);
+    urlObj.searchParams.set('locale', 'en_US');
+    return urlObj.toString();
+  } catch (e) {
+    if (urlStr.includes('?')) {
+      return urlStr + '&locale=en_US';
+    } else {
+      return urlStr + '?locale=en_US';
+    }
+  }
 }
 
 function extractFacebookId(url: string): string | null {
@@ -1819,7 +1834,21 @@ function normalizeName(str: string): string {
       const pages = db.prepare(`SELECT * FROM FacebookPages WHERE id IN (${placeholders})`).all(...ids) as any[];
 
       const results = [];
-      const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+      const humanHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Connection': 'keep-alive'
+      };
 
       for (const page of pages) {
         const url = page.facebook_url;
@@ -1836,8 +1865,9 @@ function normalizeName(str: string): string {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 6000);
             
-            const response = await fetch(currentUrl, {
+            const response = await fetch(addFacebookLocale(currentUrl), {
               redirect: 'manual',
+              headers: humanHeaders,
               signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -1877,8 +1907,9 @@ function normalizeName(str: string): string {
           // Fetch the page HTML to get title/metadata
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(resolvedUrl, {
+          const response = await fetch(addFacebookLocale(resolvedUrl), {
             redirect: 'follow',
+            headers: humanHeaders,
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -1949,13 +1980,13 @@ function normalizeName(str: string): string {
             try {
               const fallbackUrl = getFacebookAboutUrl(resolvedUrl);
               const humanHeaders = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
               };
-              const fbAboutRes = await fetch(fallbackUrl, {
+              const fbAboutRes = await fetch(addFacebookLocale(fallbackUrl), {
                 redirect: 'follow',
                 headers: humanHeaders,
                 signal: controller.signal
@@ -2046,6 +2077,13 @@ function normalizeName(str: string): string {
         const oldPage = db.prepare('SELECT * FROM FacebookPages WHERE id = ?').get(id) as any;
         if (!oldPage) continue;
 
+        // Case 1: URL is the same (only name changed)
+        if (oldPage.facebook_url === scrapedUrl) {
+          db.prepare("UPDATE FacebookPages SET current_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(scrapedName, id);
+          continue;
+        }
+
+        // Case 2: URL changed
         let newStatus = 'Old/Dead Page';
         if (oldPage.status_badge && oldPage.status_badge !== 'Old/Dead Page') {
           if (!oldPage.status_badge.startsWith('Old/Dead Page - ')) {
@@ -2057,11 +2095,14 @@ function normalizeName(str: string): string {
 
         const existingNewPage = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ?').get(scrapedUrl) as any;
         if (existingNewPage) {
-          db.prepare("UPDATE FacebookPages SET status_badge = ? WHERE id = ?").run(newStatus, id);
+          // Mark old page as Old/Dead Page
+          db.prepare("UPDATE FacebookPages SET status_badge = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(newStatus, id);
+          // Update existing page name to the newly scraped name
+          db.prepare("UPDATE FacebookPages SET current_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(scrapedName, existingNewPage.id);
           continue;
         }
 
-        db.prepare("UPDATE FacebookPages SET status_badge = ? WHERE id = ?").run(newStatus, id);
+        db.prepare("UPDATE FacebookPages SET status_badge = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(newStatus, id);
 
         const newPageId = crypto.randomUUID();
         const newDetails = `Old Page Name: ${oldPage.current_name}\nOld Page URL: ${oldPage.facebook_url}\n\nOriginal Details:\n${oldPage.page_details || ''}`;
@@ -2821,7 +2862,7 @@ function normalizeName(str: string): string {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 6000);
             
-            const response = await fetch(currentUrl, {
+            const response = await fetch(addFacebookLocale(currentUrl), {
               redirect: 'manual',
               headers: humanHeaders,
               signal: controller.signal
@@ -2863,7 +2904,7 @@ function normalizeName(str: string): string {
           // Fetch the page HTML to get title/metadata using humanHeaders
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(resolvedUrl, {
+          const response = await fetch(addFacebookLocale(resolvedUrl), {
             redirect: 'follow',
             headers: humanHeaders,
             signal: controller.signal
@@ -2935,7 +2976,7 @@ function normalizeName(str: string): string {
             console.log(`[Redirect Progress] Profile page roadblocked for "${page.current_name}". Crawling sk=about page fallback...`);
             try {
               const fallbackUrl = getFacebookAboutUrl(resolvedUrl);
-              const fbAboutRes = await fetch(fallbackUrl, {
+              const fbAboutRes = await fetch(addFacebookLocale(fallbackUrl), {
                 redirect: 'follow',
                 headers: humanHeaders,
                 signal: controller.signal

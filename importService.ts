@@ -332,8 +332,8 @@ export function startGoogleSheetSyncJob(adminId: string, importType: string) {
 function decodeHTMLEntities(str: string): string {
   if (!str) return '';
   return str
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -343,6 +343,21 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+function addFacebookLocale(urlStr: string): string {
+  if (!urlStr || !urlStr.includes('facebook.com')) return urlStr;
+  try {
+    const urlObj = new URL(urlStr);
+    urlObj.searchParams.set('locale', 'en_US');
+    return urlObj.toString();
+  } catch (e) {
+    if (urlStr.includes('?')) {
+      return urlStr + '&locale=en_US';
+    } else {
+      return urlStr + '?locale=en_US';
+    }
+  }
+}
+
 async function crawlPageMetadata(pageId: string, url: string, currentName: string): Promise<{ name: string; profilePic: string | null }> {
   let finalName = currentName || '';
   let profilePicPath: string | null = null;
@@ -350,7 +365,7 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
   if (url && url.includes('facebook.com')) {
     try {
       console.log(`[Google Sheet Crawler] Crawling metadata for "${currentName || 'Unknown'}" (${url})...`);
-      const fbRes = await fetch(url, {
+      const fbRes = await fetch(addFacebookLocale(url), {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           'Accept-Language': 'en-US,en;q=0.9',
@@ -711,7 +726,7 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
           if (urlParam && urlParam.includes('facebook.com')) {
             try {
               console.log(`[Google Sheet Crawler] Crawling new page metadata for "${pageName || 'Unknown'}" (${urlParam})...`);
-              const fbRes = await fetch(urlParam, {
+              const fbRes = await fetch(addFacebookLocale(urlParam), {
                 headers: {
                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
                   'Accept-Language': 'en-US,en;q=0.9',
