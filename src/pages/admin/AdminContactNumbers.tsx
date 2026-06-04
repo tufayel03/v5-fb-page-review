@@ -21,7 +21,7 @@ export default function AdminContactNumbers() {
   const [newNumberForm, setNewNumberForm] = useState({
     number: "",
     type: "Contact Number",
-    display_name: "",
+    description: "",
     status: "Reported",
   });
   const navigate = useNavigate();
@@ -313,7 +313,13 @@ export default function AdminContactNumbers() {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newNumberForm),
+        body: JSON.stringify({
+          number: newNumberForm.number,
+          type: newNumberForm.type,
+          display_name: newNumberForm.description,
+          admin_note: newNumberForm.description,
+          status: newNumberForm.status,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -458,19 +464,19 @@ export default function AdminContactNumbers() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-1">
-                  Display Name
+                  Description
                 </label>
-                <input
-                  type="text"
-                  value={newNumberForm.display_name}
+                <textarea
+                  value={newNumberForm.description}
                   onChange={(e) =>
                     setNewNumberForm({
                       ...newNumberForm,
-                      display_name: e.target.value,
+                      description: e.target.value,
                     })
                   }
-                  className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
-                  placeholder="e.g. Test Store"
+                  rows={3}
+                  className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium placeholder:text-slate-650"
+                  placeholder="e.g. Scammer number, active on various pages..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
