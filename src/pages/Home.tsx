@@ -580,15 +580,15 @@ export default function Home() {
 
           {/* Real-time Statistics Cards */}
           <div className="max-w-4xl mx-auto mt-12 pt-8 border-t border-slate-100 select-none">
-            {/* Mobile View: High-density compact flat bar that fits perfectly on one line without side scrolling */}
-            <div className="grid grid-cols-4 md:hidden bg-white border border-slate-150 rounded-2xl py-3 divide-x divide-slate-100 shadow-3xs">
+            {/* Mobile View: High-density compact flat bar without outer border/card container */}
+            <div className="grid grid-cols-4 md:hidden py-2 divide-x divide-slate-200">
               <div className="flex flex-col items-center justify-center text-center px-1">
                 <Search className="w-3.5 h-3.5 text-[#0fbc6f] mb-1" />
                 <span className="text-[13px] font-black text-slate-900 leading-none">
                   <AnimatedCounter value={stats?.totalPagesScanned || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
-                  Scanned
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                  Pages Scanned
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-1">
@@ -596,8 +596,8 @@ export default function Home() {
                 <span className="text-[13px] font-black text-rose-600 leading-none">
                   <AnimatedCounter value={stats?.totalFraudPages || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
-                  Frauds
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                  Fraud Pages
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-1">
@@ -605,8 +605,8 @@ export default function Home() {
                 <span className="text-[13px] font-black text-amber-600 leading-none">
                   <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
-                  Scam Nos
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                  Scam Numbers
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-1">
@@ -614,8 +614,8 @@ export default function Home() {
                 <span className="text-[13px] font-black text-sky-600 leading-none">
                   <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
                 </span>
-                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-none">
-                  New Today
+                <span className="text-[9px] text-slate-500 font-extrabold mt-1 leading-tight">
+                  Scams Today
                 </span>
               </div>
             </div>
