@@ -343,6 +343,48 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+function isFallbackFacebookName(name: string): boolean {
+  if (!name) return true;
+  const lower = name.toLowerCase().trim();
+  const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading...", "facebook page", "unknown page", "facebook user", "profile picture"];
+  if (nameBlacklist.includes(lower)) return true;
+  if (/^\d+$/.test(lower)) return true;
+  if (lower.startsWith('facebook page ') || lower.startsWith('facebook user ') || lower.startsWith('facebook profile ')) return true;
+  if (/facebook page \d+/i.test(lower) || /facebook user \d+/i.test(lower)) return true;
+  return false;
+}
+
+function extractFacebookId(url: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.includes('profile.php')) {
+      const id = parsed.searchParams.get('id');
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    const pathSegments = parsed.pathname.split('/').filter(Boolean);
+    if (pathSegments.length > 0) {
+      if (pathSegments.includes('people') || pathSegments.includes('pages')) {
+        for (const segment of pathSegments) {
+          if (/^\d+$/.test(segment)) {
+            return segment;
+          }
+        }
+      }
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (/^\d+$/.test(lastSegment)) {
+        return lastSegment;
+      }
+    }
+  } catch (e) {}
+  
+  const idMatch = url.match(/[?&]id=(\d+)/i) || url.match(/\/(\d+)(?:\/|\?|$)/);
+  if (idMatch && idMatch[1]) {
+    return idMatch[1];
+  }
+  return null;
+}
+
 function addFacebookLocale(urlStr: string): string {
   if (!urlStr || !urlStr.includes('facebook.com')) return urlStr;
   try {
@@ -395,14 +437,12 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
             .replace(/&quot;/g, '"')
             .replace(/&#039;/g, "'");
 
-          const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-          const isRoadblocked = !titleLower || 
-                                nameBlacklist.includes(titleLower) || 
+          const isRoadblocked = isFallbackFacebookName(rawTitle) || 
                                 html.includes("This content isn't available") || 
                                 html.includes("isn't available at the moment");
 
           if (!isRoadblocked) {
-            if (!finalName || finalName === 'Unknown Page') {
+            if (!finalName || isFallbackFacebookName(finalName)) {
               finalName = rawTitle;
               console.log(`[Google Sheet Crawler] Resolved page name: "${finalName}"`);
             }
@@ -425,29 +465,34 @@ async function crawlPageMetadata(pageId: string, url: string, currentName: strin
 
               if (imgRes.ok) {
                 const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-                const timestamp = Date.now();
-                const filename = `profile-${pageId}-${timestamp}.webp`;
-                const uploadsDir = path.join(process.cwd(), 'uploads');
-                const filepath = path.join(uploadsDir, filename);
+                if (imageBuffer.length > 2500) {
+                  const timestamp = Date.now();
+                  const filename = `profile-${pageId}-${timestamp}.webp`;
+                  const uploadsDir = path.join(process.cwd(), 'uploads');
+                  const filepath = path.join(uploadsDir, filename);
 
-                if (!fs.existsSync(uploadsDir)) {
-                  fs.mkdirSync(uploadsDir, { recursive: true });
+                  if (!fs.existsSync(uploadsDir)) {
+                    fs.mkdirSync(uploadsDir, { recursive: true });
+                  }
+
+                  await sharp(imageBuffer)
+                    .resize(300, 300, { fit: 'cover' })
+                    .webp({ quality: 80 })
+                    .toFile(filepath);
+
+                  const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                  const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                  await sharp(imageBuffer)
+                    .resize(80, 80, { fit: 'cover' })
+                    .webp({ quality: 70 })
+                    .toFile(thumbFilepath);
+
+                  profilePicPath = `/uploads/${filename}`;
+                  console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
+                } else {
+                  profilePicPath = null;
+                  console.log(`[Google Sheet Crawler] Profile picture too small (placeholder). Skipping.`);
                 }
-
-                await sharp(imageBuffer)
-                  .resize(300, 300, { fit: 'cover' })
-                  .webp({ quality: 80 })
-                  .toFile(filepath);
-
-                const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
-                const thumbFilepath = path.join(uploadsDir, thumbFilename);
-                await sharp(imageBuffer)
-                  .resize(80, 80, { fit: 'cover' })
-                  .webp({ quality: 70 })
-                  .toFile(thumbFilepath);
-
-                profilePicPath = `/uploads/${filename}`;
-                console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
               }
             }
           } else {
@@ -551,13 +596,14 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
               let nameParam = pageName || pageExists.current_name || 'Unknown Page';
               let profilePicToUpdate = pageExists.profile_picture;
 
-              // If the page doesn't have a valid profile picture OR is currently 'Unknown Page', crawl it!
+              const isFallback = isFallbackFacebookName(pageExists.current_name);
+              // If the page doesn't have a valid profile picture OR is currently a fallback name, crawl it!
               if (
-                (!pageExists.current_name || pageExists.current_name === 'Unknown Page' || !pageName) ||
+                isFallback || !pageName ||
                 (!pageExists.profile_picture || pageExists.profile_picture === 'failed')
               ) {
                 const crawled = await crawlPageMetadata(existingPageId, urlParam || '', nameParam);
-                if (crawled.name && (!pageName || pageExists.current_name === 'Unknown Page')) {
+                if (crawled.name && !isFallbackFacebookName(crawled.name)) {
                   nameParam = crawled.name;
                 }
                 if (crawled.profilePic) {
@@ -754,14 +800,12 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
                     .replace(/&quot;/g, '"')
                     .replace(/&#039;/g, "'");
 
-                  const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading..."];
-                  const isRoadblocked = !titleLower || 
-                                        nameBlacklist.includes(titleLower) || 
+                  const isRoadblocked = isFallbackFacebookName(rawTitle) || 
                                         html.includes("This content isn't available") || 
                                         html.includes("isn't available at the moment");
 
                   if (!isRoadblocked) {
-                    if (!finalName || finalName === 'Unknown Page') {
+                    if (!finalName || isFallbackFacebookName(finalName)) {
                       finalName = rawTitle;
                       console.log(`[Google Sheet Crawler] Retrieved missing name: "${finalName}"`);
                     }
@@ -784,29 +828,34 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
 
                       if (imgRes.ok) {
                         const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
-                        const timestamp = Date.now();
-                        const filename = `profile-${pageId}-${timestamp}.webp`;
-                        const uploadsDir = path.join(process.cwd(), 'uploads');
-                        const filepath = path.join(uploadsDir, filename);
+                        if (imageBuffer.length > 2500) {
+                          const timestamp = Date.now();
+                          const filename = `profile-${pageId}-${timestamp}.webp`;
+                          const uploadsDir = path.join(process.cwd(), 'uploads');
+                          const filepath = path.join(uploadsDir, filename);
 
-                        if (!fs.existsSync(uploadsDir)) {
-                          fs.mkdirSync(uploadsDir, { recursive: true });
+                          if (!fs.existsSync(uploadsDir)) {
+                            fs.mkdirSync(uploadsDir, { recursive: true });
+                          }
+
+                          await sharp(imageBuffer)
+                            .resize(300, 300, { fit: 'cover' })
+                            .webp({ quality: 80 })
+                            .toFile(filepath);
+
+                          const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
+                          const thumbFilepath = path.join(uploadsDir, thumbFilename);
+                          await sharp(imageBuffer)
+                            .resize(80, 80, { fit: 'cover' })
+                            .webp({ quality: 70 })
+                            .toFile(thumbFilepath);
+
+                          profilePicPath = `/uploads/${filename}`;
+                          console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
+                        } else {
+                          profilePicPath = null;
+                          console.log(`[Google Sheet Crawler] Profile picture too small (placeholder). Skipping.`);
                         }
-
-                        await sharp(imageBuffer)
-                          .resize(300, 300, { fit: 'cover' })
-                          .webp({ quality: 80 })
-                          .toFile(filepath);
-
-                        const thumbFilename = `profile-thumb-${pageId}-${timestamp}.webp`;
-                        const thumbFilepath = path.join(uploadsDir, thumbFilename);
-                        await sharp(imageBuffer)
-                          .resize(80, 80, { fit: 'cover' })
-                          .webp({ quality: 70 })
-                          .toFile(thumbFilepath);
-
-                        profilePicPath = `/uploads/${filename}`;
-                        console.log(`[Google Sheet Crawler] Saved profile picture WebP: ${profilePicPath}`);
                       }
                     }
                   } else {
@@ -829,8 +878,17 @@ async function processSheetBatches(jobId: string, importType: string, data: any[
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
-          if (!finalName) {
-            finalName = 'Unknown Page';
+          if (!finalName || isFallbackFacebookName(finalName)) {
+            // Try to extract handle from URL
+            const queryId = extractFacebookId(urlParam || '');
+            if (queryId && !/^\d+$/.test(queryId)) {
+              finalName = queryId.replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            }
+          }
+
+          if (!finalName || isFallbackFacebookName(finalName)) {
+            console.warn(`[Google Sheet Import] Skipping page insertion for URL "${urlParam}": Resolved/provided name "${finalName}" is invalid/generic.`);
+            continue;
           }
 
           db.prepare(`

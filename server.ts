@@ -5321,7 +5321,18 @@ function normalizeName(str: string): string {
     }
   }
 
-  async function scrapeAndAddFacebookPage(facebookUrl: string): Promise<any | null> {
+  function isFallbackFacebookName(name: string): boolean {
+    if (!name) return true;
+    const lower = name.toLowerCase().trim();
+    const nameBlacklist = ["facebook", "error", "log in", "log in to facebook", "page not found", "broken link", "loading...", "facebook page", "unknown page", "facebook user", "profile picture"];
+    if (nameBlacklist.includes(lower)) return true;
+    if (/^\d+$/.test(lower)) return true;
+    if (lower.startsWith('facebook page ') || lower.startsWith('facebook user ') || lower.startsWith('facebook profile ')) return true;
+    if (/facebook page \d+/i.test(lower) || /facebook user \d+/i.test(lower)) return true;
+    return false;
+  }
+
+  async function scrapeAndAddFacebookPage(facebookUrl: string, forceRefresh: boolean = false): Promise<any | null> {
     try {
       let url = facebookUrl.trim();
       if (!url.startsWith('http')) {
@@ -5406,20 +5417,13 @@ function normalizeName(str: string): string {
       if (queryId) {
         const existingById = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${queryId}%`) as any;
         if (existingById) {
-          const nameLower = (existingById.current_name || '').toLowerCase();
-          const isFallback = !existingById.current_name ||
-                             nameLower === 'facebook page' ||
-                             nameLower === 'unknown page' ||
-                             nameLower === 'facebook user' ||
-                             /^\d+$/.test(nameLower) ||
-                             nameLower.startsWith('facebook page ') ||
-                             nameLower.startsWith('facebook user ');
+          const isFallback = isFallbackFacebookName(existingById.current_name);
           
-          if (!isFallback) {
+          if (!isFallback && !forceRefresh) {
             console.log(`[AutoScrape] Match found by ID in database: "${existingById.current_name}" (URL: ${existingById.facebook_url}). Returning existing row.`);
             return existingById;
           } else {
-            console.log(`[AutoScrape] Match found by ID in database, but has generic fallback name "${existingById.current_name}". Bypassing early return to refresh it.`);
+            console.log(`[AutoScrape] Match found by ID in database, but has generic fallback name "${existingById.current_name}" or forceRefresh is true. Bypassing early return to refresh it.`);
             existingPageIdToUpdate = existingById.id;
           }
         }
@@ -5428,19 +5432,12 @@ function normalizeName(str: string): string {
       if (!existingPageIdToUpdate) {
         const existing = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
         if (existing) {
-          const nameLower = (existing.current_name || '').toLowerCase();
-          const isFallback = !existing.current_name ||
-                             nameLower === 'facebook page' ||
-                             nameLower === 'unknown page' ||
-                             nameLower === 'facebook user' ||
-                             /^\d+$/.test(nameLower) ||
-                             nameLower.startsWith('facebook page ') ||
-                             nameLower.startsWith('facebook user ');
+          const isFallback = isFallbackFacebookName(existing.current_name);
           
-          if (!isFallback) {
+          if (!isFallback && !forceRefresh) {
             return existing;
           } else {
-            console.log(`[AutoScrape] Match found by URL in database, but has generic fallback name "${existing.current_name}". Bypassing early return to refresh it.`);
+            console.log(`[AutoScrape] Match found by URL in database, but has generic fallback name "${existing.current_name}" or forceRefresh is true. Bypassing early return to refresh it.`);
             existingPageIdToUpdate = existing.id;
           }
         }
@@ -5574,7 +5571,7 @@ function normalizeName(str: string): string {
                   const tempFile = path.join(uploadsDir, `temp-plugin-${Date.now()}.jpg`);
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
 
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 2500) {
                     const pageId = Date.now().toString();
                     const imageBuffer = fs.readFileSync(tempFile);
                     const timestamp = Date.now();
@@ -5745,7 +5742,7 @@ function normalizeName(str: string): string {
                 const tempFile = path.join(uploadsDir, `temp-direct-${Date.now()}.jpg`);
                 execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
 
-                if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 2500) {
                   const pageId = Date.now().toString();
                   const imageBuffer = fs.readFileSync(tempFile);
                   const timestamp = Date.now();
@@ -5790,7 +5787,7 @@ function normalizeName(str: string): string {
           const tempFile = path.join(uploadsDir, `temp-graph-${Date.now()}.jpg`);
           execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
 
-          if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+          if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 2500) {
             const pageId = Date.now().toString();
             const imageBuffer = fs.readFileSync(tempFile);
             const timestamp = Date.now();
@@ -5859,6 +5856,12 @@ function normalizeName(str: string): string {
         } else {
           rawTitle = 'Facebook Page';
         }
+      }
+
+      // Validate the final name before inserting/updating in database
+      if (isFallbackFacebookName(rawTitle)) {
+        console.warn(`[AutoScrape] Aborted saving page for "${urlNoSlash}": metadata is generic/fallback ("${rawTitle}").`);
+        return null;
       }
 
       // 3. Resiliently add or update database! Use 0/NULL for trust_score
@@ -5959,23 +5962,14 @@ function normalizeName(str: string): string {
       page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
     }
 
-    let isFallbackName = false;
-    if (page) {
-      const nameLower = (page.current_name || '').toLowerCase();
-      isFallbackName = !page.current_name ||
-                       nameLower === 'facebook page' ||
-                       nameLower === 'unknown page' ||
-                       nameLower === 'facebook user' ||
-                       /^\d+$/.test(nameLower) ||
-                       nameLower.startsWith('facebook page ') ||
-                       nameLower.startsWith('facebook user ');
-    }
+    const isFallbackName = page ? isFallbackFacebookName(page.current_name) : false;
+    const forceRefresh = req.query.force === 'true' || req.query.refresh === 'true';
 
-    if (page && !isFallbackName) {
+    if (page && !isFallbackName && !forceRefresh) {
       res.json({ success: true, page });
     } else {
       // Try to scrape and add/update instantly!
-      const newPage = await scrapeAndAddFacebookPage(urlNoSlash);
+      const newPage = await scrapeAndAddFacebookPage(urlNoSlash, forceRefresh);
       if (newPage) {
         res.json({ success: true, page: newPage });
       } else {
@@ -6207,17 +6201,7 @@ function normalizeName(str: string): string {
         page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url COLLATE NOCASE IN (?, ?, ?, ?) LIMIT 1').get(urlNoSlash, urlWithSlash, urlNoWwwNoSlash, urlNoWwwWithSlash) as any;
       }
       
-      let isFallbackName = false;
-      if (page) {
-        const nameLower = (page.current_name || '').toLowerCase();
-        isFallbackName = !page.current_name ||
-                         nameLower === 'facebook page' ||
-                         nameLower === 'unknown page' ||
-                         nameLower === 'facebook user' ||
-                         /^\d+$/.test(nameLower) ||
-                         nameLower.startsWith('facebook page ') ||
-                         nameLower.startsWith('facebook user ');
-      }
+      const isFallbackName = page ? isFallbackFacebookName(page.current_name) : false;
 
       if (!page || isFallbackName) {
         const scraped = await scrapeAndAddFacebookPage(urlNoSlash);
