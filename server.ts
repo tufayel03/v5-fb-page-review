@@ -7715,7 +7715,7 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
             const pageId = pageMatch[1];
             const pageData = db.prepare(`
               SELECT current_name, current_username, profile_picture, category,
-                     status_badge, review_count, average_rating, fraud_report_count
+                     status_badge, total_reviews, average_rating, fraud_report_count
               FROM FacebookPages WHERE id = ?
             `).get(pageId) as any;
 
@@ -7723,7 +7723,7 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
               const pageName = pageData.current_name || 'Unknown Page';
               const badge = pageData.status_badge || 'Under Review';
               const rating = pageData.average_rating ? Number(pageData.average_rating).toFixed(1) : '0.0';
-              const reviews = pageData.review_count || 0;
+              const reviews = pageData.total_reviews || 0;
               const fraudReports = pageData.fraud_report_count || 0;
               const category = pageData.category || 'Facebook Page';
 
