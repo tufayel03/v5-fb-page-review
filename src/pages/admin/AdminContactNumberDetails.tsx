@@ -157,8 +157,8 @@ export default function AdminContactNumberDetails() {
             </div>
           </div>
 
-          {/* Linked Pages Section — only when linked to more than 1 page */}
-          {linkedCount > 1 && (
+          {/* Linked Pages Section — show when linked to 1 or more pages */}
+          {linkedCount > 0 && (
             <>
               <hr className="border-white/5" />
               <div className="space-y-3">
