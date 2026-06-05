@@ -78,6 +78,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 6000);
   };
 
+  // Helper: Filter comma-separated numbers so only those with >= 10 digits remain
+  const filterValidNumbers = (str) => {
+    if (!str) return '';
+    return str.split(',')
+      .map(s => s.trim())
+      .filter(s => s && s.replace(/\D/g, '').length >= 10)
+      .join(', ');
+  };
+
   // Helper: Load Saved Connection Settings
   const loadSettings = async () => {
     return new Promise((resolve) => {
@@ -615,7 +624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               name: currentScrapedData.name,
               profilePictureUrl: currentScrapedData.profilePicUrl || '',
               status: data.page.status || 'Under Review',
-              contactNumber: contactNumber.value.trim() || data.page.contactNumber || '',
+              contactNumber: filterValidNumbers(contactNumber.value.trim() || data.page.contactNumber || ''),
               paymentMethods: paymentMethods.value.trim() || data.page.paymentMethods || '',
               pageDetails: pageDetails.value.trim() || data.page.pageDetails || ''
             };
@@ -645,7 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dbNums = data.page.contactNumber.split(',').map(s => s.trim()).filter(Boolean);
             const currentNums = contactNumber.value.split(',').map(s => s.trim()).filter(Boolean);
             const mergedNums = Array.from(new Set([...currentNums, ...dbNums]));
-            const mergedStr = mergedNums.join(', ');
+            const mergedStr = filterValidNumbers(mergedNums.join(', '));
             if (contactNumber.value.trim() !== mergedStr) {
               contactNumber.value = mergedStr;
               updated = true;
@@ -738,7 +747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: currentScrapedData ? currentScrapedData.name : pageName.textContent,
       profilePictureUrl: currentScrapedData ? currentScrapedData.profilePicUrl : '',
       status: status,
-      contactNumber: contactNumber.value.trim(),
+      contactNumber: filterValidNumbers(contactNumber.value.trim()),
       paymentMethods: paymentMethods.value.trim(),
       pageDetails: pageDetails.value.trim()
     };
@@ -819,7 +828,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       title: title,
       description: description,
       date_of_experience: dateOfExp,
-      bkash_number: reviewBkash.value.trim(),
+      bkash_number: filterValidNumbers(reviewBkash.value.trim()),
       facebook_post_link: reviewPostLink.value.trim(),
       is_on_behalf: reviewOnBehalf.checked,
       on_behalf_name: reviewOnBehalf.checked ? onBehalfName.value.trim() : ''

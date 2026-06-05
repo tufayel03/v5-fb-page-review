@@ -246,6 +246,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (contactNumber.length > 11 && contactNumber.startsWith('01')) {
           contactNumber = contactNumber.substring(0, 11);
         }
+        if (contactNumber.replace(/\D/g, '').length < 10) {
+          contactNumber = '';
+        }
       }
 
       // 4. Extract Email Address (Disabled)

@@ -31,6 +31,15 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+function cleanPhoneNumbers(str: string | null | undefined): string | null {
+  if (!str) return null;
+  const filtered = String(str)
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s && s.replace(/\D/g, '').length >= 10);
+  return filtered.length > 0 ? filtered.join(', ') : null;
+}
+
 function addFacebookLocale(urlStr: string): string {
   if (!urlStr || !urlStr.includes('facebook.com')) return urlStr;
   try {
@@ -2385,7 +2394,7 @@ async function startServer() {
 
       // Extract details
       const pmList = paymentMethods ? String(paymentMethods).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];
-      const contactList = contactNumber ? String(contactNumber).split(',').map(s => s.toLowerCase().trim()).filter(Boolean) : [];
+      const contactList = contactNumber ? String(contactNumber).split(',').map(s => s.toLowerCase().trim()).filter(s => s && s.replace(/\D/g, '').length >= 10) : [];
       let mainContact = '';
       let extraContacts: string[] = [];
       if (contactList.length > 0) {
@@ -3374,7 +3383,7 @@ async function startServer() {
         }
         return list
           .map(x => x.trim())
-          .filter(x => x && /\d{5,}/.test(x));
+          .filter(x => x && x.replace(/\D/g, '').length >= 10);
       };
 
       const contactNums = new Set<string>();
@@ -3538,12 +3547,15 @@ async function startServer() {
 
   app.post('/api/admin/pages', requireAdmin, async (req, res) => {
     try {
-      const {
+      let {
         current_name, facebook_url, category, sub_category, contact_number, status_badge, trust_score,
         extra_contacts, payment_methods, other_urls, website_url, page_details,
         trusted_ranking_score, featured_trusted_seller, admin_trusted_note,
         business_verification_status, business_verification_note
       } = req.body;
+
+      contact_number = cleanPhoneNumbers(contact_number);
+      extra_contacts = cleanPhoneNumbers(extra_contacts);
       const id = Date.now().toString();
 
       let profile_picture = req.body.profile_picture;
@@ -3585,13 +3597,16 @@ async function startServer() {
 
   app.put('/api/admin/pages/:id', requireModerator, async (req, res) => {
     try {
-      const {
+      let {
         current_name, facebook_url, category, sub_category, contact_number, status_badge, trust_score,
         extra_contacts, payment_methods, other_urls, website_url, page_details,
         trusted_ranking_score, featured_trusted_seller, admin_trusted_note,
         business_verification_status, business_verification_note, require_manual_fraud_approval,
         is_fraud_listed, fraud_list_reason, fraud_severity, fraud_internal_note
       } = req.body;
+
+      contact_number = cleanPhoneNumbers(contact_number);
+      extra_contacts = cleanPhoneNumbers(extra_contacts);
 
       let profile_picture = req.body.profile_picture;
       if (profile_picture) {
@@ -6949,6 +6964,10 @@ async function startServer() {
       extra_contacts, payment_methods, other_urls, profile_picture, page_details,
       on_behalf_name
     } = req.body;
+
+    contact_number = cleanPhoneNumbers(contact_number);
+    extra_contacts = cleanPhoneNumbers(extra_contacts);
+    bkash_number = cleanPhoneNumbers(bkash_number);
 
     // Auth Check
     let user_id = 'anonymous';
