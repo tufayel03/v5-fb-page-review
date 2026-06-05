@@ -321,12 +321,19 @@ export default function AdminContactNumbers() {
           status: newNumberForm.status,
         }),
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setShowAddModal(false);
-        navigate(`/tufayel/contact-numbers/${data.id}`);
+        if (data.count > 1) {
+          fetchNumbers();
+          alert(`Successfully added ${data.count} numbers. Skipped ${data.skipped?.length || 0} duplicates.`);
+        } else if (data.id) {
+          navigate(`/tufayel/contact-numbers/${data.id}`);
+        } else {
+          fetchNumbers();
+        }
       } else {
-        alert("Failed to add number. The number might already exist.");
+        alert(data.error || "Failed to add number. The number might already exist.");
       }
     } catch (err) {
       alert("Error adding number");

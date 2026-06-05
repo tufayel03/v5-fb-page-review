@@ -4474,16 +4474,48 @@ async function startServer() {
   app.post('/api/admin/contact-numbers', requireAdmin, (req, res) => {
     try {
       const { number, type, display_name, status, admin_note } = req.body;
-      const id = crypto.randomUUID();
-      db.prepare(`
+      if (!number || typeof number !== 'string') {
+        return res.status(400).json({ error: 'Number is required' });
+      }
+
+      // Split by comma and trim each number
+      const parts = number.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length === 0) {
+        return res.status(400).json({ error: 'No valid numbers provided' });
+      }
+
+      const insertedIds: string[] = [];
+      const duplicateNumbers: string[] = [];
+
+      const stmt = db.prepare(`
         INSERT INTO ContactNumbers (id, number, type, display_name, status, admin_note, added_by)
         VALUES (?, ?, ?, ?, ?, ?, 'admin')
-      `).run(id, number, type || 'Contact Number', display_name, status || 'Normal', admin_note || '');
-      res.json({ success: true, id });
-    } catch (e: any) {
-      if (e.message.includes('UNIQUE constraint failed')) {
-        return res.status(400).json({ error: 'Number already exists' });
+      `);
+
+      for (const p of parts) {
+        const exists = db.prepare('SELECT id FROM ContactNumbers WHERE number = ?').get(p);
+        if (exists) {
+          duplicateNumbers.push(p);
+          continue;
+        }
+        const id = crypto.randomUUID();
+        stmt.run(id, p, type || 'Contact Number', display_name, status || 'Normal', admin_note || '');
+        insertedIds.push(id);
       }
+
+      if (insertedIds.length === 0 && duplicateNumbers.length > 0) {
+        return res.status(400).json({ error: 'All provided numbers already exist' });
+      }
+
+      res.json({
+        success: true,
+        ids: insertedIds,
+        id: insertedIds[0] || null,
+        count: insertedIds.length,
+        skipped: duplicateNumbers
+      });
+    } catch (e: any) {
+      console.error(e);
       res.status(500).json({ error: 'Server error' });
     }
   });
