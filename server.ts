@@ -5933,7 +5933,7 @@ async function startServer() {
                     const arrayBuffer = await imgRes.arrayBuffer();
                     const imageBuffer = Buffer.from(arrayBuffer);
                     
-                    if (imageBuffer.length > 2500) {
+                    if (imageBuffer.length > 1000) {
                       const pageId = Date.now().toString();
                       const timestamp = Date.now();
                       const filename = `profile-${pageId}-${timestamp}.webp`;
@@ -5954,7 +5954,7 @@ async function startServer() {
                       profilePicture = `/uploads/${filename}`;
                       console.log(`[AutoScrape] Successfully optimized profile picture: ${profilePicture}`);
                     } else {
-                      console.warn(`[AutoScrape] Profile picture size check failed (<= 2500 bytes: ${imageBuffer.length} bytes).`);
+                      console.warn(`[AutoScrape] Profile picture size check failed (<= 1000 bytes: ${imageBuffer.length} bytes).`);
                     }
                   } else {
                     console.warn(`[AutoScrape] Failed to download profile picture: HTTP ${imgRes.status}`);
@@ -6145,7 +6145,7 @@ async function startServer() {
                   const arrayBuffer = await imgRes.arrayBuffer();
                   const imageBuffer = Buffer.from(arrayBuffer);
 
-                  if (imageBuffer.length > 2500) {
+                  if (imageBuffer.length > 1000) {
                     const pageId = Date.now().toString();
                     const timestamp = Date.now();
                     const filename = `profile-${pageId}-${timestamp}.webp`;
@@ -6166,7 +6166,7 @@ async function startServer() {
                     profilePicture = `/uploads/${filename}`;
                     console.log(`[AutoScrape] Successfully optimized profile picture from direct/translate fetch: ${profilePicture}`);
                   } else {
-                    console.warn(`[AutoScrape] Direct profile picture size check failed (<= 2500 bytes: ${imageBuffer.length} bytes).`);
+                    console.warn(`[AutoScrape] Direct profile picture size check failed (<= 1000 bytes: ${imageBuffer.length} bytes).`);
                   }
                 } else {
                   console.warn(`[AutoScrape] Failed to download direct profile picture: HTTP ${imgRes.status}`);
@@ -6193,7 +6193,7 @@ async function startServer() {
             const arrayBuffer = await imgRes.arrayBuffer();
             const imageBuffer = Buffer.from(arrayBuffer);
 
-            if (imageBuffer.length > 2500) {
+            if (imageBuffer.length > 1000) {
               const pageId = Date.now().toString();
               const timestamp = Date.now();
               const filename = `profile-${pageId}-${timestamp}.webp`;
@@ -6214,7 +6214,7 @@ async function startServer() {
               profilePicture = `/uploads/${filename}`;
               console.log(`[AutoScrape] Successfully extracted profile picture via Graph API redirect: ${profilePicture}`);
             } else {
-              console.warn(`[AutoScrape] Graph API profile picture size check failed (<= 2500 bytes: ${imageBuffer.length} bytes).`);
+              console.warn(`[AutoScrape] Graph API profile picture size check failed (<= 1000 bytes: ${imageBuffer.length} bytes).`);
             }
           } else {
             console.warn(`[AutoScrape] Graph API redirect returned HTTP ${imgRes.status}`);
