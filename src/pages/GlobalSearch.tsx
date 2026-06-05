@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Search, ShieldCheck, ShieldAlert, Star, Store, MapPin, SlidersHorizontal, ChevronRight, X, Trophy } from 'lucide-react';
+import { Search, ShieldCheck, ShieldAlert, Star, Store, MapPin, SlidersHorizontal, ChevronRight, X, Trophy, Facebook } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function GlobalSearch() {
@@ -138,6 +138,13 @@ export default function GlobalSearch() {
           <div className="flex flex-col">
             {filteredPages.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((page, i) => {
               const rating = page.average_rating ? Number(page.average_rating) : 0;
+              
+              const urlRegex = /(https?:\/\/[^\s]+)/gi;
+              const urlMatch = page.is_contact_only && page.display_name ? page.display_name.match(urlRegex) : null;
+              const fbUrl = urlMatch ? urlMatch[0] : null;
+              const cleanDesc = page.is_contact_only && page.display_name
+                ? page.display_name.replace(urlRegex, '').replace(/\s+/g, ' ').trim()
+                : '';
               return (
                 <Link
                   to={page.is_contact_only ? '#' : `/page/${page.id}`}
@@ -213,8 +220,27 @@ export default function GlobalSearch() {
                             </div>
                           </>
                         ) : (
-                          <div className="text-[#1c1c1c] font-medium text-[14px]">
-                             <span className="text-[#696969] font-normal">{page.category || "Contact Number"} ・ {page.review_count || 0} reports</span>
+                          <div className="flex flex-col gap-1.5">
+                            <div className="text-[#1c1c1c] font-medium text-[14px]">
+                               <span className="text-[#696969] font-normal">{page.category || "Contact Number"} ・ {page.review_count || 0} reports</span>
+                            </div>
+                            {cleanDesc && (
+                              <div className="text-[13px] text-[#696969] font-medium flex items-center gap-1.5 flex-wrap">
+                                <span className="truncate max-w-[300px]">{cleanDesc}</span>
+                                {fbUrl && (
+                                  <a
+                                    href={fbUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center text-blue-600 hover:text-blue-800 p-0.5 shrink-0 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                                    title="View Link"
+                                  >
+                                    <Facebook className="h-3.5 w-3.5 fill-current" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                         

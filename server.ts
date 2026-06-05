@@ -6710,7 +6710,7 @@ async function startServer() {
     // Add standalone reported numbers if query resembles a number
     if (isLikeNumber) {
       const contacts = db.prepare(`
-          SELECT id, number, type, status, fraud_report_count, linked_page_ids 
+          SELECT id, number, type, status, fraud_report_count, linked_page_ids, display_name 
           FROM ContactNumbers 
           WHERE number LIKE ? OR number LIKE ? OR number LIKE ? OR number LIKE ?
           LIMIT 5
@@ -6727,6 +6727,7 @@ async function startServer() {
         pages.push({
           id: 'number-' + contact.id,
           current_name: contact.number,
+          display_name: contact.display_name,
           category: contact.type || 'Contact Number',
           status_badge: contact.status === 'Reported' || contact.status === 'Suspicious' ? 'Reported as Fraud' : contact.status,
           profile_picture: null,

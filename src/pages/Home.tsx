@@ -17,6 +17,7 @@ import {
   MessageSquare,
   AlertTriangle,
   Trophy,
+  Facebook,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
@@ -450,6 +451,13 @@ export default function Home() {
                       const rating = page.average_rating
                         ? Number(page.average_rating)
                         : 0;
+
+                      const urlRegex = /(https?:\/\/[^\s]+)/gi;
+                      const urlMatch = page.is_contact_only && page.display_name ? page.display_name.match(urlRegex) : null;
+                      const fbUrl = urlMatch ? urlMatch[0] : null;
+                      const cleanDesc = page.is_contact_only && page.display_name
+                        ? page.display_name.replace(urlRegex, '').replace(/\s+/g, ' ').trim()
+                        : '';
                       return (
                         <Link
                           key={page.id}
@@ -523,6 +531,23 @@ export default function Home() {
                                 </>
                               )}
                             </p>
+                            {page.is_contact_only && cleanDesc && (
+                              <div className="text-[12px] text-slate-600 font-medium mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span className="truncate max-w-[280px]">{cleanDesc}</span>
+                                {fbUrl && (
+                                  <a
+                                    href={fbUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center text-blue-600 hover:text-blue-800 p-0.5 shrink-0 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                                    title="View Link"
+                                  >
+                                    <Facebook className="h-3 w-3 fill-current" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="shrink-0 flex items-center gap-2">
                             {(page.fraud_report_count || 0) > 0 && !page.is_contact_only && (
