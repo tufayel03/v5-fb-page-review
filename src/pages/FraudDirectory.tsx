@@ -481,7 +481,9 @@ export default function FraudDirectory() {
                         <th className="py-3.5 px-4 text-center w-16">SL</th>
                         <th className="py-3.5 px-4">Page</th>
                         <th className="py-3.5 px-4 w-44">Listed Date</th>
+                        {/* NOTE: Temporarily commented out to prevent competitor data scraping
                         <th className="py-3.5 px-4 text-right w-32">Action</th>
+                        */}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#e2e8f0] text-sm text-slate-800">
@@ -529,7 +531,7 @@ export default function FraudDirectory() {
                                     {item.current_name}
                                   </span>
 
-                                  {/* Facebook Link icon right next to name, matching mockup */}
+                                  {/* NOTE: Temporarily commented out to prevent competitor data scraping
                                   <a
                                     href={item.facebook_url}
                                     target="_blank"
@@ -540,6 +542,7 @@ export default function FraudDirectory() {
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
                                   </a>
+                                  */}
                                 </div>
                               </div>
                             </td>
@@ -551,7 +554,7 @@ export default function FraudDirectory() {
                               {listedDateStr}
                             </td>
 
-                            {/* View Action matching green button style */}
+                            {/* NOTE: Temporarily commented out to prevent competitor data scraping
                             <td className="py-3.5 px-4 text-right">
                               <Link
                                 to={`/page/${item.id}`}
@@ -561,6 +564,7 @@ export default function FraudDirectory() {
                                 View
                               </Link>
                             </td>
+                            */}
                           </tr>
                         );
                       })}
@@ -611,6 +615,7 @@ export default function FraudDirectory() {
                               <span className="font-extrabold text-[#0f172a] text-[13.5px] truncate block leading-tight">
                                 {item.current_name}
                               </span>
+                              {/* NOTE: Temporarily commented out to prevent competitor data scraping
                               <a
                                 href={item.facebook_url}
                                 target="_blank"
@@ -621,6 +626,7 @@ export default function FraudDirectory() {
                               >
                                 <ExternalLink className="w-3 h-3" />
                               </a>
+                              */}
                             </div>
                             <div className="text-[11px] text-slate-400 font-semibold mt-0.5 truncate flex items-center gap-1.5 leading-none">
                               <span>{listedDateStr}</span>
@@ -628,7 +634,7 @@ export default function FraudDirectory() {
                           </div>
                         </div>
 
-                        {/* View Button */}
+                        {/* NOTE: Temporarily commented out to prevent competitor data scraping
                         <Link
                           to={`/page/${item.id}`}
                           className="inline-flex items-center gap-1 text-[#10b981] hover:bg-emerald-50 bg-white border border-[#10b981] rounded-lg py-1.5 px-3.5 text-xs font-bold transition-all shadow-3xs shrink-0 select-none"
@@ -636,6 +642,7 @@ export default function FraudDirectory() {
                           <Eye className="w-3.5 h-3.5 text-[#10b981]" />
                           View
                         </Link>
+                        */}
                       </div>
                     );
                   })}
