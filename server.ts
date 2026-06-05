@@ -4284,7 +4284,14 @@ async function startServer() {
         params.push(addedBy);
       }
 
-      const groupingExpression = `CASE WHEN display_name IS NOT NULL AND TRIM(display_name) != '' THEN LOWER(TRIM(display_name)) ELSE id END`;
+      const groupingExpression = `CASE 
+        WHEN linked_page_ids IS NOT NULL AND TRIM(linked_page_ids) != '' THEN 
+          TRIM(SUBSTR(linked_page_ids, 1, INSTR(linked_page_ids || ',', ',') - 1))
+        WHEN display_name IS NOT NULL AND TRIM(display_name) != '' THEN 
+          LOWER(TRIM(display_name))
+        ELSE 
+          id 
+      END`;
 
       if (req.query.allIds === 'true') {
         const allItems = db.prepare(`SELECT id ${baseQuery}`).all(...params) as { id: string }[];
@@ -4476,7 +4483,18 @@ async function startServer() {
       if (!number) return res.status(404).json({ error: 'Not found' });
 
       let otherNumbers: any[] = [];
-      if (number.display_name && number.display_name.trim()) {
+      const pageIds = number.linked_page_ids
+        ? number.linked_page_ids.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [];
+
+      if (pageIds.length > 0) {
+        const placeholders = pageIds.map(() => 'linked_page_ids LIKE ?').join(' OR ');
+        const bindParams = pageIds.map(id => `%${id}%`);
+        otherNumbers = db.prepare(`
+          SELECT id, number FROM ContactNumbers 
+          WHERE (${placeholders}) AND id != ?
+        `).all(...bindParams, number.id) as any[];
+      } else if (number.display_name && number.display_name.trim()) {
         otherNumbers = db.prepare('SELECT id, number FROM ContactNumbers WHERE TRIM(LOWER(display_name)) = TRIM(LOWER(?)) AND id != ?')
           .all(number.display_name, number.id) as any[];
       }
