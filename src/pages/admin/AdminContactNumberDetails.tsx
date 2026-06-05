@@ -107,6 +107,19 @@ export default function AdminContactNumberDetails() {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               {number.number}
             </h1>
+            {number.other_numbers && number.other_numbers.length > 0 && (
+              <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-1 items-center font-semibold">
+                <span>Other numbers for this scammer: </span>
+                {number.other_numbers.map((other: any, oIdx: number) => (
+                  <span key={other.id}>
+                    {oIdx > 0 && <span className="text-slate-600">, </span>}
+                    <Link to={`/tufayel/contact-numbers/${other.id}`} className="text-emerald-400 hover:text-emerald-300 hover:underline">
+                      {other.number}
+                    </Link>
+                  </span>
+                ))}
+              </div>
+            )}
             <p className="text-sm text-slate-400 mt-1">
               Display Name: <span className="font-semibold text-slate-250">{number.display_name || "N/A"}</span>
             </p>

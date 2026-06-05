@@ -620,10 +620,14 @@ export default function AdminContactNumbers() {
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={numbers.length > 0 && selectedIds.length === numbers.length}
+                      checked={numbers.length > 0 && numbers.every(n => {
+                        const rowIds = n.grouped_ids ? n.grouped_ids.split(',') : [n.id];
+                        return rowIds.every(id => selectedIds.includes(id));
+                      })}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedIds(numbers.map(n => n.id));
+                          const allIds = numbers.flatMap(n => n.grouped_ids ? n.grouped_ids.split(',') : [n.id]);
+                          setSelectedIds(allIds);
                         } else {
                           setSelectedIds([]);
                         }
@@ -676,18 +680,31 @@ export default function AdminContactNumbers() {
                   return (
                     <tr
                       key={number.id}
-                      className={`hover:bg-white/[0.02] transition-all ${selectedIds.includes(number.id) ? "bg-emerald-500/[0.04] text-white" : ""}`}
+                      className={`hover:bg-white/[0.02] transition-all ${(() => {
+                        const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
+                        return rowIds.every(id => selectedIds.includes(id)) ? "bg-emerald-500/[0.04] text-white" : "";
+                      })()}`}
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={selectedIds.includes(number.id)}
+                            checked={(() => {
+                              const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
+                              return rowIds.every(id => selectedIds.includes(id));
+                            })()}
                             onChange={(e) => {
+                              const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
                               if (e.target.checked) {
-                                setSelectedIds(prev => [...prev, number.id]);
+                                setSelectedIds(prev => {
+                                  const newIds = [...prev];
+                                  rowIds.forEach(id => {
+                                    if (!newIds.includes(id)) newIds.push(id);
+                                  });
+                                  return newIds;
+                                });
                               } else {
-                                setSelectedIds(prev => prev.filter(id => id !== number.id));
+                                setSelectedIds(prev => prev.filter(id => !rowIds.includes(id)));
                               }
                             }}
                             className="rounded border-slate-700 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 shrink-0"

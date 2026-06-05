@@ -4284,20 +4284,40 @@ async function startServer() {
         params.push(addedBy);
       }
 
+      const groupingExpression = `CASE WHEN display_name IS NOT NULL AND TRIM(display_name) != '' THEN LOWER(TRIM(display_name)) ELSE id END`;
+
       if (req.query.allIds === 'true') {
         const allItems = db.prepare(`SELECT id ${baseQuery}`).all(...params) as { id: string }[];
         return res.json({ ids: allItems.map(item => item.id) });
       }
 
-      const countResult = db.prepare(`SELECT COUNT(*) as count ${baseQuery}`).get(...params) as any;
+      const countResult = db.prepare(`SELECT COUNT(DISTINCT ${groupingExpression}) as count ${baseQuery}`).get(...params) as any;
       const totalCount = countResult ? countResult.count : 0;
 
       const validSortOptions = ['created_at', 'last_reported_at', 'fraud_report_count', 'suspicious_report_count', 'total_mentions', 'linked_page_count'];
       const finalSortColumn = validSortOptions.includes(sortBy) ? sortBy : 'created_at';
 
       const numbers = db.prepare(`
-        SELECT id, number, type, account_type, display_name, status, total_mentions, fraud_report_count, suspicious_report_count, linked_page_ids, first_reported_at, last_reported_at, created_at, updated_at, added_by
+        SELECT 
+          id, 
+          group_concat(id, ',') as grouped_ids,
+          group_concat(number, ', ') as number, 
+          type, 
+          account_type, 
+          display_name, 
+          status, 
+          sum(total_mentions) as total_mentions, 
+          sum(fraud_report_count) as fraud_report_count, 
+          sum(suspicious_report_count) as suspicious_report_count, 
+          sum(linked_page_count) as linked_page_count,
+          group_concat(linked_page_ids, ',') as linked_page_ids, 
+          min(first_reported_at) as first_reported_at, 
+          max(last_reported_at) as last_reported_at, 
+          max(created_at) as created_at, 
+          max(updated_at) as updated_at, 
+          added_by
         ${baseQuery}
+        GROUP BY ${groupingExpression}
         ORDER BY ${finalSortColumn} ${sortOrder}
         LIMIT ? OFFSET ?
       `).all(...params, limit, offset) as any[];
@@ -4325,7 +4345,8 @@ async function startServer() {
         const links = num.linked_page_ids
           ? num.linked_page_ids.split(',').map((id: string) => id.trim()).filter(Boolean)
           : [];
-        const linkedPagesInfo = links
+        const uniqueLinks = Array.from(new Set(links));
+        const linkedPagesInfo = uniqueLinks
           .map((id: string) => pageMap.get(id))
           .filter(Boolean);
         return {
@@ -4451,9 +4472,19 @@ async function startServer() {
 
   app.get('/api/admin/contact-numbers/:id', requireAdmin, (req, res) => {
     try {
-      const number = db.prepare('SELECT * FROM ContactNumbers WHERE id = ?').get(req.params.id);
+      const number = db.prepare('SELECT * FROM ContactNumbers WHERE id = ?').get(req.params.id) as any;
       if (!number) return res.status(404).json({ error: 'Not found' });
-      res.json(number);
+
+      let otherNumbers: any[] = [];
+      if (number.display_name && number.display_name.trim()) {
+        otherNumbers = db.prepare('SELECT id, number FROM ContactNumbers WHERE TRIM(LOWER(display_name)) = TRIM(LOWER(?)) AND id != ?')
+          .all(number.display_name, number.id) as any[];
+      }
+
+      res.json({
+        ...number,
+        other_numbers: otherNumbers
+      });
     } catch (e) {
       res.status(500).json({ error: 'Server error' });
     }
