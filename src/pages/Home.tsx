@@ -125,7 +125,7 @@ export default function Home() {
       let animationFrameId: number;
       let lastTimestamp = 0;
       
-      const speed = 55; // Pixels per second
+      const speed = 99; // Pixels per second (increased by 1.8x from 55)
 
       const step = (timestamp: number) => {
         if (!lastTimestamp) lastTimestamp = timestamp;
