@@ -59,24 +59,54 @@ export default function AdminReviewDetails() {
       });
   };
 
-  const handleDeleteImage = (indexToDelete: number) => {
-    if (!window.confirm("Are you sure you want to delete this proof image?")) return;
-    
-    let currentImages: string[] = [];
+  const [deletingImage, setDeletingImage] = useState<number | null>(null);
+
+  const handleDeleteImage = async (indexToDelete: number) => {
+    if (!window.confirm("Delete this proof image? This will permanently remove the file.")) return;
+    setDeletingImage(indexToDelete);
     try {
-      if (review.proof_image.startsWith('[')) {
-        currentImages = JSON.parse(review.proof_image);
+      const res = await fetch(`/api/admin/reviews/${id}/proof-image`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ imageIndex: indexToDelete })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
       } else {
-        currentImages = [review.proof_image];
+        setReview({ ...review, proof_image: data.proof_image });
       }
     } catch (e) {
-      currentImages = [review.proof_image];
+      alert('Failed to delete image');
     }
-    
-    const updatedImages = currentImages.filter((_, idx) => idx !== indexToDelete);
-    const updatedProofImageVal = updatedImages.length > 0 ? JSON.stringify(updatedImages) : null;
-    
-    setReview({ ...review, proof_image: updatedProofImageVal });
+    setDeletingImage(null);
+  };
+
+  const handleDeleteAllImages = async () => {
+    if (!window.confirm("Delete ALL proof images for this review? This cannot be undone.")) return;
+    setDeletingImage(-1);
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}/proof-image`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ imageIndex: -1 })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        setReview({ ...review, proof_image: null });
+      }
+    } catch (e) {
+      alert('Failed to delete images');
+    }
+    setDeletingImage(null);
   };
 
   const handleDelete = () => {
@@ -159,7 +189,17 @@ export default function AdminReviewDetails() {
               
               {review.proof_image && (
                  <div className="mt-4">
-                    <div className="text-slate-400 font-bold mb-2 text-sm uppercase tracking-wider">Proof Image(s)</div>
+                    <div className="flex items-center justify-between mb-3">
+                       <div className="text-slate-400 font-bold text-sm uppercase tracking-wider">Proof Image(s)</div>
+                       <button
+                         type="button"
+                         onClick={handleDeleteAllImages}
+                         disabled={deletingImage !== null}
+                         className="flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                       >
+                         <Trash2 className="h-3.5 w-3.5" /> Delete All Images
+                       </button>
+                    </div>
                     <div className="flex flex-wrap gap-4">
                         {(() => {
                            let images: string[] = [];
@@ -173,19 +213,29 @@ export default function AdminReviewDetails() {
                              images = [review.proof_image];
                            }
                            
-                           if (images.length === 0) return <span className="text-slate-500 font-semibold text-sm text-slate-500">No proof images.</span>;
+                           if (images.length === 0) return <span className="text-slate-500 font-semibold text-sm">No proof images.</span>;
                            
                            return images.map((img: string, idx: number) => (
                              <div key={idx} className="relative group max-w-[200px]">
                                <img src={img} alt={`Proof ${idx + 1}`} className="w-full h-auto rounded-lg border border-white/5 object-cover" />
-                               <button 
-                                 type="button"
-                                 onClick={() => handleDeleteImage(idx)} 
-                                 className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-700 shadow-md"
-                                 title="Delete image"
-                               >
-                                 <Trash2 className="h-3.5 w-3.5" />
-                               </button>
+                               {deletingImage === idx ? (
+                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
+                                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                 </div>
+                               ) : (
+                                 <button 
+                                   type="button"
+                                   onClick={() => handleDeleteImage(idx)} 
+                                   disabled={deletingImage !== null}
+                                   className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-700 shadow-md disabled:cursor-not-allowed"
+                                   title="Delete this image (removes file from server)"
+                                 >
+                                   <Trash2 className="h-3.5 w-3.5" />
+                                 </button>
+                               )}
+                               <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                 #{idx + 1}
+                               </div>
                              </div>
                            ));
                         })()}

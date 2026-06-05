@@ -4029,6 +4029,54 @@ async function startServer() {
     }
   });
 
+  // Delete a specific proof image (or all) from a review, removes file from disk
+  app.delete('/api/admin/reviews/:id/proof-image', requireModerator, (req, res) => {
+    try {
+      const { imageIndex } = req.body; // index to delete, or -1 to delete all
+      const review = db.prepare('SELECT proof_image FROM Reviews WHERE id = ?').get(req.params.id) as any;
+      if (!review) return res.status(404).json({ error: 'Review not found' });
+
+      let images: string[] = [];
+      try {
+        if (review.proof_image && review.proof_image.startsWith('[')) {
+          images = JSON.parse(review.proof_image);
+        } else if (review.proof_image) {
+          images = [review.proof_image];
+        }
+      } catch (e) {
+        images = review.proof_image ? [review.proof_image] : [];
+      }
+
+      const toDelete = imageIndex === -1 ? images : (images[imageIndex] ? [images[imageIndex]] : []);
+      // Delete physical files from disk
+      for (const imgUrl of toDelete) {
+        try {
+          if (imgUrl && imgUrl.startsWith('/uploads/')) {
+            const filePath = path.join(process.cwd(), imgUrl);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          }
+        } catch (fileErr) {
+          console.error('Failed to delete proof image file:', fileErr);
+        }
+      }
+
+      // Update DB
+      let updatedImages: string[];
+      if (imageIndex === -1) {
+        updatedImages = [];
+      } else {
+        updatedImages = images.filter((_, idx) => idx !== imageIndex);
+      }
+      const newProofImage = updatedImages.length > 0 ? JSON.stringify(updatedImages) : null;
+      db.prepare('UPDATE Reviews SET proof_image = ? WHERE id = ?').run(newProofImage, req.params.id);
+
+      res.json({ success: true, proof_image: newProofImage });
+    } catch (e) {
+      console.error('DELETE PROOF IMAGE ERROR:', e);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   app.delete('/api/admin/reviews/:id', requireAdmin, (req, res) => {
     try {
       db.prepare('DELETE FROM AbuseReports WHERE target_type = ? AND target_id = ?').run('Review', req.params.id);
