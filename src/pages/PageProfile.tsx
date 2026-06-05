@@ -571,8 +571,31 @@ export default function PageProfile() {
   try {
     if (page.other_urls) parsedOtherUrls = JSON.parse(page.other_urls);
   } catch (e) {}
+  // Build a set of all known page-registered numbers (normalized digits only) to exclude from flagged list
+  const knownPageNumbers = new Set<string>([
+    page.contact_number,
+    ...parsedExtraContacts,
+    ...parsedPaymentMethods,
+  ].filter(Boolean).map((n: string) => n.replace(/\D/g, '')));
+
   const paymentNumbers = Array.from(
-    new Set(reviews.map((r: any) => r.bkash_number).filter(Boolean)),
+    new Set(
+      reviews
+        .map((r: any) => r.bkash_number)
+        .filter((n: any) => {
+          if (!n) return false;
+          // Exclude if the digits of this number already exist in the page's own registered numbers
+          const digits = n.replace(/\D/g, '');
+          for (const known of knownPageNumbers) {
+            if (!known) continue;
+            if (digits.endsWith(known.replace(/^0+880/, '').replace(/^0+/, '')) ||
+                known.replace(/\D/g, '').endsWith(digits.replace(/^0+880/, '').replace(/^0+/, ''))) {
+              return false;
+            }
+          }
+          return true;
+        })
+    ),
   );
 
   const isOwner = user && page.owner_id === user.id;

@@ -6456,7 +6456,7 @@ async function startServer() {
     const rawTrim = q.trim();
     const queryLike = `%${rawTrim}%`;
     const searchDigits = rawTrim.replace(/\D/g, '');
-    const isLikeNumber = searchDigits.length >= 11;
+    const isLikeNumber = searchDigits.length >= 10;
 
     // If search query is a Facebook URL, check if we have it or scrape & add it instantly
     const isUrlQuery = rawTrim.toLowerCase().startsWith('http') ||
@@ -6610,6 +6610,7 @@ async function startServer() {
       OR r.bkash_number LIKE ?
       OR r.bkash_number LIKE ?
       OR r.bkash_number LIKE ?
+      OR r.bkash_number LIKE ?
       OR p.facebook_url = ?
       )
       GROUP BY p.id
@@ -6621,7 +6622,7 @@ async function startServer() {
       queryLike,
       phoneLike1, phoneLike2, phoneLike3,
       phoneLike1, phoneLike2, phoneLike3,
-      phoneLike1, phoneLike2, phoneLike3,
+      queryLike, phoneLike1, phoneLike2, phoneLike3,
       rawTrim
     ).map((p: any) => ({ ...p, fraud_report_count: Math.max(p.fraud_report_count || 0, p.dynamic_fraud_count || 0) }));
 
