@@ -12,6 +12,7 @@ export default function AdminReviewDetails() {
   
   const [status, setStatus] = useState("");
   const [reviewType, setReviewType] = useState("");
+  const [shareImagePublicly, setShareImagePublicly] = useState(false);
 
   useEffect(() => {
     fetchReview();
@@ -29,6 +30,7 @@ export default function AdminReviewDetails() {
           setReview(data);
           setStatus(data.status);
           setReviewType(data.review_type);
+          setShareImagePublicly(data.share_image_publicly === 1);
         }
         setLoading(false);
       });
@@ -42,7 +44,12 @@ export default function AdminReviewDetails() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`
       },
-      body: JSON.stringify({ status, review_type: reviewType })
+      body: JSON.stringify({ 
+        status, 
+        review_type: reviewType, 
+        share_image_publicly: shareImagePublicly ? 1 : 0,
+        proof_image: review.proof_image 
+      })
     })
       .then(res => res.json())
       .then(data => {
@@ -50,6 +57,26 @@ export default function AdminReviewDetails() {
         if (data.error) alert(data.error);
         else alert("Review updated successfully");
       });
+  };
+
+  const handleDeleteImage = (indexToDelete: number) => {
+    if (!window.confirm("Are you sure you want to delete this proof image?")) return;
+    
+    let currentImages: string[] = [];
+    try {
+      if (review.proof_image.startsWith('[')) {
+        currentImages = JSON.parse(review.proof_image);
+      } else {
+        currentImages = [review.proof_image];
+      }
+    } catch (e) {
+      currentImages = [review.proof_image];
+    }
+    
+    const updatedImages = currentImages.filter((_, idx) => idx !== indexToDelete);
+    const updatedProofImageVal = updatedImages.length > 0 ? JSON.stringify(updatedImages) : null;
+    
+    setReview({ ...review, proof_image: updatedProofImageVal });
   };
 
   const handleDelete = () => {
@@ -134,13 +161,34 @@ export default function AdminReviewDetails() {
                  <div className="mt-4">
                     <div className="text-slate-400 font-bold mb-2 text-sm uppercase tracking-wider">Proof Image(s)</div>
                     <div className="flex flex-wrap gap-4">
-                        {review.proof_image.startsWith('[') ? (
-                           JSON.parse(review.proof_image).map((img: string, idx: number) => (
-                             <img key={idx} src={img} alt={`Proof ${idx + 1}`} className="max-w-[200px] h-auto rounded-lg border border-white/5 object-cover" />
-                           ))
-                        ) : (
-                           <img src={review.proof_image} alt="Proof" className="max-w-[200px] h-auto rounded-lg border border-white/5 object-cover" />
-                        )}
+                        {(() => {
+                           let images: string[] = [];
+                           try {
+                             if (review.proof_image.startsWith('[')) {
+                               images = JSON.parse(review.proof_image);
+                             } else if (review.proof_image) {
+                               images = [review.proof_image];
+                             }
+                           } catch (e) {
+                             images = [review.proof_image];
+                           }
+                           
+                           if (images.length === 0) return <span className="text-slate-500 font-semibold text-sm text-slate-500">No proof images.</span>;
+                           
+                           return images.map((img: string, idx: number) => (
+                             <div key={idx} className="relative group max-w-[200px]">
+                               <img src={img} alt={`Proof ${idx + 1}`} className="w-full h-auto rounded-lg border border-white/5 object-cover" />
+                               <button 
+                                 type="button"
+                                 onClick={() => handleDeleteImage(idx)} 
+                                 className="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-700 shadow-md"
+                                 title="Delete image"
+                               >
+                                 <Trash2 className="h-3.5 w-3.5" />
+                               </button>
+                             </div>
+                           ));
+                        })()}
                     </div>
                  </div>
               )}
@@ -188,6 +236,22 @@ export default function AdminReviewDetails() {
                         <option value="Bad">Bad</option>
                         <option value="Fraud Report">Fraud Report</option>
                      </select>
+                 </div>
+                 <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-2">
+                    <span className="text-slate-400 font-bold text-sm">Share Image Publicly</span>
+                    <button
+                       type="button"
+                       onClick={() => setShareImagePublicly(!shareImagePublicly)}
+                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                          shareImagePublicly ? "bg-emerald-600" : "bg-slate-700"
+                       }`}
+                    >
+                       <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                             shareImagePublicly ? "translate-x-6" : "translate-x-1"
+                          }`}
+                       />
+                    </button>
                  </div>
               </div>
            </div>

@@ -26,6 +26,7 @@ import {
   DollarSign,
   Facebook,
   X,
+  Image as ImageIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
@@ -139,6 +140,12 @@ export default function PageProfile() {
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Slideshow Gallery states
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryIndex, setGalleryIndex] = useState<number>(0);
+  const [isGalleryOpen, setIsGalleryOpen] = useState<boolean>(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
   // Advanced Filters Drawer States
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
@@ -169,6 +176,25 @@ export default function PageProfile() {
     }, 350);
     return () => clearTimeout(timer);
   }, [searchKeyword]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+    
+    if (Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        setGalleryIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1));
+      } else {
+        setGalleryIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+      }
+    }
+    setTouchStartX(null);
+  };
 
   // Sync drawer open values from applied values
   const openFiltersDrawer = () => {
@@ -846,23 +872,23 @@ export default function PageProfile() {
               (user.role !== "owner" &&
                 user.role !== "page_owner" &&
                 user.role !== "Business Owner")) && (
-              <div className="flex flex-col sm:flex-row items-stretch lg:items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0 select-none">
+              <div className="flex flex-row items-stretch lg:items-center gap-2 sm:gap-3 w-full lg:w-auto mt-4 lg:mt-0 select-none">
                 <Link
                   to={`/write-review?pageId=${page.id}`}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-[#0fbc6f] text-white hover:bg-[#0da662] rounded-lg font-bold transition-all shadow-xs text-sm cursor-pointer whitespace-nowrap"
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 bg-[#0fbc6f] text-white hover:bg-[#0da662] rounded-lg font-bold transition-all shadow-xs text-[13px] sm:text-sm cursor-pointer whitespace-nowrap"
                 >
-                  <Star className="h-4.5 w-4.5 fill-current text-white" />
+                  <Star className="h-4 w-4 sm:h-4.5 sm:w-4.5 fill-current text-white shrink-0" />
                   {user && reviews.some((r: any) => r.user_id === user.id)
-                    ? "Edit Your Review"
-                    : "Write a Review"}
+                    ? "Edit Review"
+                    : "Write Review"}
                 </Link>
 
                 <Link
                   to={`/write-review?pageId=${page.id}&type=fraud`}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg font-bold transition-all text-sm cursor-pointer whitespace-nowrap"
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg font-bold transition-all text-[13px] sm:text-sm cursor-pointer whitespace-nowrap"
                 >
-                  <AlertTriangle className="h-4.5 w-4.5 text-rose-500" />
-                  Report Fraud Case
+                  <AlertTriangle className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-rose-500 shrink-0" />
+                  Report Fraud
                 </Link>
 
                 {(page.facebook_url || page.current_username) && (
@@ -1376,6 +1402,33 @@ export default function PageProfile() {
                               <Facebook className="h-4.5 w-4.5 fill-current" />
                             </a>
                           )}
+
+                          {review.share_image_publicly === 1 && review.proof_image && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                let imgs: string[] = [];
+                                try {
+                                  if (review.proof_image.startsWith('[')) {
+                                    imgs = JSON.parse(review.proof_image);
+                                  } else {
+                                    imgs = [review.proof_image];
+                                  }
+                                } catch (e) {
+                                  imgs = [review.proof_image];
+                                }
+                                if (imgs.length > 0) {
+                                  setGalleryImages(imgs);
+                                  setGalleryIndex(0);
+                                  setIsGalleryOpen(true);
+                                }
+                              }}
+                              className="text-purple-600 hover:text-purple-700 p-0.5 hover:scale-110 transition-all shrink-0 cursor-pointer"
+                              title="View Proof Image Gallery"
+                            >
+                              <ImageIcon className="h-4.5 w-4.5" />
+                            </button>
+                          )}
                         </div>
 
                         {/* Body content */}
@@ -1866,6 +1919,82 @@ export default function PageProfile() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* 🖼️ Proof Image Slideshow Modal */}
+      <AnimatePresence>
+        {isGalleryOpen && galleryImages.length > 0 && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+            onClick={() => setIsGalleryOpen(false)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setIsGalleryOpen(false)}
+              className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all z-[60] cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Left Chevron (Slideshow controls) */}
+            {galleryImages.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGalleryIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-[55] cursor-pointer"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            {/* Current Image */}
+            <div 
+              className="max-w-full max-h-[80vh] flex flex-col items-center justify-center select-none" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.img
+                key={galleryIndex}
+                src={galleryImages[galleryIndex]}
+                alt={`Proof detail ${galleryIndex + 1}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="max-w-full max-h-[70vh] rounded-lg object-contain shadow-2xl"
+              />
+              
+              {/* Image counter indicator */}
+              <div className="mt-4 text-white/70 font-semibold text-sm bg-white/10 px-3 py-1 rounded-full">
+                {galleryIndex + 1} / {galleryImages.length}
+              </div>
+            </div>
+
+            {/* Right Chevron (Slideshow controls) */}
+            {galleryImages.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGalleryIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-[55] cursor-pointer"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+
+            {/* Tap or Swipe instruction for mobile */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-xs font-semibold select-none pointer-events-none text-center">
+              {galleryImages.length > 1 ? "Tap arrows or swipe to navigate" : "Click anywhere outside to close"}
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

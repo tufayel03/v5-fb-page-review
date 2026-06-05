@@ -4016,12 +4016,15 @@ async function startServer() {
 
   app.put('/api/admin/reviews/:id', requireModerator, (req, res) => {
     try {
-      const { status, review_type } = req.body;
+      const { status, review_type, share_image_publicly, proof_image } = req.body;
       db.prepare(`
-        UPDATE Reviews SET status = ?, review_type = ? WHERE id = ?
-      `).run(status, review_type, req.params.id);
+        UPDATE Reviews 
+        SET status = ?, review_type = ?, share_image_publicly = ?, proof_image = ? 
+        WHERE id = ?
+      `).run(status, review_type, share_image_publicly ?? 0, proof_image !== undefined ? proof_image : null, req.params.id);
       res.json({ success: true });
     } catch (e) {
+      console.error("PUT REVIEW ERROR:", e);
       res.status(500).json({ error: 'Server error' });
     }
   });
@@ -6628,7 +6631,7 @@ async function startServer() {
 
   app.get('/api/reviews/recent', (req, res) => {
     const reviews = db.prepare(`
-      SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at,
+      SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at, r.proof_image, r.share_image_publicly,
              p.current_name, p.facebook_url, p.profile_picture,
              CASE WHEN r.is_on_behalf = 1 THEN COALESCE(NULLIF(r.on_behalf_name, ''), 'On behalf') ELSE u.full_name END as reviewer_name
       FROM Reviews r
@@ -6729,7 +6732,7 @@ async function startServer() {
       }
 
       const reviewsList = db.prepare(`
-        SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at, r.useful_count,
+        SELECT r.id, r.page_id, r.user_id, r.review_type, r.star_rating, r.title, r.description, r.date_of_experience, r.bkash_number, r.bkash_account_type, r.bkash_display_name, r.facebook_post_link, r.order_amount, r.product_service_type, r.status, r.created_at, r.updated_at, r.useful_count, r.proof_image, r.share_image_publicly,
                o.reply_text as owner_reply, o.created_at as owner_reply_created_at, 
                CASE WHEN r.is_on_behalf = 1 THEN COALESCE(NULLIF(r.on_behalf_name, ''), 'On behalf') ELSE u.full_name END as current_name
         ${baseQuery}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare, AlertCircle, AlertTriangle, X, Info, Search, Download, Database, ThumbsUp, ThumbsDown, ShieldAlert, Clock, Scale, Calendar, User, Phone, Paperclip, Facebook, ExternalLink, MoreHorizontal, Link as LinkIcon } from 'lucide-react';
+import { Star, MessageSquare, AlertCircle, AlertTriangle, X, Info, Search, Download, Database, ThumbsUp, ThumbsDown, ShieldAlert, Clock, Scale, Calendar, User, Phone, Paperclip, Facebook, ExternalLink, MoreHorizontal, Link as LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -31,6 +31,9 @@ export default function BusinessReviews() {
   const [submitting, setSubmitting] = useState(false);
   const [proofModalOpen, setProofModalOpen] = useState(false);
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
+  const [proofImages, setProofImages] = useState<string[]>([]);
+  const [proofIndex, setProofIndex] = useState<number>(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const fetchReviews = () => {
     fetch('/api/business/reviews', {
@@ -193,9 +196,40 @@ export default function BusinessReviews() {
     setDisputeModalOpen(true);
   };
 
-  const openProofModal = (imageUrl: string) => {
-    setSelectedProof(imageUrl);
+  const openProofModal = (proofImageVal: string) => {
+    let imgs: string[] = [];
+    try {
+      if (proofImageVal.startsWith('[')) {
+        imgs = JSON.parse(proofImageVal);
+      } else {
+        imgs = [proofImageVal];
+      }
+    } catch (e) {
+      imgs = [proofImageVal];
+    }
+    setProofImages(imgs);
+    setProofIndex(0);
+    setSelectedProof(imgs[0] || null);
     setProofModalOpen(true);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+    
+    if (Math.abs(diffX) > 50) {
+      if (diffX > 0) {
+        setProofIndex((prev) => (prev === proofImages.length - 1 ? 0 : prev + 1));
+      } else {
+        setProofIndex((prev) => (prev === 0 ? proofImages.length - 1 : prev - 1));
+      }
+    }
+    setTouchStartX(null);
   };
 
   const cContainer = theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#0B1120] border-white/5';
@@ -410,17 +444,59 @@ export default function BusinessReviews() {
       )}
 
       {/* Proof Modal */}
-      {proofModalOpen && selectedProof && (
-        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setProofModalOpen(false)}>
-           <div className="relative max-w-4xl max-h-[90vh] w-full flex justify-center" onClick={e => e.stopPropagation()}>
+      {proofModalOpen && proofImages.length > 0 && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" 
+          onClick={() => setProofModalOpen(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+           <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
               <button 
                 onClick={() => setProofModalOpen(false)} 
-                className="absolute -top-12 right-0 md:-right-12 text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"
+                className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors z-[210]"
                 title="Close"
               >
                  <X className="h-6 w-6" />
               </button>
-              <img src={selectedProof} alt="Proof Evidence" className="h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+
+              {/* Left Chevron */}
+              {proofImages.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProofIndex((prev) => (prev === 0 ? proofImages.length - 1 : prev - 1));
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-[205]"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
+
+              {/* Image */}
+              <img 
+                src={proofImages[proofIndex]} 
+                alt={`Proof Evidence ${proofIndex + 1}`} 
+                className="h-auto max-h-[75vh] object-contain rounded-lg shadow-2xl" 
+              />
+
+              {/* Counter */}
+              <div className="mt-4 text-white/70 font-semibold text-sm bg-white/10 px-3 py-1 rounded-full font-sans">
+                {proofIndex + 1} / {proofImages.length}
+              </div>
+
+              {/* Right Chevron */}
+              {proofImages.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProofIndex((prev) => (prev === proofImages.length - 1 ? 0 : prev + 1));
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-[205]"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
            </div>
         </div>
       )}
