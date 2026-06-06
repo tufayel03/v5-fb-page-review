@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pageAvatar = document.getElementById('pageAvatar');
   const pageName = document.getElementById('pageName');
   const pageUrl = document.getElementById('pageUrl');
+  const updatePicBtn = document.getElementById('updatePicBtn');
   const contactNumber = document.getElementById('contactNumber');
   const paymentMethods = document.getElementById('paymentMethods');
   const pageDetails = document.getElementById('pageDetails');
@@ -649,6 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dbStatusBadge = document.getElementById('dbStatusBadge');
     if (!connectionSettings.token || !connectionSettings.serverUrl || !url) {
       dbStatusBadge.style.display = 'none';
+      updatePicBtn.style.display = 'none';
       return;
     }
 
@@ -663,6 +665,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
         if (data.exists && data.page) {
           dbStatusBadge.style.display = 'block';
+          updatePicBtn.style.display = 'block';
 
           // Silently correct fallback names or missing profile pictures if we have scraped the real ones!
           const dbName = (data.page.current_name || '').toLowerCase().replace(/[\s\-\_]/g, '');
@@ -781,6 +784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         } else {
           dbStatusBadge.style.display = 'none';
+          updatePicBtn.style.display = 'none';
           addVerifiedBtn.textContent = '⭐ Verified Seller';
           addGoldBtn.textContent = '🏆 Gold Seller';
           addReviewBtn.textContent = '🔍 Under Review';
@@ -939,6 +943,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   addReviewBtn.addEventListener('click', () => submitPage('Under Review'));
   addSuspiciousBtn.addEventListener('click', () => submitPage('Suspicious'));
   addFraudBtn.addEventListener('click', () => submitPage('Reported as Fraud'));
+
+  // Event Listener for Profile Picture Update
+  updatePicBtn.addEventListener('click', async () => {
+    if (!connectionSettings.token) {
+      showAlert('Please set up server settings and log in as admin first!', 'danger');
+      settingsView.classList.add('active');
+      mainView.classList.remove('active');
+      return;
+    }
+
+    const activeUrl = currentScrapedData ? currentScrapedData.url : pageUrl.textContent;
+    if (!activeUrl || activeUrl === 'Detecting URL...' || activeUrl === 'Not a Facebook page') {
+      showAlert('No valid Facebook page URL detected!', 'danger');
+      return;
+    }
+
+    updatePicBtn.disabled = true;
+    const originalText = updatePicBtn.textContent;
+    updatePicBtn.textContent = '🔄';
+    updatePicBtn.style.animation = 'spin 1s linear infinite';
+
+    try {
+      const res = await fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/sync-page-picture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${connectionSettings.token}`
+        },
+        body: JSON.stringify({ facebookUrl: activeUrl })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update profile picture');
+      }
+
+      showAlert(data.message || 'Profile picture successfully updated!', 'success');
+      
+      // Update UI with the new picture if returned
+      if (data.profilePictureUrl) {
+        pageAvatar.src = `${connectionSettings.serverUrl}${data.profilePictureUrl}`;
+      } else {
+        // Fallback: reload state
+        checkDatabaseStatus(activeUrl);
+      }
+    } catch (err) {
+      showAlert(err.message, 'danger');
+    } finally {
+      updatePicBtn.disabled = false;
+      updatePicBtn.textContent = originalText;
+      updatePicBtn.style.animation = '';
+    }
+  });
 
   // Load draft and then initialize scraper
   await loadDraft();

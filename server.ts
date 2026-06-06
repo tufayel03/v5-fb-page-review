@@ -2403,6 +2403,353 @@ async function startServer() {
     }
   });
 
+  async function syncSinglePagePicture(pageId: string | number, scraperCookie: string): Promise<{ success: boolean; profilePictureUrl?: string; error?: string }> {
+    const page = db.prepare("SELECT id, facebook_url, current_name FROM FacebookPages WHERE id = ?").get(pageId) as any;
+    if (!page) {
+      return { success: false, error: 'Page not found in database' };
+    }
+
+    if (!page.facebook_url || !page.facebook_url.includes('facebook.com')) {
+      return { success: false, error: 'Invalid or missing Facebook URL' };
+    }
+
+    try {
+      const urlNoSlash = page.facebook_url.endsWith('/') ? page.facebook_url.slice(0, -1) : page.facebook_url;
+      let username = '';
+      try {
+        const urlObj = new URL(urlNoSlash.startsWith('http') ? urlNoSlash : 'https://' + urlNoSlash);
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        if (pathParts[0] === 'pages' || pathParts[0] === 'people') {
+          username = pathParts[2] || pathParts[1] || '';
+        } else if (pathParts[0] === 'profile.php') {
+          username = urlObj.searchParams.get('id') || '';
+        } else {
+          username = pathParts[0] || '';
+        }
+      } catch (urlErr) {
+        console.error('[Sync] Error parsing username from URL:', urlErr);
+      }
+
+      const cookieOption = scraperCookie ? `-H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}"` : '';
+      let tempDownloadedFile = '';
+
+      // 1. Page Plugin fetch via curl
+      if (username) {
+        console.log(`[Sync Single] Fetching profile picture via public Page Plugin for username: ${username}`);
+        const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
+        const tempHtmlFile = path.join(uploadsDir, `temp-sync-plugin-html-${Date.now()}.html`);
+        try {
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+          let pluginHtml = '';
+          if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+            pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+            fs.unlinkSync(tempHtmlFile);
+          }
+
+          if (cookieOption && (!pluginHtml || pluginHtml.includes('captcha') || pluginHtml.includes('checkpoint') || (!pluginHtml.includes('scontent') && !pluginHtml.includes('fbcdn')))) {
+            console.log('[Sync Single] Retrying with cookies...');
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+            if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+              pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+              fs.unlinkSync(tempHtmlFile);
+            }
+          }
+
+          let extractedPic = '';
+          const profilePicMatch = pluginHtml.match(/"profilePicURL"\s*:\s*"([^"]+)"/i);
+          if (profilePicMatch && profilePicMatch[1]) {
+            extractedPic = profilePicMatch[1].replace(/\\/g, '');
+          }
+
+          if (!extractedPic) {
+            const scontentMatches = pluginHtml.match(/(?:https?:)?\\?\/\\?\/[^\s\"']*(?:scontent|fbcdn)[^\s\"']+/gi) || [];
+            const cleanUrls = scontentMatches.map(url => url.replace(/\\/g, ''));
+            extractedPic = cleanUrls.find(url => url.includes('-1/')) ||
+              cleanUrls.find(url => url.includes('-6/')) ||
+              (cleanUrls.length > 0 ? cleanUrls[0] : '');
+          }
+
+          if (extractedPic) {
+            extractedPic = decodeHTMLEntities(extractedPic);
+            if (!extractedPic.startsWith('http')) {
+              extractedPic = 'https:' + extractedPic;
+            }
+            console.log(`[Sync Single] Downloading plugin picture via curl...`);
+            const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
+            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+              try {
+                await sharp(fs.readFileSync(tempFile)).metadata();
+                tempDownloadedFile = tempFile;
+              } catch (sharpErr: any) {
+                console.warn('[Sync Single] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
+                try { fs.unlinkSync(tempFile); } catch (e) { }
+              }
+            } else {
+              console.warn('[Sync Single] Page Plugin picture download empty or too small.');
+              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            }
+          }
+        } catch (err: any) {
+          console.error('[Sync Single] Page Plugin picture fetch failed:', err.message);
+          try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+        }
+      }
+
+      // 2. Direct page fetch via curl
+      if (!tempDownloadedFile) {
+        console.log(`[Sync Single] Falling back to direct page fetch via curl...`);
+        const tempHtmlFile = path.join(uploadsDir, `temp-sync-direct-html-${Date.now()}.html`);
+        try {
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${page.facebook_url}"`, { timeout: 8000 });
+          let html = '';
+          if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+            html = fs.readFileSync(tempHtmlFile, 'utf-8');
+            fs.unlinkSync(tempHtmlFile);
+          }
+
+          if (cookieOption && (!html || html.includes('captcha') || html.includes('checkpoint') || (!html.includes('scontent') && !html.includes('fbcdn')))) {
+            console.log('[Sync Single] Retrying direct with cookies...');
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${page.facebook_url}"`, { timeout: 8000 });
+            if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+              html = fs.readFileSync(tempHtmlFile, 'utf-8');
+              fs.unlinkSync(tempHtmlFile);
+            }
+          }
+
+          let ogImageUrl = '';
+          const ogMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+                          html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
+          if (ogMatch && ogMatch[1]) {
+            ogImageUrl = ogMatch[1];
+          }
+
+          if (ogImageUrl) {
+            ogImageUrl = decodeHTMLEntities(ogImageUrl);
+            if (!ogImageUrl.startsWith('http')) {
+              ogImageUrl = 'https:' + ogImageUrl;
+            }
+            let cleanedImageUrl = ogImageUrl
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'");
+
+            console.log(`[Sync Single] Downloading direct picture via curl...`);
+            const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+              try {
+                await sharp(fs.readFileSync(tempFile)).metadata();
+                tempDownloadedFile = tempFile;
+              } catch (sharpErr: any) {
+                console.warn('[Sync Single] Direct picture downloaded but invalid image format:', sharpErr.message);
+                try { fs.unlinkSync(tempFile); } catch (e) { }
+              }
+            } else {
+              console.warn('[Sync Single] Direct picture download empty or too small.');
+              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            }
+          }
+        } catch (err: any) {
+          console.error('[Sync Single] Direct picture fetch failed:', err.message);
+          try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+        }
+      }
+
+      // 3. Google Translate Proxy fetch
+      if (!tempDownloadedFile) {
+        console.log(`[Sync Single] Falling back to Translate proxy fetch via curl...`);
+        const tempHtmlFile = path.join(uploadsDir, `temp-sync-proxy-html-${Date.now()}.html`);
+        const proxyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(page.facebook_url)}`;
+        try {
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${proxyUrl}"`, { timeout: 8000 });
+          let html = '';
+          if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+            html = fs.readFileSync(tempHtmlFile, 'utf-8');
+            fs.unlinkSync(tempHtmlFile);
+          }
+
+          let ogImageUrl = '';
+          const ogMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+                          html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
+          if (ogMatch && ogMatch[1]) {
+            ogImageUrl = ogMatch[1];
+          }
+
+          if (ogImageUrl) {
+            ogImageUrl = decodeHTMLEntities(ogImageUrl);
+            if (!ogImageUrl.startsWith('http')) {
+              ogImageUrl = 'https:' + ogImageUrl;
+            }
+            let cleanedImageUrl = ogImageUrl
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#039;/g, "'");
+
+            console.log(`[Sync Single] Downloading proxy picture via curl...`);
+            const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
+            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+              try {
+                await sharp(fs.readFileSync(tempFile)).metadata();
+                tempDownloadedFile = tempFile;
+              } catch (sharpErr: any) {
+                console.warn('[Sync Single] Proxy picture downloaded but invalid image format:', sharpErr.message);
+                try { fs.unlinkSync(tempFile); } catch (e) { }
+              }
+            } else {
+              console.warn('[Sync Single] Proxy picture download empty or too small.');
+              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            }
+          }
+        } catch (err: any) {
+          console.error('[Sync Single] Translate proxy picture fetch failed:', err.message);
+          try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+        }
+      }
+
+      // 4. Graph API Picture Redirect
+      if (!tempDownloadedFile && username) {
+        let targetId = username;
+        const isNumeric = /^\d+$/.test(username);
+        if (!isNumeric) {
+          console.log(`[Sync Single] Alphanumeric username detected: ${username}. Resolving numeric ID via lookup-id.com...`);
+          const resolvedId = await resolveFacebookId(page.facebook_url);
+          if (resolvedId) {
+            targetId = resolvedId;
+          }
+        }
+
+        console.log(`[Sync Single] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
+        const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
+        try {
+          const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
+          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
+          if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+            try {
+               await sharp(fs.readFileSync(tempFile)).metadata();
+               tempDownloadedFile = tempFile;
+            } catch (sharpErr: any) {
+              console.warn('[Sync Single] Graph API picture downloaded but invalid image format:', sharpErr.message);
+              try { fs.unlinkSync(tempFile); } catch (e) { }
+            }
+          } else {
+            console.warn('[Sync Single] Graph API picture download empty or too small.');
+            if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+          }
+        } catch (err: any) {
+          console.error('[Sync Single] Graph API redirect picture fetch failed:', err.message);
+          try { fs.unlinkSync(tempFile); } catch (e) { }
+        }
+      }
+
+      // Process and update image
+      if (tempDownloadedFile && fs.existsSync(tempDownloadedFile)) {
+        const imageBuffer = fs.readFileSync(tempDownloadedFile);
+        const timestamp = Date.now();
+        const filename = `profile-${page.id}-${timestamp}.webp`;
+        const filepath = path.join(uploadsDir, filename);
+
+        await sharp(imageBuffer)
+          .resize(300, 300, { fit: 'cover' })
+          .webp({ quality: 80 })
+          .toFile(filepath);
+
+        const thumbFilename = `profile-thumb-${page.id}-${timestamp}.webp`;
+        const thumbFilepath = path.join(uploadsDir, thumbFilename);
+        await sharp(imageBuffer)
+          .resize(80, 80, { fit: 'cover' })
+          .webp({ quality: 70 })
+          .toFile(thumbFilepath);
+
+        // Delete old files
+        try {
+          const oldRow = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(page.id) as { profile_picture: string | null } | undefined;
+          if (oldRow && oldRow.profile_picture && oldRow.profile_picture.startsWith('/uploads/')) {
+            const oldRelativePath = oldRow.profile_picture;
+            const oldFilepath = path.join(process.cwd(), oldRelativePath);
+            if (fs.existsSync(oldFilepath)) {
+              fs.unlinkSync(oldFilepath);
+            }
+            const oldFilename = path.basename(oldRelativePath);
+            if (oldFilename.startsWith('profile-')) {
+              const oldThumbFilename = oldFilename.replace(/^profile-/, 'profile-thumb-');
+              const oldThumbFilepath = path.join(uploadsDir, oldThumbFilename);
+              if (fs.existsSync(oldThumbFilepath)) {
+                fs.unlinkSync(oldThumbFilepath);
+              }
+            }
+          }
+        } catch (delErr: any) {
+          console.error(`[Sync Single] Error during old file deletion:`, delErr.message);
+        }
+
+        const profile_picture = `/uploads/${filename}`;
+        db.prepare('UPDATE FacebookPages SET profile_picture = ? WHERE id = ?').run(profile_picture, page.id);
+        
+        try { fs.unlinkSync(tempDownloadedFile); } catch (e) { }
+        
+        return { success: true, profilePictureUrl: profile_picture };
+      }
+
+      return { success: false, error: 'Could not fetch a valid profile picture from any source.' };
+    } catch (err: any) {
+      console.error('[Sync Single] Unexpected error syncing picture:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  app.post('/api/admin/chrome-extension/sync-page-picture', requireModerator, async (req, res) => {
+    try {
+      const { facebookUrl } = req.body;
+      if (!facebookUrl) {
+        return res.status(400).json({ error: 'Facebook URL is required' });
+      }
+
+      const page = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ?').get(facebookUrl.trim()) as any;
+      if (!page) {
+        return res.status(404).json({ error: 'Page not found in database. Add it first.' });
+      }
+
+      // Get scraper cookie if saved
+      let scraperCookie = '';
+      try {
+        const cookieRow = db.prepare('SELECT value FROM Settings WHERE key_name = ?').get('facebook_scraper_cookies') as any;
+        if (cookieRow && cookieRow.value) {
+          const val = cookieRow.value.trim();
+          if (val.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed)) {
+                scraperCookie = parsed.map((c: any) => `${c.name}=${c.value}`).join('; ');
+              } else {
+                scraperCookie = val;
+              }
+            } catch (jsonErr) {
+              scraperCookie = val;
+            }
+          } else {
+            scraperCookie = val;
+          }
+        }
+      } catch (err) {}
+
+      const result = await syncSinglePagePicture(page.id, scraperCookie);
+      if (result.success) {
+        return res.json({ success: true, message: 'Profile picture successfully updated!', profilePictureUrl: result.profilePictureUrl });
+      } else {
+        return res.status(500).json({ error: result.error || 'Failed to update profile picture' });
+      }
+    } catch (e: any) {
+      console.error('[Sync Route] Error:', e);
+      res.status(500).json({ error: 'Server error updating picture: ' + e.message });
+    }
+  });
+
   app.post('/api/admin/chrome-extension/add-page', requireModerator, async (req, res) => {
     try {
       const { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails } = req.body;
