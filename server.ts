@@ -2842,6 +2842,25 @@ async function startServer() {
     }
   });
 
+  app.get('/api/admin/chrome-extension/pending-sync-pages', requireModerator, async (req, res) => {
+    try {
+      const pages = db.prepare(`
+        SELECT facebook_url, current_name 
+        FROM FacebookPages 
+        WHERE profile_picture IS NULL 
+           OR profile_picture = 'failed' 
+           OR profile_picture LIKE '%silhouette%' 
+           OR profile_picture LIKE '%placeholder%'
+           OR profile_picture LIKE '%gPCjrIGykBe.gif%'
+           OR profile_picture LIKE '%HsTZSDw4avx.gif%'
+      `).all() as any[];
+      res.json({ success: true, pages });
+    } catch (err: any) {
+      console.error('[Pending Sync] Error:', err.message);
+      res.status(500).json({ error: 'Server error fetching pending pages: ' + err.message });
+    }
+  });
+
   app.post('/api/admin/chrome-extension/add-page', requireModerator, async (req, res) => {
     try {
       const { facebookUrl, name, profilePictureUrl, status, contactNumber, paymentMethods, pageDetails } = req.body;

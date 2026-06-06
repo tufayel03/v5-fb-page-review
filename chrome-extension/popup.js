@@ -33,8 +33,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Tab Elements
   const tabScraperBtn = document.getElementById('tabScraperBtn');
   const tabReviewBtn = document.getElementById('tabReviewBtn');
+  const tabAutoSyncBtn = document.getElementById('tabAutoSyncBtn');
   const tabScraperContent = document.getElementById('tabScraperContent');
   const tabReviewContent = document.getElementById('tabReviewContent');
+  const tabAutoSyncContent = document.getElementById('tabAutoSyncContent');
+
+  // Auto-Sync elements
+  const syncQueueStatus = document.getElementById('syncQueueStatus');
+  const refreshSyncQueueBtn = document.getElementById('refreshSyncQueueBtn');
+  const syncProgressBarContainer = document.getElementById('syncProgressBarContainer');
+  const syncProgressBar = document.getElementById('syncProgressBar');
+  const currentSyncPageLabel = document.getElementById('currentSyncPageLabel');
+  const startAutoSyncBtn = document.getElementById('startAutoSyncBtn');
+  const stopAutoSyncBtn = document.getElementById('stopAutoSyncBtn');
+
+  let pendingSyncPages = [];
+  let isAutoSyncRunning = false;
 
   // Review Form Elements
   const expPillGood = document.getElementById('expPillGood');
@@ -324,19 +338,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Navigation: Tabs switching
   tabScraperBtn.addEventListener('click', () => {
+    if (isAutoSyncRunning) return;
     tabReviewBtn.classList.remove('active');
+    tabAutoSyncBtn.classList.remove('active');
     tabScraperBtn.classList.add('active');
     tabReviewContent.style.display = 'none';
+    tabAutoSyncContent.style.display = 'none';
     tabScraperContent.style.display = 'block';
     saveDraft();
   });
 
   tabReviewBtn.addEventListener('click', () => {
+    if (isAutoSyncRunning) return;
     tabScraperBtn.classList.remove('active');
+    tabAutoSyncBtn.classList.remove('active');
     tabReviewBtn.classList.add('active');
     tabScraperContent.style.display = 'none';
+    tabAutoSyncContent.style.display = 'none';
     tabReviewContent.style.display = 'block';
     saveDraft();
+  });
+
+  tabAutoSyncBtn.addEventListener('click', () => {
+    if (isAutoSyncRunning) return;
+    tabScraperBtn.classList.remove('active');
+    tabReviewBtn.classList.remove('active');
+    tabAutoSyncBtn.classList.add('active');
+    tabScraperContent.style.display = 'none';
+    tabReviewContent.style.display = 'none';
+    tabAutoSyncContent.style.display = 'block';
+    fetchPendingSyncList();
   });
 
   // Review Form Pill Selection
@@ -1044,4 +1075,151 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   });
+
+  // --- Auto-Sync Bulk Tool Implementations ---
+  async function fetchPendingSyncList() {
+    if (!connectionSettings.token) {
+      syncQueueStatus.textContent = 'Please log in first!';
+      syncQueueStatus.style.color = 'var(--color-danger)';
+      return;
+    }
+    syncQueueStatus.textContent = 'Fetching...';
+    syncQueueStatus.style.color = 'var(--color-warning)';
+    try {
+      const res = await fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/pending-sync-pages`, {
+        headers: {
+          'Authorization': `Bearer ${connectionSettings.token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch pending pages');
+      pendingSyncPages = data.pages || [];
+      syncQueueStatus.textContent = `${pendingSyncPages.length} pages need sync`;
+      syncQueueStatus.style.color = pendingSyncPages.length > 0 ? 'var(--color-warning)' : 'var(--color-brand)';
+    } catch (err) {
+      syncQueueStatus.textContent = 'Fetch failed';
+      syncQueueStatus.style.color = 'var(--color-danger)';
+      console.error(err);
+    }
+  }
+
+  refreshSyncQueueBtn.addEventListener('click', fetchPendingSyncList);
+
+  async function syncSinglePageTab(url) {
+    return new Promise((resolve) => {
+      chrome.tabs.create({ url: url, active: false }, (tab) => {
+        const tabId = tab.id;
+        let tabLoaded = false;
+        
+        const listener = (updatedTabId, changeInfo) => {
+          if (updatedTabId === tabId && changeInfo.status === 'complete') {
+            tabLoaded = true;
+            chrome.tabs.onUpdated.removeListener(listener);
+            
+            // Wait 4 seconds for components to render
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tabId, { action: "scrapePageDetails" }, (response) => {
+                if (chrome.runtime.lastError) {
+                  chrome.tabs.remove(tabId);
+                  return resolve({ success: false, error: chrome.runtime.lastError.message });
+                }
+                
+                if (response && response.success && response.profilePicUrl) {
+                  fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/sync-page-picture`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${connectionSettings.token}`
+                    },
+                    body: JSON.stringify({
+                      facebookUrl: url,
+                      profilePictureUrl: response.profilePicUrl,
+                      name: response.name
+                    })
+                  }).then(res => res.json())
+                    .then(data => {
+                      chrome.tabs.remove(tabId);
+                      resolve({ success: true });
+                    }).catch(err => {
+                      chrome.tabs.remove(tabId);
+                      resolve({ success: false, error: err.message });
+                    });
+                } else {
+                  chrome.tabs.remove(tabId);
+                  resolve({ success: false, error: 'Failed to scrape profile pic' });
+                }
+              });
+            }, 4000);
+          }
+        };
+
+        chrome.tabs.onUpdated.addListener(listener);
+
+        // Fail-safe timeout
+        setTimeout(() => {
+          if (!tabLoaded) {
+            chrome.tabs.onUpdated.removeListener(listener);
+            chrome.tabs.get(tabId, (existingTab) => {
+              if (existingTab) {
+                chrome.tabs.remove(tabId);
+              }
+            });
+            resolve({ success: false, error: 'Tab load timeout' });
+          }
+        }, 15000);
+      });
+    });
+  }
+
+  async function startAutoSync() {
+    if (pendingSyncPages.length === 0) {
+      showAlert('No pages in sync queue!', 'danger');
+      return;
+    }
+    isAutoSyncRunning = true;
+    startAutoSyncBtn.style.display = 'none';
+    stopAutoSyncBtn.style.display = 'block';
+    syncProgressBarContainer.style.display = 'block';
+    currentSyncPageLabel.style.display = 'block';
+
+    tabScraperBtn.disabled = true;
+    tabReviewBtn.disabled = true;
+    tabAutoSyncBtn.disabled = true;
+
+    let successCount = 0;
+    for (let i = 0; i < pendingSyncPages.length; i++) {
+      if (!isAutoSyncRunning) break;
+      const page = pendingSyncPages[i];
+      const displayName = page.current_name || page.facebook_url;
+      currentSyncPageLabel.textContent = `Syncing (${i + 1}/${pendingSyncPages.length}): ${displayName}`;
+      
+      const pct = Math.round((i / pendingSyncPages.length) * 100);
+      syncProgressBar.style.width = `${pct}%`;
+
+      const result = await syncSinglePageTab(page.facebook_url);
+      if (result.success) {
+        successCount++;
+      }
+      
+      // Delay to avoid rate limits
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    syncProgressBar.style.width = '100%';
+    currentSyncPageLabel.textContent = `Completed! Synced ${successCount} pages successfully.`;
+    stopAutoSync();
+    fetchPendingSyncList();
+  }
+
+  function stopAutoSync() {
+    isAutoSyncRunning = false;
+    startAutoSyncBtn.style.display = 'block';
+    stopAutoSyncBtn.style.display = 'none';
+    tabScraperBtn.disabled = false;
+    tabReviewBtn.disabled = false;
+    tabAutoSyncBtn.disabled = false;
+  }
+
+  startAutoSyncBtn.addEventListener('click', startAutoSync);
+  stopAutoSyncBtn.addEventListener('click', stopAutoSync);
 });

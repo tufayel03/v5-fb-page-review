@@ -580,6 +580,7 @@
         <div class="tabs-header">
           <button id="tabScraperBtn" class="tab-btn active">📊 Page Status</button>
           <button id="tabReviewBtn" class="tab-btn">✍️ Write Review</button>
+          <button id="tabAutoSyncBtn" class="tab-btn">🔄 Auto-Sync</button>
         </div>
 
         <!-- Tab Content 1: Page Status and Scraper Fields -->
@@ -687,6 +688,30 @@
 
           <!-- Submit Review Button -->
           <button id="submitReviewBtn" class="btn btn-success" style="width: 100%; margin-top: 4px;">🚀 Submit Review</button>
+        </div>
+        
+        <!-- Tab Content 3: Auto-Sync Bulk Tool -->
+        <div id="tabAutoSyncContent" class="tab-content-view" style="display: none; padding: 6px 0;">
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px; margin-bottom: 8px;">
+            <p style="font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">🤖 Bulk Auto-Sync Tool</p>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.45; margin-bottom: 12px;">
+              This tool fetches pages with missing profile pictures, opens background tabs, scrapes their profile pictures, and saves them.
+            </p>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
+              <span id="syncQueueStatus" style="font-size: 11px; font-weight: 700; color: var(--color-warning);">Loading status...</span>
+              <button type="button" id="refreshSyncQueueBtn" class="btn btn-secondary" style="width: auto; padding: 4px 8px; font-size: 10px; font-weight: 700;">Fetch List</button>
+            </div>
+            
+            <div id="syncProgressBarContainer" style="display: none; width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; margin-bottom: 12px;">
+              <div id="syncProgressBar" style="width: 0%; height: 100%; background: var(--color-brand); border-radius: 99px; transition: width 0.3s;"></div>
+            </div>
+            
+            <div id="currentSyncPageLabel" style="display: none; font-size: 11px; color: var(--text-muted); margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; background: rgba(0,0,0,0.15); border-radius: 4px;"></div>
+
+            <button type="button" id="startAutoSyncBtn" class="btn btn-success" style="width: 100%; display: block;">🚀 Start Auto-Sync</button>
+            <button type="button" id="stopAutoSyncBtn" class="btn btn-danger" style="width: 100%; display: none;">⏹️ Stop Auto-Sync</button>
+          </div>
         </div>
 
       </div>
