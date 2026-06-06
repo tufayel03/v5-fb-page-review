@@ -2414,17 +2414,23 @@ async function startServer() {
     }
 
     try {
-      const urlNoSlash = page.facebook_url.endsWith('/') ? page.facebook_url.slice(0, -1) : page.facebook_url;
+      const urlTrimmed = page.facebook_url.trim();
+      const urlNoSlash = urlTrimmed.endsWith('/') ? urlTrimmed.slice(0, -1) : urlTrimmed;
       let username = '';
       try {
         const urlObj = new URL(urlNoSlash.startsWith('http') ? urlNoSlash : 'https://' + urlNoSlash);
         const pathParts = urlObj.pathname.split('/').filter(Boolean);
-        if (pathParts[0] === 'pages' || pathParts[0] === 'people') {
-          username = pathParts[2] || pathParts[1] || '';
-        } else if (pathParts[0] === 'profile.php') {
-          username = urlObj.searchParams.get('id') || '';
-        } else {
-          username = pathParts[0] || '';
+        if (pathParts.length > 0) {
+          const firstPart = pathParts[0].toLowerCase();
+          if (firstPart === 'pages' || firstPart === 'people') {
+            username = pathParts[2] || pathParts[1] || '';
+          } else if (firstPart === 'p' || firstPart === 'profile') {
+            username = pathParts[1] || '';
+          } else if (firstPart === 'profile.php') {
+            username = urlObj.searchParams.get('id') || '';
+          } else {
+            username = pathParts[0] || '';
+          }
         }
       } catch (urlErr) {
         console.error('[Sync] Error parsing username from URL:', urlErr);
@@ -3038,17 +3044,23 @@ async function startServer() {
         }
 
         try {
-          const urlNoSlash = page.facebook_url.endsWith('/') ? page.facebook_url.slice(0, -1) : page.facebook_url;
+          const urlTrimmed = page.facebook_url.trim();
+          const urlNoSlash = urlTrimmed.endsWith('/') ? urlTrimmed.slice(0, -1) : urlTrimmed;
           let username = '';
           try {
             const urlObj = new URL(urlNoSlash.startsWith('http') ? urlNoSlash : 'https://' + urlNoSlash);
             const pathParts = urlObj.pathname.split('/').filter(Boolean);
-            if (pathParts[0] === 'pages' || pathParts[0] === 'people') {
-              username = pathParts[2] || pathParts[1] || '';
-            } else if (pathParts[0] === 'profile.php') {
-              username = urlObj.searchParams.get('id') || '';
-            } else {
-              username = pathParts[0] || '';
+            if (pathParts.length > 0) {
+              const firstPart = pathParts[0].toLowerCase();
+              if (firstPart === 'pages' || firstPart === 'people') {
+                username = pathParts[2] || pathParts[1] || '';
+              } else if (firstPart === 'p' || firstPart === 'profile') {
+                username = pathParts[1] || '';
+              } else if (firstPart === 'profile.php') {
+                username = urlObj.searchParams.get('id') || '';
+              } else {
+                username = pathParts[0] || '';
+              }
             }
           } catch (urlErr) {
             console.error('[Sync] Error parsing username from URL:', urlErr);
