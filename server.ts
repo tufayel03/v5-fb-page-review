@@ -34,6 +34,60 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+
+async function downloadUrlToTempFile(imgUrl: string, tempFilePath: string): Promise<boolean> {
+  try {
+    if (imgUrl.includes('176159830277856') || imgUrl.includes('silhouette') || imgUrl.includes('100x100-badge') || imgUrl.includes('HsTZSDw4avx.gif') || imgUrl.includes('rsrc.php') || imgUrl.includes('static.xx.fbcdn.net')) {
+      console.warn(`[Download] URL is a placeholder/silhouette: ${imgUrl.substring(0, 80)}`);
+      return false;
+    }
+
+    const res = await fetch(imgUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (!res.ok) {
+      console.warn(`[Download] Failed to fetch image. Status: ${res.status}`);
+      return false;
+    }
+
+    const finalUrl = res.url || imgUrl;
+    if (finalUrl.includes('176159830277856') || finalUrl.includes('silhouette') || finalUrl.includes('100x100-badge') || finalUrl.includes('HsTZSDw4avx.gif') || finalUrl.includes('rsrc.php') || finalUrl.includes('static.xx.fbcdn.net')) {
+      console.warn(`[Download] Final redirected URL is a placeholder/silhouette: ${finalUrl.substring(0, 80)}`);
+      return false;
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length < 200) {
+      console.warn(`[Download] File too small: ${buffer.length} bytes`);
+      return false;
+    }
+
+    try {
+      const meta = await sharp(buffer).metadata();
+      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+        console.warn(`[Download] Image dimensions too small: ${meta.width}x${meta.height}`);
+        return false;
+      }
+    } catch (sharpErr: any) {
+      console.warn('[Download] Invalid image format returned:', sharpErr.message);
+      return false;
+    }
+
+    fs.writeFileSync(tempFilePath, buffer);
+    return true;
+  } catch (err: any) {
+    console.error('[Download] Error downloading image:', err.message);
+    return false;
+  }
+}
+
+
 function cleanPhoneNumbers(str: string | null | undefined): string | null {
   if (!str) return null;
   const filtered = String(str)
@@ -2487,25 +2541,11 @@ async function startServer() {
             if (!extractedPic.startsWith('http')) {
               extractedPic = 'https:' + extractedPic;
             }
-            console.log(`[Sync Single] Downloading plugin picture via curl...`);
+            console.log(`[Sync Single] Downloading plugin picture...`);
             const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
-            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-              try {
-                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                  console.warn('[Sync Single] Page Plugin picture downloaded but too small (placeholder). Skipping.');
-                  try { fs.unlinkSync(tempFile); } catch (e) { }
-                } else {
-                  tempDownloadedFile = tempFile;
-                }
-              } catch (sharpErr: any) {
-                console.warn('[Sync Single] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
-                try { fs.unlinkSync(tempFile); } catch (e) { }
-              }
-            } else {
-              console.warn('[Sync Single] Page Plugin picture download empty or too small.');
-              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            const downloadSuccess = await downloadUrlToTempFile(extractedPic, tempFile);
+            if (downloadSuccess) {
+              tempDownloadedFile = tempFile;
             }
           }
         } catch (err: any) {
@@ -2554,25 +2594,11 @@ async function startServer() {
               .replace(/&quot;/g, '"')
               .replace(/&#039;/g, "'");
 
-            console.log(`[Sync Single] Downloading direct picture via curl...`);
+            console.log(`[Sync Single] Downloading direct picture...`);
             const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-              try {
-                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                  console.warn('[Sync Single] Direct picture downloaded but too small (placeholder). Skipping.');
-                  try { fs.unlinkSync(tempFile); } catch (e) { }
-                } else {
-                  tempDownloadedFile = tempFile;
-                }
-              } catch (sharpErr: any) {
-                console.warn('[Sync Single] Direct picture downloaded but invalid image format:', sharpErr.message);
-                try { fs.unlinkSync(tempFile); } catch (e) { }
-              }
-            } else {
-              console.warn('[Sync Single] Direct picture download empty or too small.');
-              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            const downloadSuccess = await downloadUrlToTempFile(cleanedImageUrl, tempFile);
+            if (downloadSuccess) {
+              tempDownloadedFile = tempFile;
             }
           }
         } catch (err: any) {
@@ -2613,25 +2639,11 @@ async function startServer() {
               .replace(/&quot;/g, '"')
               .replace(/&#039;/g, "'");
 
-            console.log(`[Sync Single] Downloading proxy picture via curl...`);
+            console.log(`[Sync Single] Downloading proxy picture...`);
             const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-            execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-            if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-              try {
-                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                  console.warn('[Sync Single] Proxy picture downloaded but too small (placeholder). Skipping.');
-                  try { fs.unlinkSync(tempFile); } catch (e) { }
-                } else {
-                  tempDownloadedFile = tempFile;
-                }
-              } catch (sharpErr: any) {
-                console.warn('[Sync Single] Proxy picture downloaded but invalid image format:', sharpErr.message);
-                try { fs.unlinkSync(tempFile); } catch (e) { }
-              }
-            } else {
-              console.warn('[Sync Single] Proxy picture download empty or too small.');
-              if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+            const downloadSuccess = await downloadUrlToTempFile(cleanedImageUrl, tempFile);
+            if (downloadSuccess) {
+              tempDownloadedFile = tempFile;
             }
           }
         } catch (err: any) {
@@ -2652,30 +2664,13 @@ async function startServer() {
           }
         }
 
-        console.log(`[Sync Single] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
+        console.log(`[Sync Single] Falling back to public Graph API picture redirect for target ID: ${targetId}`);
         const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
         try {
           const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
-          const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
-          if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/') || effectiveUrl.includes('HsTZSDw4avx.gif') || effectiveUrl.includes('rsrc.php') || effectiveUrl.includes('static.xx.fbcdn.net')) {
-            console.warn('[Sync Single] Downloaded image is the default Facebook silhouette or transparent spacer placeholder. Skipping.');
-            try { fs.unlinkSync(tempFile); } catch (e) { }
-          } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-            try {
-               const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-               if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                 console.warn('[Sync Single] Graph API picture downloaded but too small (placeholder). Skipping.');
-                 try { fs.unlinkSync(tempFile); } catch (e) { }
-               } else {
-                 tempDownloadedFile = tempFile;
-               }
-            } catch (sharpErr: any) {
-              console.warn('[Sync Single] Graph API picture downloaded but invalid image format:', sharpErr.message);
-              try { fs.unlinkSync(tempFile); } catch (e) { }
-            }
-          } else {
-            console.warn('[Sync Single] Graph API picture download empty or too small.');
-            if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+          const downloadSuccess = await downloadUrlToTempFile(graphPicUrl, tempFile);
+          if (downloadSuccess) {
+            tempDownloadedFile = tempFile;
           }
         } catch (err: any) {
           console.error('[Sync Single] Graph API redirect picture fetch failed:', err.message);
@@ -3241,27 +3236,11 @@ async function startServer() {
                   if (!extractedPic.startsWith('http')) {
                     extractedPic = 'https:' + extractedPic;
                   }
-                  console.log(`[Sync] Downloading plugin picture via curl...`);
+                  console.log(`[Sync] Downloading plugin picture...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  // IMPORTANT: NEVER send cookies to CDN (fbcdn.net / scontent)!
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                    try {
-                      // Validate image before marking as success
-                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                        console.warn('[Sync] Page Plugin picture downloaded but too small (placeholder). Skipping.');
-                        try { fs.unlinkSync(tempFile); } catch (e) { }
-                      } else {
-                        tempDownloadedFile = tempFile;
-                      }
-                    } catch (sharpErr: any) {
-                      console.warn('[Sync] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
-                      try { fs.unlinkSync(tempFile); } catch (e) { }
-                    }
-                  } else {
-                    console.warn('[Sync] Page Plugin picture download empty or too small.');
-                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+                  const downloadSuccess = await downloadUrlToTempFile(extractedPic, tempFile);
+                  if (downloadSuccess) {
+                    tempDownloadedFile = tempFile;
                   }
                 }
               }
@@ -3318,26 +3297,11 @@ async function startServer() {
                     .replace(/&quot;/g, '"')
                     .replace(/&#039;/g, "'");
 
-                  console.log(`[Sync] Downloading direct picture via curl...`);
+                  console.log(`[Sync] Downloading direct picture...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  // IMPORTANT: NEVER send cookies to CDN (fbcdn.net / scontent)!
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                    try {
-                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                        console.warn('[Sync] Direct picture downloaded but too small (placeholder). Skipping.');
-                        try { fs.unlinkSync(tempFile); } catch (e) { }
-                      } else {
-                        tempDownloadedFile = tempFile;
-                      }
-                    } catch (sharpErr: any) {
-                      console.warn('[Sync] Direct picture downloaded but invalid image format:', sharpErr.message);
-                      try { fs.unlinkSync(tempFile); } catch (e) { }
-                    }
-                  } else {
-                    console.warn('[Sync] Direct picture download empty or too small.');
-                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+                  const downloadSuccess = await downloadUrlToTempFile(cleanedImageUrl, tempFile);
+                  if (downloadSuccess) {
+                    tempDownloadedFile = tempFile;
                   }
                 }
               }
@@ -3381,25 +3345,11 @@ async function startServer() {
                     .replace(/&quot;/g, '"')
                     .replace(/&#039;/g, "'");
 
-                  console.log(`[Sync] Downloading proxy picture via curl...`);
+                  console.log(`[Sync] Downloading proxy picture...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                    try {
-                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                        console.warn('[Sync] Proxy picture downloaded but too small (placeholder). Skipping.');
-                        try { fs.unlinkSync(tempFile); } catch (e) { }
-                      } else {
-                        tempDownloadedFile = tempFile;
-                      }
-                    } catch (sharpErr: any) {
-                      console.warn('[Sync] Proxy picture downloaded but invalid image format:', sharpErr.message);
-                      try { fs.unlinkSync(tempFile); } catch (e) { }
-                    }
-                  } else {
-                    console.warn('[Sync] Proxy picture download empty or too small.');
-                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+                  const downloadSuccess = await downloadUrlToTempFile(cleanedImageUrl, tempFile);
+                  if (downloadSuccess) {
+                    tempDownloadedFile = tempFile;
                   }
                 }
               }
@@ -3421,35 +3371,18 @@ async function startServer() {
               }
             }
 
-             console.log(`[Sync] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
+             console.log(`[Sync] Falling back to public Graph API picture redirect for target ID: ${targetId}`);
              const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
              try {
                const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
-               const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/120.0.0.0" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
-                if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/') || effectiveUrl.includes('HsTZSDw4avx.gif') || effectiveUrl.includes('rsrc.php') || effectiveUrl.includes('static.xx.fbcdn.net')) {
-                  console.warn('[Sync] Downloaded image is the default Facebook silhouette or transparent spacer placeholder. Skipping.');
-                  try { fs.unlinkSync(tempFile); } catch (e) { }
-                } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                  try {
-                     const meta = await sharp(fs.readFileSync(tempFile)).metadata();
-                     if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
-                       console.warn('[Sync] Graph API picture downloaded but too small (placeholder). Skipping.');
-                       try { fs.unlinkSync(tempFile); } catch (e) { }
-                     } else {
-                       tempDownloadedFile = tempFile;
-                     }
-                  } catch (sharpErr: any) {
-                    console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
-                    try { fs.unlinkSync(tempFile); } catch (e) { }
-                  }
-                } else {
-                  console.warn('[Sync] Graph API picture download empty or too small.');
-                 if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+               const downloadSuccess = await downloadUrlToTempFile(graphPicUrl, tempFile);
+               if (downloadSuccess) {
+                 tempDownloadedFile = tempFile;
                }
-            } catch (err: any) {
-              console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
-              try { fs.unlinkSync(tempFile); } catch (e) { }
-            }
+             } catch (err: any) {
+               console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
+               try { fs.unlinkSync(tempFile); } catch (e) { }
+             }
           }
 
           // Process the picture
