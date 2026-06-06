@@ -2492,8 +2492,13 @@ async function startServer() {
             execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
             if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
               try {
-                await sharp(fs.readFileSync(tempFile)).metadata();
-                tempDownloadedFile = tempFile;
+                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                  console.warn('[Sync Single] Page Plugin picture downloaded but too small (placeholder). Skipping.');
+                  try { fs.unlinkSync(tempFile); } catch (e) { }
+                } else {
+                  tempDownloadedFile = tempFile;
+                }
               } catch (sharpErr: any) {
                 console.warn('[Sync Single] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
                 try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -2554,8 +2559,13 @@ async function startServer() {
             execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
             if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
               try {
-                await sharp(fs.readFileSync(tempFile)).metadata();
-                tempDownloadedFile = tempFile;
+                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                  console.warn('[Sync Single] Direct picture downloaded but too small (placeholder). Skipping.');
+                  try { fs.unlinkSync(tempFile); } catch (e) { }
+                } else {
+                  tempDownloadedFile = tempFile;
+                }
               } catch (sharpErr: any) {
                 console.warn('[Sync Single] Direct picture downloaded but invalid image format:', sharpErr.message);
                 try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -2608,8 +2618,13 @@ async function startServer() {
             execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
             if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
               try {
-                await sharp(fs.readFileSync(tempFile)).metadata();
-                tempDownloadedFile = tempFile;
+                const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                  console.warn('[Sync Single] Proxy picture downloaded but too small (placeholder). Skipping.');
+                  try { fs.unlinkSync(tempFile); } catch (e) { }
+                } else {
+                  tempDownloadedFile = tempFile;
+                }
               } catch (sharpErr: any) {
                 console.warn('[Sync Single] Proxy picture downloaded but invalid image format:', sharpErr.message);
                 try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -2642,13 +2657,18 @@ async function startServer() {
         try {
           const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
           const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
-          if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/')) {
-            console.warn('[Sync Single] Downloaded image is the default Facebook silhouette placeholder. Skipping.');
+          if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/') || effectiveUrl.includes('HsTZSDw4avx.gif') || effectiveUrl.includes('rsrc.php') || effectiveUrl.includes('static.xx.fbcdn.net')) {
+            console.warn('[Sync Single] Downloaded image is the default Facebook silhouette or transparent spacer placeholder. Skipping.');
             try { fs.unlinkSync(tempFile); } catch (e) { }
           } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
             try {
-               await sharp(fs.readFileSync(tempFile)).metadata();
-               tempDownloadedFile = tempFile;
+               const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+               if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                 console.warn('[Sync Single] Graph API picture downloaded but too small (placeholder). Skipping.');
+                 try { fs.unlinkSync(tempFile); } catch (e) { }
+               } else {
+                 tempDownloadedFile = tempFile;
+               }
             } catch (sharpErr: any) {
               console.warn('[Sync Single] Graph API picture downloaded but invalid image format:', sharpErr.message);
               try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -2802,6 +2822,11 @@ async function startServer() {
       // Helper function to download and optimize profile picture
       const downloadAndOptimize = async (imgUrl: string, pId: string) => {
         try {
+          if (imgUrl.includes('176159830277856') || imgUrl.includes('silhouette') || imgUrl.includes('100x100-badge') || imgUrl.includes('HsTZSDw4avx.gif') || imgUrl.includes('rsrc.php') || imgUrl.includes('static.xx.fbcdn.net')) {
+            console.warn('[Chrome Extension] Provided image URL is a silhouette/placeholder. Skipping.');
+            return null;
+          }
+
           const imgRes = await fetch(imgUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -2809,6 +2834,12 @@ async function startServer() {
           });
           if (imgRes.ok) {
             const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const meta = await sharp(buffer).metadata();
+            if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+              console.warn('[Chrome Extension] Downloaded image is too small (width/height < 50). Skipping.');
+              return null;
+            }
+
             const timestamp = Date.now();
             const filename = `profile-${pId}-${timestamp}.webp`;
             const filepath = path.join(uploadsDir, filename);
@@ -2837,10 +2868,26 @@ async function startServer() {
         const pageId = exists.id;
         let profilePicPath = exists.profile_picture;
 
-        // If the profile picture is missing or failed, and the extension provided a new one, download/optimize it!
-        if ((!profilePicPath || profilePicPath === 'failed') && profilePictureUrl) {
-          const optPic = await downloadAndOptimize(profilePictureUrl, pageId);
-          if (optPic) profilePicPath = optPic;
+        const isCurrentPlaceholder = !profilePicPath || 
+                                     profilePicPath === 'failed' || 
+                                     profilePicPath.includes('silhouette') || 
+                                     profilePicPath.includes('placeholder') ||
+                                     profilePicPath.includes('1x1') ||
+                                     profilePicPath.includes('transparent');
+
+        if (profilePictureUrl) {
+          if (isCurrentPlaceholder || (!profilePictureUrl.includes('silhouette') && !profilePictureUrl.includes('176159830277856') && !profilePictureUrl.includes('HsTZSDw4avx.gif') && !profilePictureUrl.includes('rsrc.php') && !profilePictureUrl.includes('static.xx.fbcdn.net'))) {
+            const optPic = await downloadAndOptimize(profilePictureUrl, pageId);
+            if (optPic) {
+              if (profilePicPath && profilePicPath.startsWith('/uploads/') && profilePicPath !== optPic) {
+                const oldFull = path.join(process.cwd(), profilePicPath);
+                const oldThumb = oldFull.replace('profile-', 'profile-thumb-');
+                try { fs.unlinkSync(oldFull); } catch (e) {}
+                try { fs.unlinkSync(oldThumb); } catch (e) {}
+              }
+              profilePicPath = optPic;
+            }
+          }
         }
 
         // Update the existing page
@@ -3126,8 +3173,13 @@ async function startServer() {
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
                       // Validate image before marking as success
-                      await sharp(fs.readFileSync(tempFile)).metadata();
-                      tempDownloadedFile = tempFile;
+                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                        console.warn('[Sync] Page Plugin picture downloaded but too small (placeholder). Skipping.');
+                        try { fs.unlinkSync(tempFile); } catch (e) { }
+                      } else {
+                        tempDownloadedFile = tempFile;
+                      }
                     } catch (sharpErr: any) {
                       console.warn('[Sync] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -3197,8 +3249,13 @@ async function startServer() {
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
-                      await sharp(fs.readFileSync(tempFile)).metadata();
-                      tempDownloadedFile = tempFile;
+                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                        console.warn('[Sync] Direct picture downloaded but too small (placeholder). Skipping.');
+                        try { fs.unlinkSync(tempFile); } catch (e) { }
+                      } else {
+                        tempDownloadedFile = tempFile;
+                      }
                     } catch (sharpErr: any) {
                       console.warn('[Sync] Direct picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -3254,8 +3311,13 @@ async function startServer() {
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
                   if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
-                      await sharp(fs.readFileSync(tempFile)).metadata();
-                      tempDownloadedFile = tempFile;
+                      const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                      if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                        console.warn('[Sync] Proxy picture downloaded but too small (placeholder). Skipping.');
+                        try { fs.unlinkSync(tempFile); } catch (e) { }
+                      } else {
+                        tempDownloadedFile = tempFile;
+                      }
                     } catch (sharpErr: any) {
                       console.warn('[Sync] Proxy picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
@@ -3288,22 +3350,27 @@ async function startServer() {
              const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
              try {
                const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
-               const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
-               if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/')) {
-                 console.warn('[Sync] Downloaded image is the default Facebook silhouette placeholder. Skipping.');
-                 try { fs.unlinkSync(tempFile); } catch (e) { }
-               } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                 try {
-                    await sharp(fs.readFileSync(tempFile)).metadata();
-                    tempDownloadedFile = tempFile;
-                 } catch (sharpErr: any) {
-                   console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
-                   try { fs.unlinkSync(tempFile); } catch (e) { }
-                 }
-               } else {
-                 console.warn('[Sync] Graph API picture download empty or too small.');
-                if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
-              }
+               const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/120.0.0.0" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
+                if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/') || effectiveUrl.includes('HsTZSDw4avx.gif') || effectiveUrl.includes('rsrc.php') || effectiveUrl.includes('static.xx.fbcdn.net')) {
+                  console.warn('[Sync] Downloaded image is the default Facebook silhouette or transparent spacer placeholder. Skipping.');
+                  try { fs.unlinkSync(tempFile); } catch (e) { }
+                } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+                  try {
+                     const meta = await sharp(fs.readFileSync(tempFile)).metadata();
+                     if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                       console.warn('[Sync] Graph API picture downloaded but too small (placeholder). Skipping.');
+                       try { fs.unlinkSync(tempFile); } catch (e) { }
+                     } else {
+                       tempDownloadedFile = tempFile;
+                     }
+                  } catch (sharpErr: any) {
+                    console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
+                    try { fs.unlinkSync(tempFile); } catch (e) { }
+                  }
+                } else {
+                  console.warn('[Sync] Graph API picture download empty or too small.');
+                 if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
+               }
             } catch (err: any) {
               console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
               try { fs.unlinkSync(tempFile); } catch (e) { }
