@@ -239,7 +239,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   };
 
+  // Helper: Auto-sync Facebook cookies to the server
+  const syncCookies = () => {
+    if (!connectionSettings.token || !connectionSettings.serverUrl) {
+      console.log('[Extension] Cannot sync cookies: Not logged in or no server URL.');
+      return;
+    }
+    
+    if (typeof chrome === 'undefined' || !chrome.cookies) {
+      console.log('[Extension] chrome.cookies API not available in this context.');
+      return;
+    }
+
+    chrome.cookies.getAll({ domain: '.facebook.com' }, (cookies) => {
+      if (chrome.runtime.lastError) {
+        console.error('[Extension] Failed to get cookies:', chrome.runtime.lastError);
+        return;
+      }
+      if (!cookies || cookies.length === 0) {
+        console.warn('[Extension] No Facebook cookies found in browser.');
+        return;
+      }
+
+      // Map to format suitable for scraper JSON
+      const cookieData = cookies.map(c => ({
+        domain: c.domain,
+        expirationDate: c.expirationDate,
+        hostOnly: c.hostOnly,
+        httpOnly: c.httpOnly,
+        name: c.name,
+        path: c.path,
+        sameSite: c.sameSite,
+        secure: c.secure,
+        session: c.session,
+        storeId: c.storeId,
+        value: c.value
+      }));
+
+      console.log('[Extension] Syncing ' + cookieData.length + ' Facebook cookies to server...');
+      fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/update-cookies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${connectionSettings.token}`
+        },
+        body: JSON.stringify({ cookies: cookieData })
+      })
+      .then(async (res) => {
+        if (res.ok) {
+          console.log('[Extension] Facebook cookies successfully auto-synced to server!');
+        } else {
+          const errText = await res.text();
+          console.warn('[Extension] Failed to sync cookies to server:', errText);
+        }
+      })
+      .catch(e => console.error('[Extension] Cookie sync request failed:', e));
+    });
+  };
+
   await loadSettings();
+  syncCookies();
 
   // Attach input and change event listeners to auto-save drafts
   const draftElements = [
@@ -391,6 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         showAlert('Successfully connected and authenticated with server!', 'success');
+        syncCookies();
       } else {
         // Just save server URL if credentials not provided (in case they already have a token)
         connectionSettings.serverUrl = serverUrl;

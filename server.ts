@@ -11,6 +11,11 @@ import sharp from 'sharp';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import * as xlsx from 'xlsx';
+import { createRequire } from 'node:module';
+const _require = createRequire(import.meta.url);
+const archiver = _require('archiver');
+const extract = _require('extract-zip');
+import os from 'os';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -1190,13 +1195,13 @@ async function startServer() {
 
   app.get('/api/admin/backup-db', requireAdmin, async (req, res) => {
     try {
-      const archiverLib = require("archiver");
+      const archiverLib = archiver;
       let archive;
-      if (archiverLib.ZipArchive) {
-        archive = new archiverLib.ZipArchive({ zlib: { level: 9 } });
+      if ((archiverLib as any).ZipArchive) {
+        archive = new (archiverLib as any).ZipArchive({ zlib: { level: 9 } });
       } else {
-        const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
-        archive = archiver('zip', { zlib: { level: 9 } });
+        const archiverFn = typeof archiverLib === 'function' ? archiverLib : ((archiverLib as any).default || archiverLib);
+        archive = archiverFn('zip', { zlib: { level: 9 } });
       }
 
       res.attachment('website_full_backup.zip');
@@ -1275,7 +1280,7 @@ async function startServer() {
   // 2. Trigger creation of a new backup on the server
   app.post('/api/admin/backups', requireAdmin, async (req, res) => {
     try {
-      const archiverLib = require("archiver");
+      const archiverLib = archiver;
       if (!fs.existsSync(backupsDir)) {
         fs.mkdirSync(backupsDir, { recursive: true });
       }
@@ -1287,11 +1292,11 @@ async function startServer() {
       const output = fs.createWriteStream(zipPath);
 
       let archive;
-      if (archiverLib.ZipArchive) {
-        archive = new archiverLib.ZipArchive({ zlib: { level: 9 } });
+      if ((archiverLib as any).ZipArchive) {
+        archive = new (archiverLib as any).ZipArchive({ zlib: { level: 9 } });
       } else {
-        const archiver = typeof archiverLib === 'function' ? archiverLib : (archiverLib.default || archiverLib);
-        archive = archiver('zip', { zlib: { level: 9 } });
+        const archiverFn = typeof archiverLib === 'function' ? archiverLib : ((archiverLib as any).default || archiverLib);
+        archive = archiverFn('zip', { zlib: { level: 9 } });
       }
 
       archive.on('error', (err) => {
@@ -1362,12 +1367,10 @@ async function startServer() {
         return res.status(404).json({ error: 'Backup file not found' });
       }
 
-      const extractLib = require("extract-zip");
-      const extract = typeof extractLib === 'function' ? extractLib : (extractLib.default || extractLib);
-      const os = require("os");
+      const extractFn = typeof extract === 'function' ? extract : ((extract as any).default || extract);
       const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
 
-      await extract(zipPath, { dir: destPath });
+      await extractFn(zipPath, { dir: destPath });
 
       // Overwrite database
       const extractedDb = path.join(destPath, 'data.db');
@@ -1420,7 +1423,6 @@ async function startServer() {
 
 
 
-  const os = require("os");
   const diskUpload = multer({ dest: path.join(process.cwd(), "uploads") });
 
   app.post("/api/admin/restore-db", requireAdmin, diskUpload.single("dbfile"), async (req, res) => {
@@ -1436,12 +1438,10 @@ async function startServer() {
         if (fs.existsSync(dbPath + '-wal')) fs.unlinkSync(dbPath + '-wal');
         if (fs.existsSync(dbPath + '-shm')) fs.unlinkSync(dbPath + '-shm');
       } else {
-        const extractLib = require("extract-zip");
-        const extract = typeof extractLib === 'function' ? extractLib : (extractLib.default || extractLib);
-        const os = require("os");
+        const extractFn = typeof extract === 'function' ? extract : ((extract as any).default || extract);
         const destPath = path.join(os.tmpdir(), 'extracted_backup_' + Date.now());
 
-        await extract(zipPath, { dir: destPath });
+        await extractFn(zipPath, { dir: destPath });
 
         const extractedDb = path.join(destPath, 'data.db');
         const currentDbPath = path.join(process.cwd(), 'data.db');
@@ -1600,7 +1600,6 @@ async function startServer() {
 
       // Deep Live Check via lightweight curl request
       try {
-        const { execSync } = require('child_process');
         const html = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}" --max-time 6 https://mbasic.facebook.com/profile.php`, { encoding: 'utf-8', timeout: 6000 });
 
         if (html.includes("composer") || html.includes("logout") || html.includes("mbasic_logout_button") || html.includes("xc_message")) {
@@ -2320,6 +2319,38 @@ async function startServer() {
     }
   });
 
+  app.post('/api/admin/chrome-extension/update-cookies', requireModerator, (req, res) => {
+    try {
+      const { cookies } = req.body;
+      if (!cookies || !Array.isArray(cookies)) {
+        return res.status(400).json({ error: 'Cookies array is required' });
+      }
+
+      const stmt = db.prepare('UPDATE Settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key_name = ?');
+      const info = stmt.run(JSON.stringify(cookies), 'facebook_scraper_cookies');
+
+      if (info.changes === 0) {
+        db.prepare('INSERT INTO Settings (id, group_name, key_name, value, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)')
+          .run(crypto.randomUUID(), 'general', 'facebook_scraper_cookies', JSON.stringify(cookies), 'textarea');
+      }
+
+      console.log('[Extension] Scraper cookies automatically updated in DB from admin assistant!');
+      return res.json({ success: true, message: 'Scraper cookies updated successfully' });
+    } catch (e: any) {
+      console.error('[Extension] Error updating cookies:', e);
+      return res.status(500).json({ error: 'Server error updating cookies: ' + e.message });
+    }
+  });
+
+  app.get('/chrome-extension.zip', (req, res) => {
+    const zipPath = path.join(process.cwd(), 'chrome-extension.zip');
+    if (fs.existsSync(zipPath)) {
+      res.download(zipPath, 'chrome-extension.zip');
+    } else {
+      res.status(404).send('Extension file not found');
+    }
+  });
+
   app.get('/api/admin/chrome-extension/check-page', requireModerator, (req, res) => {
     try {
       const { url } = req.query;
@@ -2523,6 +2554,35 @@ async function startServer() {
     }
   });
 
+  async function resolveFacebookId(fbUrl: string): Promise<string | null> {
+    try {
+      const response = await fetch('https://lookup-id.com/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        body: new URLSearchParams({
+          fburl: fbUrl,
+          check: 'Lookup'
+        }).toString()
+      });
+      if (response.ok) {
+        const html = await response.text();
+        const match = html.match(/<span\s+id=["']code["']>([0-9]+)<\/span>/i);
+        if (match && match[1]) {
+          console.log(`[LookupID] Successfully resolved ${fbUrl} to ID: ${match[1]}`);
+          return match[1];
+        }
+      } else {
+        console.warn(`[LookupID] Received non-200 response: ${response.status}`);
+      }
+    } catch (err: any) {
+      console.error('[LookupID] Error resolving Facebook ID via lookup-id.com:', err.message);
+    }
+    return null;
+  }
+
   app.get('/api/admin/pages/sync-pictures-progress', requireModerator, async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -2637,11 +2697,25 @@ async function startServer() {
             const pluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent('https://www.facebook.com/' + username)}&_fb_noscript=1`;
             const tempHtmlFile = path.join(uploadsDir, `temp-sync-plugin-html-${Date.now()}.html`);
             try {
-              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+              // Try WITHOUT cookies first (public widget)
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+              let pluginHtml = '';
               if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
-                const pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+                pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
                 try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+              }
 
+              // Fallback to cookies if first attempt yielded login/captcha wall or empty results
+              if (cookieOption && (!pluginHtml || pluginHtml.includes('captcha') || pluginHtml.includes('checkpoint') || (!pluginHtml.includes('scontent') && !pluginHtml.includes('fbcdn')))) {
+                console.log(`[Sync] Page Plugin empty/roadblocked without cookies. Retrying with cookies...`);
+                execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${pluginUrl}"`, { timeout: 8000 });
+                if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+                  pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
+                  try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+                }
+              }
+
+              if (pluginHtml) {
                 let extractedPic = '';
                 const profilePicMatch = pluginHtml.match(/"profilePicURL"\s*:\s*"([^"]+)"/i);
                 if (profilePicMatch && profilePicMatch[1]) {
@@ -2663,8 +2737,9 @@ async function startServer() {
                   }
                   console.log(`[Sync] Downloading plugin picture via curl...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                  // IMPORTANT: NEVER send cookies to CDN (fbcdn.net / scontent)!
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${extractedPic}"`, { timeout: 8000 });
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
                       // Validate image before marking as success
                       await sharp(fs.readFileSync(tempFile)).metadata();
@@ -2673,6 +2748,9 @@ async function startServer() {
                       console.warn('[Sync] Page Plugin picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
                     }
+                  } else {
+                    console.warn('[Sync] Page Plugin picture download empty or too small.');
+                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
                   }
                 }
               }
@@ -2687,11 +2765,25 @@ async function startServer() {
             console.log(`[Sync] Falling back to direct URL fetch via curl for: ${urlNoSlash}`);
             const tempHtmlFile = path.join(uploadsDir, `temp-sync-direct-html-${Date.now()}.html`);
             try {
-              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+              // Try WITHOUT cookies first
+              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+              let html = '';
               if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
-                const html = fs.readFileSync(tempHtmlFile, 'utf-8');
+                html = fs.readFileSync(tempHtmlFile, 'utf-8');
                 try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+              }
 
+              // Fallback to cookies if direct fetch was blocked/empty
+              if (cookieOption && (!html || html.includes('captcha') || html.includes('checkpoint') || html.includes('login'))) {
+                console.log(`[Sync] Direct fetch empty/roadblocked without cookies. Retrying with cookies...`);
+                execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempHtmlFile}" "${urlNoSlash}"`, { timeout: 8000 });
+                if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
+                  html = fs.readFileSync(tempHtmlFile, 'utf-8');
+                  try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+                }
+              }
+
+              if (html) {
                 let ogImageUrl = '';
                 const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
                 if (ogImageMatch && ogImageMatch[1]) {
@@ -2717,8 +2809,9 @@ async function startServer() {
 
                   console.log(`[Sync] Downloading direct picture via curl...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
-                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" ${cookieOption} -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                  // IMPORTANT: NEVER send cookies to CDN (fbcdn.net / scontent)!
+                  execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
                       await sharp(fs.readFileSync(tempFile)).metadata();
                       tempDownloadedFile = tempFile;
@@ -2726,6 +2819,9 @@ async function startServer() {
                       console.warn('[Sync] Direct picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
                     }
+                  } else {
+                    console.warn('[Sync] Direct picture download empty or too small.');
+                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
                   }
                 }
               }
@@ -2772,7 +2868,7 @@ async function startServer() {
                   console.log(`[Sync] Downloading proxy picture via curl...`);
                   const tempFile = path.join(uploadsDir, `temp-sync-pic-${Date.now()}.jpg`);
                   execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${cleanedImageUrl}"`, { timeout: 8000 });
-                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+                  if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                     try {
                       await sharp(fs.readFileSync(tempFile)).metadata();
                       tempDownloadedFile = tempFile;
@@ -2780,6 +2876,9 @@ async function startServer() {
                       console.warn('[Sync] Proxy picture downloaded but invalid image format:', sharpErr.message);
                       try { fs.unlinkSync(tempFile); } catch (e) { }
                     }
+                  } else {
+                    console.warn('[Sync] Proxy picture download empty or too small.');
+                    if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
                   }
                 }
               }
@@ -2789,21 +2888,34 @@ async function startServer() {
             }
           }
 
-          // 4. Graph API Picture Redirect fetch via curl
+          // 4. Graph API Picture Redirect fetch via curl (resolves alphanumeric usernames via lookup-id.com first)
           if (!tempDownloadedFile && username) {
-            console.log(`[Sync] Falling back to public Graph API picture redirect via curl for username: ${username}`);
+            let targetId = username;
+            const isNumeric = /^\d+$/.test(username);
+            if (!isNumeric) {
+              console.log(`[Sync] Alphanumeric username detected: ${username}. Resolving numeric ID via lookup-id.com...`);
+              const resolvedId = await resolveFacebookId(page.facebook_url);
+              if (resolvedId) {
+                targetId = resolvedId;
+              }
+            }
+
+            console.log(`[Sync] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
             const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
             try {
-              const graphPicUrl = `https://graph.facebook.com/${username}/picture?type=large`;
+              const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
               execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
-              if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 0) {
+              if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
                 try {
-                  await sharp(fs.readFileSync(tempFile)).metadata();
-                  tempDownloadedFile = tempFile;
+                   await sharp(fs.readFileSync(tempFile)).metadata();
+                   tempDownloadedFile = tempFile;
                 } catch (sharpErr: any) {
                   console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
                   try { fs.unlinkSync(tempFile); } catch (e) { }
                 }
+              } else {
+                console.warn('[Sync] Graph API picture download empty or too small.');
+                if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
               }
             } catch (err: any) {
               console.error('[Sync] Graph API redirect picture fetch failed:', err.message);
@@ -3741,7 +3853,7 @@ async function startServer() {
       const score_fraud = getScore('score_fraud', -25);
       const score_neutral = 0; // standard neutral
 
-      const reviews = db.prepare('SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ("Published", "Verified", "Approved")').all(req.params.id) as any[];
+      const reviews = db.prepare('SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN (\'Published\', \'Verified\', \'Approved\')').all(req.params.id) as any[];
 
       let total_score = 100; // base score? Or start from 0 if you want. 
       // Typically trust score starts from a baseline, say 100 or 50. Let's start at 50.
@@ -3805,7 +3917,7 @@ async function startServer() {
       const score_neutral = 0;
 
       const pages = db.prepare('SELECT id FROM FacebookPages').all() as any[];
-      const getReviews = db.prepare('SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ("Published", "Verified", "Approved")');
+      const getReviews = db.prepare("SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ('Published', 'Verified', 'Approved')");
       const updatePage = db.prepare(`
           UPDATE FacebookPages 
           SET trust_score = ?, status_badge = ?, average_rating = ?, total_reviews = ?, safe_review_count = ?, neutral_review_count = ?, suspicious_report_count = ?, fraud_report_count = ?, trusted_ranking_score = ?, updated_at = CURRENT_TIMESTAMP 
@@ -5930,7 +6042,6 @@ async function startServer() {
                 console.log(`[AutoScrape] Fetching profile picture from CDN... URL: ${extractedPic.substring(0, 80)}...`);
                 try {
                   const imgRes = await fetch(extractedPic, {
-                    headers: scraperCookie ? { 'Cookie': scraperCookie } : undefined,
                     signal: AbortSignal.timeout(8000)
                   });
                   if (imgRes.ok) {
@@ -6142,7 +6253,6 @@ async function startServer() {
               try {
                 console.log(`[AutoScrape] Fetching profile picture from CDN... URL: ${cleanedImageUrl.substring(0, 80)}...`);
                 const imgRes = await fetch(cleanedImageUrl, {
-                  headers: scraperCookie ? { 'Cookie': scraperCookie } : undefined,
                   signal: AbortSignal.timeout(8000)
                 });
                 if (imgRes.ok) {
@@ -7374,7 +7484,7 @@ async function startServer() {
         const score_suspicious = getScore('score_suspicious', -10);
         const score_fraud = getScore('score_fraud', -25);
 
-        const pageReviews = db.prepare('SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ("Published", "Verified", "Approved")').all(page_id) as any[];
+        const pageReviews = db.prepare("SELECT review_type, star_rating FROM Reviews WHERE page_id = ? AND status IN ('Published', 'Verified', 'Approved')").all(page_id) as any[];
         let total_score = 50;
         let totalReviews = pageReviews.length;
         let sumRatings = 0, safeCount = 0, neutralCount = 0, suspiciousCount = 0, fraudCount = 0;
