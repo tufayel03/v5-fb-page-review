@@ -5653,7 +5653,7 @@ async function startServer() {
       // List of path segments that represent non-page / non-profile elements
       const invalidSegments = [
         'photo', 'photos', 'photo.php', 'permalink.php', 'posts', 'groups', 'reels',
-        'stories', 'watch', 'videos', 'videos.php', 'share', 'events', 'marketplace',
+        'stories', 'watch', 'videos', 'videos.php', 'events', 'marketplace',
         'gaming', 'ads', 'messages', 'notifications', 'checkpoint', 'login',
         'recover', 'search', 'settings'
       ];
@@ -5696,6 +5696,41 @@ async function startServer() {
         url = 'https://' + url;
       }
 
+      // Resolve Facebook share shortlinks (e.g. facebook.com/share/...)
+      if (url.includes('/share/')) {
+        console.log(`[AutoScrape] Facebook share link detected: ${url}. Resolving redirect...`);
+        try {
+          // Fetch headers using curl without custom user agent to capture 302 location header
+          const stdout = execSync(`curl -i -s "${url}"`, { timeout: 8000 }).toString();
+          const locationMatch = stdout.match(/^location:\s*([^\r\n]+)/im);
+          if (locationMatch && locationMatch[1]) {
+            let resolvedUrl = locationMatch[1].trim();
+            console.log(`[AutoScrape] Successfully resolved share link to: ${resolvedUrl}`);
+
+            // Clean resolved URL (remove parameters like ?rdid=... or &share_url=...) but preserve 'id' parameter if present
+            try {
+              const urlObj = new URL(resolvedUrl);
+              const idVal = urlObj.searchParams.get('id');
+              urlObj.search = '';
+              urlObj.hash = '';
+              if (idVal) {
+                urlObj.searchParams.set('id', idVal);
+              }
+              resolvedUrl = urlObj.toString();
+              console.log(`[AutoScrape] Cleaned resolved URL: ${resolvedUrl}`);
+            } catch (e) {
+              resolvedUrl = resolvedUrl.split('?')[0].split('#')[0];
+            }
+
+            url = resolvedUrl;
+          } else {
+            console.warn(`[AutoScrape] Could not find location redirect header in curl output for share link`);
+          }
+        } catch (resolveErr: any) {
+          console.error('[AutoScrape] Failed to resolve Facebook share redirect:', resolveErr.message);
+        }
+      }
+
       if (!isValidFacebookPageUrl(url)) {
         console.warn(`[AutoScrape] Blocked scraping of invalid Facebook page URL: ${url}`);
         return null;
@@ -5727,37 +5762,6 @@ async function startServer() {
           console.log(`[AutoScrape] Converted direct numeric ID link to SEO-friendly URL: ${url}`);
         }
       } catch (e) { }
-
-      // Resolve Facebook share shortlinks (e.g. facebook.com/share/...)
-      if (url.includes('/share/')) {
-        console.log(`[AutoScrape] Facebook share link detected: ${url}. Resolving redirect...`);
-        try {
-          // Fetch headers using curl without custom user agent to capture 302 location header
-          const stdout = execSync(`curl -i -s "${url}"`, { timeout: 8000 }).toString();
-          const locationMatch = stdout.match(/^location:\s*([^\r\n]+)/im);
-          if (locationMatch && locationMatch[1]) {
-            let resolvedUrl = locationMatch[1].trim();
-            console.log(`[AutoScrape] Successfully resolved share link to: ${resolvedUrl}`);
-
-            // Clean resolved URL (remove parameters like ?rdid=... or &share_url=...)
-            try {
-              const urlObj = new URL(resolvedUrl);
-              urlObj.search = '';
-              urlObj.hash = '';
-              resolvedUrl = urlObj.toString();
-              console.log(`[AutoScrape] Cleaned resolved URL: ${resolvedUrl}`);
-            } catch (e) {
-              resolvedUrl = resolvedUrl.split('?')[0].split('#')[0];
-            }
-
-            url = resolvedUrl;
-          } else {
-            console.warn(`[AutoScrape] Could not find location redirect header in curl output for share link`);
-          }
-        } catch (resolveErr: any) {
-          console.error('[AutoScrape] Failed to resolve Facebook share redirect:', resolveErr.message);
-        }
-      }
 
       // Normalize url
       let urlNoSlash = url;
@@ -6566,7 +6570,41 @@ async function startServer() {
       }
 
       if (!isValidFacebookPageUrl(normalized)) {
-        return res.json([]);
+        // Still allow share links through — they will be resolved below
+        if (!normalized.includes('/share/')) {
+          return res.json([]);
+        }
+      }
+
+      // Resolve Facebook share shortlinks BEFORE any further processing
+      if (normalized.includes('/share/')) {
+        console.log(`[Search] Facebook share link detected: ${normalized}. Resolving redirect...`);
+        try {
+          const stdout = execSync(`curl -i -s "${normalized}"`, { timeout: 8000 }).toString();
+          const locationMatch = stdout.match(/^location:\s*([^\r\n]+)/im);
+          if (locationMatch && locationMatch[1]) {
+            let resolvedUrl = locationMatch[1].trim();
+            console.log(`[Search] Resolved share link to: ${resolvedUrl}`);
+            try {
+              const urlObj = new URL(resolvedUrl);
+              const idVal = urlObj.searchParams.get('id');
+              urlObj.search = '';
+              urlObj.hash = '';
+              if (idVal) urlObj.searchParams.set('id', idVal);
+              resolvedUrl = urlObj.toString();
+            } catch (e) {
+              resolvedUrl = resolvedUrl.split('?')[0].split('#')[0];
+            }
+            normalized = resolvedUrl;
+            console.log(`[Search] Cleaned share resolved URL: ${normalized}`);
+          } else {
+            console.warn(`[Search] Could not resolve share link location header, returning empty`);
+            return res.json([]);
+          }
+        } catch (err: any) {
+          console.error('[Search] Failed to resolve share redirect:', err.message);
+          return res.json([]);
+        }
       }
 
       // Normalize legacy profile.php URLs or URLs with numeric IDs in query parameter to SEO-friendly /people/Page/{id} format
@@ -6602,7 +6640,7 @@ async function startServer() {
       let urlNoWwwWithSlash = urlWithSlash.replace('https://www.', 'https://');
 
       let page = null;
-      const searchId = extractFacebookId(rawTrim);
+      const searchId = extractFacebookId(normalized) || extractFacebookId(rawTrim);
       if (searchId) {
         page = db.prepare('SELECT * FROM FacebookPages WHERE facebook_url LIKE ? LIMIT 1').get(`%${searchId}%`) as any;
         if (page) {
