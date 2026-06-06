@@ -2432,6 +2432,7 @@ async function startServer() {
 
       const cookieOption = scraperCookie ? `-H "Cookie: ${scraperCookie.replace(/"/g, '\\"')}"` : '';
       let tempDownloadedFile = '';
+      let resolvedIdFromHtml = '';
 
       // 1. Page Plugin fetch via curl
       if (username) {
@@ -2452,6 +2453,14 @@ async function startServer() {
             if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
               pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
               fs.unlinkSync(tempHtmlFile);
+            }
+          }
+
+          if (pluginHtml) {
+            const idMatch = pluginHtml.match(/facebook\.com\\?\/([0-9]+)\?ref=embed_page/i);
+            if (idMatch && idMatch[1]) {
+              resolvedIdFromHtml = idMatch[1];
+              console.log(`[Sync Single] Parsed classic page ID from plugin HTML: ${resolvedIdFromHtml}`);
             }
           }
 
@@ -2614,10 +2623,10 @@ async function startServer() {
 
       // 4. Graph API Picture Redirect
       if (!tempDownloadedFile && username) {
-        let targetId = username;
-        const isNumeric = /^\d+$/.test(username);
+        let targetId = resolvedIdFromHtml || username;
+        const isNumeric = /^\d+$/.test(targetId);
         if (!isNumeric) {
-          console.log(`[Sync Single] Alphanumeric username detected: ${username}. Resolving numeric ID via lookup-id.com...`);
+          console.log(`[Sync Single] Alphanumeric username detected: ${targetId}. Resolving numeric ID via lookup-id.com...`);
           const resolvedId = await resolveFacebookId(page.facebook_url);
           if (resolvedId) {
             targetId = resolvedId;
@@ -2628,8 +2637,11 @@ async function startServer() {
         const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
         try {
           const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
-          execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
-          if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+          const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
+          if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/')) {
+            console.warn('[Sync Single] Downloaded image is the default Facebook silhouette placeholder. Skipping.');
+            try { fs.unlinkSync(tempFile); } catch (e) { }
+          } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
             try {
                await sharp(fs.readFileSync(tempFile)).metadata();
                tempDownloadedFile = tempFile;
@@ -2903,6 +2915,9 @@ async function startServer() {
 
   async function resolveFacebookId(fbUrl: string): Promise<string | null> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch('https://lookup-id.com/', {
         method: 'POST',
         headers: {
@@ -2912,8 +2927,11 @@ async function startServer() {
         body: new URLSearchParams({
           fburl: fbUrl,
           check: 'Lookup'
-        }).toString()
+        }).toString(),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const html = await response.text();
         const match = html.match(/<span\s+id=["']code["']>([0-9]+)<\/span>/i);
@@ -3037,6 +3055,7 @@ async function startServer() {
           }
 
           let tempDownloadedFile = '';
+          let resolvedIdFromHtml = '';
 
           // 1. Page Plugin fetch via curl
           if (username) {
@@ -3059,6 +3078,14 @@ async function startServer() {
                 if (fs.existsSync(tempHtmlFile) && fs.statSync(tempHtmlFile).size > 0) {
                   pluginHtml = fs.readFileSync(tempHtmlFile, 'utf-8');
                   try { fs.unlinkSync(tempHtmlFile); } catch (e) { }
+                }
+              }
+
+              if (pluginHtml) {
+                const idMatch = pluginHtml.match(/facebook\.com\\?\/([0-9]+)\?ref=embed_page/i);
+                if (idMatch && idMatch[1]) {
+                  resolvedIdFromHtml = idMatch[1];
+                  console.log(`[Sync] Parsed classic page ID from plugin HTML: ${resolvedIdFromHtml}`);
                 }
               }
 
@@ -3237,31 +3264,34 @@ async function startServer() {
 
           // 4. Graph API Picture Redirect fetch via curl (resolves alphanumeric usernames via lookup-id.com first)
           if (!tempDownloadedFile && username) {
-            let targetId = username;
-            const isNumeric = /^\d+$/.test(username);
+            let targetId = resolvedIdFromHtml || username;
+            const isNumeric = /^\d+$/.test(targetId);
             if (!isNumeric) {
-              console.log(`[Sync] Alphanumeric username detected: ${username}. Resolving numeric ID via lookup-id.com...`);
+              console.log(`[Sync] Alphanumeric username detected: ${targetId}. Resolving numeric ID via lookup-id.com...`);
               const resolvedId = await resolveFacebookId(page.facebook_url);
               if (resolvedId) {
                 targetId = resolvedId;
               }
             }
 
-            console.log(`[Sync] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
-            const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
-            try {
-              const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
-              execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" "${graphPicUrl}"`, { timeout: 8000 });
-              if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
-                try {
-                   await sharp(fs.readFileSync(tempFile)).metadata();
-                   tempDownloadedFile = tempFile;
-                } catch (sharpErr: any) {
-                  console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
-                  try { fs.unlinkSync(tempFile); } catch (e) { }
-                }
-              } else {
-                console.warn('[Sync] Graph API picture download empty or too small.');
+             console.log(`[Sync] Falling back to public Graph API picture redirect via curl for target ID: ${targetId}`);
+             const tempFile = path.join(uploadsDir, `temp-sync-graph-${Date.now()}.jpg`);
+             try {
+               const graphPicUrl = `https://graph.facebook.com/${targetId}/picture?type=large`;
+               const effectiveUrl = execSync(`curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFile}" -w "%{url_effective}" "${graphPicUrl}"`, { timeout: 8000 }).toString().trim();
+               if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('/t1.30497-1/')) {
+                 console.warn('[Sync] Downloaded image is the default Facebook silhouette placeholder. Skipping.');
+                 try { fs.unlinkSync(tempFile); } catch (e) { }
+               } else if (fs.existsSync(tempFile) && fs.statSync(tempFile).size > 200) {
+                 try {
+                    await sharp(fs.readFileSync(tempFile)).metadata();
+                    tempDownloadedFile = tempFile;
+                 } catch (sharpErr: any) {
+                   console.warn('[Sync] Graph API picture downloaded but invalid image format:', sharpErr.message);
+                   try { fs.unlinkSync(tempFile); } catch (e) { }
+                 }
+               } else {
+                 console.warn('[Sync] Graph API picture download empty or too small.');
                 if (fs.existsSync(tempFile)) { try { fs.unlinkSync(tempFile); } catch (e) { } }
               }
             } catch (err: any) {
