@@ -2741,14 +2741,70 @@ async function startServer() {
 
   app.post('/api/admin/chrome-extension/sync-page-picture', requireModerator, async (req, res) => {
     try {
-      const { facebookUrl } = req.body;
+      const { facebookUrl, profilePictureUrl, name } = req.body;
       if (!facebookUrl) {
         return res.status(400).json({ error: 'Facebook URL is required' });
       }
 
-      const page = db.prepare('SELECT id FROM FacebookPages WHERE facebook_url = ?').get(facebookUrl.trim()) as any;
+      const page = db.prepare('SELECT id, current_name, profile_picture FROM FacebookPages WHERE facebook_url = ?').get(facebookUrl.trim()) as any;
       if (!page) {
         return res.status(404).json({ error: 'Page not found in database. Add it first.' });
+      }
+
+      // If the extension provided a direct picture URL, download/optimize it directly!
+      if (profilePictureUrl && !profilePictureUrl.includes('silhouette') && !profilePictureUrl.includes('176159830277856') && !profilePictureUrl.includes('HsTZSDw4avx.gif') && !profilePictureUrl.includes('rsrc.php') && !profilePictureUrl.includes('static.xx.fbcdn.net')) {
+        const downloadAndOptimizeDirect = async (imgUrl: string, pId: string) => {
+          try {
+            const imgRes = await fetch(imgUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+              }
+            });
+            if (imgRes.ok) {
+              const buffer = Buffer.from(await imgRes.arrayBuffer());
+              const meta = await sharp(buffer).metadata();
+              if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
+                console.warn('[Sync Direct] Downloaded image is too small (placeholder). Skipping.');
+                return null;
+              }
+
+              const timestamp = Date.now();
+              const filename = `profile-${pId}-${timestamp}.webp`;
+              const filepath = path.join(uploadsDir, filename);
+
+              await sharp(buffer)
+                .resize(300, 300, { fit: 'cover' })
+                .webp({ quality: 80 })
+                .toFile(filepath);
+
+              const thumbFilename = `profile-thumb-${pId}-${timestamp}.webp`;
+              const thumbFilepath = path.join(uploadsDir, thumbFilename);
+              await sharp(buffer)
+                .resize(80, 80, { fit: 'cover' })
+                .webp({ quality: 70 })
+                .toFile(thumbFilepath);
+
+              return `/uploads/${filename}`;
+            }
+          } catch (imgErr) {
+            console.error('[Sync Direct] Profile picture optimization failed:', imgErr);
+          }
+          return null;
+        };
+
+        const optPic = await downloadAndOptimizeDirect(profilePictureUrl, page.id);
+        if (optPic) {
+          // Clean up old files
+          if (page.profile_picture && page.profile_picture.startsWith('/uploads/')) {
+            const oldFull = path.join(process.cwd(), page.profile_picture);
+            const oldThumb = oldFull.replace('profile-', 'profile-thumb-');
+            try { fs.unlinkSync(oldFull); } catch (e) {}
+            try { fs.unlinkSync(oldThumb); } catch (e) {}
+          }
+
+          db.prepare('UPDATE FacebookPages SET profile_picture = ?, current_name = COALESCE(?, current_name) WHERE id = ?').run(optPic, name || null, page.id);
+          return res.json({ success: true, message: 'Profile picture successfully updated!', profilePictureUrl: optPic });
+        }
       }
 
       // Get scraper cookie if saved

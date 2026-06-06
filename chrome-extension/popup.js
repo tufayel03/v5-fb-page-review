@@ -971,7 +971,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${connectionSettings.token}`
         },
-        body: JSON.stringify({ facebookUrl: activeUrl })
+        body: JSON.stringify({ 
+          facebookUrl: activeUrl,
+          profilePictureUrl: currentScrapedData ? (currentScrapedData.profilePicUrl || '') : '',
+          name: currentScrapedData ? (currentScrapedData.name || '') : ''
+        })
       });
 
       const data = await res.json();
