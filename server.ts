@@ -11,10 +11,8 @@ import sharp from 'sharp';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import * as xlsx from 'xlsx';
-import { createRequire } from 'node:module';
-const _require = createRequire(import.meta.url);
-const archiver = _require('archiver');
-const extract = _require('extract-zip');
+import archiver from 'archiver';
+import extract from 'extract-zip';
 import os from 'os';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
