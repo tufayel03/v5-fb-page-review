@@ -29,6 +29,14 @@
     {
       "matches": ["https://*.facebook.com/*"],
       "js": ["content.js"]
+    },
+    {
+      "matches": [
+        "https://*.fbpagereview.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["admin-bridge.js"]
     }
   ]
 }

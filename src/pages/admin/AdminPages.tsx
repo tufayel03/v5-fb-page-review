@@ -133,6 +133,55 @@ export default function AdminPages() {
   const [applyingRedirects, setApplyingRedirects] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
+  const [extensionInstalled, setExtensionInstalled] = useState(false);
+
+  // Check if Chrome extension is active
+  useEffect(() => {
+    if ((window as any).__fbPageReviewExtensionInstalled) {
+      setExtensionInstalled(true);
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).__fbPageReviewExtensionInstalled) {
+          setExtensionInstalled(true);
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  // Listen for sync progress messages from Chrome extension bridge
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Ignore React DevTools messages
+      if (!event.data || event.data.source === 'react-devtools') return;
+
+      if (event.data.type === "FB_PAGE_REVIEW_SYNC_PROGRESS") {
+        const { current, total, pageName, count, done, error } = event.data;
+        if (error) {
+          alert("Extension Sync Failed: " + error);
+          setIsSyncing(false);
+          setSyncProgress(null);
+        } else if (done) {
+          alert(`Successfully fetched and optimized ${count} profile pictures via Extension!`);
+          setIsSyncing(false);
+          setSyncProgress(null);
+          setSelectedPageIds([]);
+          fetchPages();
+        } else {
+          setIsSyncing(true);
+          setSyncProgress({
+            current,
+            total,
+            pageName,
+            count
+          });
+        }
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   const handleSyncPictures = (ids?: string[], mode: 'sync' | 'update' = 'sync') => {
     const isBulk = Array.isArray(ids) && ids.length > 0;
@@ -150,6 +199,22 @@ export default function AdminPages() {
     setSyncProgress({ current: 0, total: 0, pageName: "Initializing...", count: 0 });
     
     const token = localStorage.getItem("token") || "";
+
+    // PRIORITY: If the Chrome extension is connected, run the sync in the browser to bypass VPS CDN blocks!
+    if ((window as any).__fbPageReviewExtensionInstalled) {
+      console.log('[Sync] Delegating profile picture sync to Chrome Extension...');
+      window.postMessage({
+        type: 'FB_PAGE_REVIEW_START_SYNC',
+        ids: isBulk ? ids : null,
+        mode,
+        token,
+        serverUrl: window.location.origin
+      }, '*');
+      return;
+    }
+
+    // Fallback: server SSE
+    console.log('[Sync] Chrome Extension not found. Falling back to server-side scraping...');
     let url = `/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}&mode=${mode}`;
     if (isBulk) {
       url += `&ids=${encodeURIComponent(ids.join(','))}`;
@@ -731,11 +796,23 @@ export default function AdminPages() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            Facebook Pages
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-white tracking-tight">
+              Facebook Pages
+            </h1>
+            {extensionInstalled ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Extension Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 select-none animate-pulse">
+                Extension Disconnected
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage all pages in the directory.
+            Manage all pages in the directory. {!extensionInstalled && <span className="text-amber-400 font-bold block sm:inline mt-1 sm:mt-0">⚠️ Install/enable the Chrome Extension to bypass Facebook IP blocks for profile picture fetching!</span>}
           </p>
         </div>
         

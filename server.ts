@@ -45,9 +45,15 @@ async function downloadUrlToTempFile(imgUrl: string, tempFilePath: string): Prom
 
     // Use curl to download - Node fetch gets blocked by VPS datacenter IP on Facebook/fbcdn URLs
     // The -w "%{url_effective}" flag lets us detect placeholder redirect destinations
+    // We add Referer + sec-fetch headers to better mimic browser requests to Facebook CDN
     const safeUrl = imgUrl.replace(/"/g, '\\"');
+    const isFbCdn = imgUrl.includes('fbcdn.net') || imgUrl.includes('facebook.com');
+    const extraHeaders = isFbCdn
+      ? `-H "Referer: https://www.facebook.com/" -H "sec-fetch-dest: image" -H "sec-fetch-mode: no-cors" -H "sec-fetch-site: cross-site" -H "Accept: image/webp,image/avif,image/*,*/*;q=0.8" -H "Accept-Encoding: gzip, deflate, br" -H "Accept-Language: en-US,en;q=0.9" -H "DNT: 1"`
+      : '';
+
     const effectiveUrl = execSync(
-      `curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFilePath}" -w "%{url_effective}" "${safeUrl}"`,
+      `curl -s -L --http2 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" ${extraHeaders} -o "${tempFilePath}" -w "%{url_effective}" "${safeUrl}"`,
       { timeout: 10000 }
     ).toString().trim();
 
@@ -86,6 +92,7 @@ async function downloadUrlToTempFile(imgUrl: string, tempFilePath: string): Prom
     return false;
   }
 }
+
 
 
 function cleanPhoneNumbers(str: string | null | undefined): string | null {
@@ -2838,16 +2845,53 @@ async function startServer() {
 
   app.get('/api/admin/chrome-extension/pending-sync-pages', requireModerator, async (req, res) => {
     try {
-      const pages = db.prepare(`
-        SELECT facebook_url, current_name 
-        FROM FacebookPages 
-        WHERE profile_picture IS NULL 
-           OR profile_picture = 'failed' 
-           OR profile_picture LIKE '%silhouette%' 
-           OR profile_picture LIKE '%placeholder%'
-           OR profile_picture LIKE '%gPCjrIGykBe.gif%'
-           OR profile_picture LIKE '%HsTZSDw4avx.gif%'
-      `).all() as any[];
+      const idsParam = req.query.ids as string;
+      const mode = (req.query.mode as string) || 'sync';
+      let pages = [];
+
+      if (mode === 'update') {
+        if (idsParam) {
+          const idList = idsParam.split(',').filter(Boolean);
+          if (idList.length > 0) {
+            const placeholders = idList.map(() => '?').join(',');
+            pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages WHERE id IN (${placeholders})`).all(...idList) as any[];
+          }
+        } else {
+          pages = db.prepare(`SELECT id, facebook_url, current_name FROM FacebookPages`).all() as any[];
+        }
+      } else {
+        // mode === 'sync'
+        if (idsParam) {
+          const idList = idsParam.split(',').filter(Boolean);
+          if (idList.length > 0) {
+            const placeholders = idList.map(() => '?').join(',');
+            pages = db.prepare(`
+              SELECT id, facebook_url, current_name 
+              FROM FacebookPages 
+              WHERE id IN (${placeholders})
+                AND (profile_picture IS NULL 
+                     OR profile_picture = ''
+                     OR profile_picture = 'failed' 
+                     OR profile_picture LIKE '%silhouette%' 
+                     OR profile_picture LIKE '%placeholder%'
+                     OR profile_picture LIKE '%gPCjrIGykBe.gif%'
+                     OR profile_picture LIKE '%HsTZSDw4avx.gif%')
+            `).all(...idList) as any[];
+          }
+        } else {
+          pages = db.prepare(`
+            SELECT id, facebook_url, current_name 
+            FROM FacebookPages 
+            WHERE profile_picture IS NULL 
+               OR profile_picture = ''
+               OR profile_picture = 'failed' 
+               OR profile_picture LIKE '%silhouette%' 
+               OR profile_picture LIKE '%placeholder%'
+               OR profile_picture LIKE '%gPCjrIGykBe.gif%'
+               OR profile_picture LIKE '%HsTZSDw4avx.gif%'
+          `).all() as any[];
+        }
+      }
       res.json({ success: true, pages });
     } catch (err: any) {
       console.error('[Pending Sync] Error:', err.message);
