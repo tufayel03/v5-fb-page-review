@@ -102,6 +102,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       .join(', ');
   };
 
+  // Helper: Fetch an image URL in the browser and return base64-encoded bytes
+  // This is needed because the VPS datacenter IP is blocked by Facebook CDN.
+  // The browser fetches from the user's trusted IP instead.
+  const fetchImageAsBase64 = async (imgUrl) => {
+    if (!imgUrl) return null;
+    try {
+      const res = await fetch(imgUrl);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result); // returns data:image/...;base64,...
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn('[Extension] fetchImageAsBase64 failed:', e.message);
+      return null;
+    }
+  };
+
   // Helper: Load Saved Connection Settings
   const loadSettings = async () => {
     return new Promise((resolve) => {
@@ -713,10 +734,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if ((isFallbackName || isMissingPic) && currentScrapedData && currentScrapedData.name && currentScrapedData.name !== 'Loading...') {
             console.log('[Extension] Auto-correcting fallback page metadata in database...');
+            // Fetch the profile picture as base64 in the browser (VPS IP is blocked by Facebook CDN)
+            const picBase64 = await fetchImageAsBase64(currentScrapedData.profilePicUrl || '');
             const payload = {
               facebookUrl: currentScrapedData.url,
               name: currentScrapedData.name,
               profilePictureUrl: currentScrapedData.profilePicUrl || '',
+              profilePictureBase64: picBase64 || '',
               status: data.page.status || 'Under Review',
               contactNumber: filterValidNumbers(contactNumber.value.trim() || data.page.contactNumber || ''),
               paymentMethods: paymentMethods.value.trim() || data.page.paymentMethods || '',
@@ -996,6 +1020,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePicBtn.style.animation = 'spin 1s linear infinite';
 
     try {
+      // Fetch image bytes in browser (VPS datacenter IP is blocked by Facebook CDN)
+      const picBase64 = await fetchImageAsBase64(currentScrapedData ? (currentScrapedData.profilePicUrl || '') : '');
       const res = await fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/sync-page-picture`, {
         method: 'POST',
         headers: {
@@ -1005,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         body: JSON.stringify({ 
           facebookUrl: activeUrl,
           profilePictureUrl: currentScrapedData ? (currentScrapedData.profilePicUrl || '') : '',
+          profilePictureBase64: picBase64 || '',
           name: currentScrapedData ? (currentScrapedData.name || '') : ''
         })
       });
@@ -1118,13 +1145,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Wait 4 seconds for components to render
             setTimeout(() => {
-              chrome.tabs.sendMessage(tabId, { action: "scrapePageDetails" }, (response) => {
+              chrome.tabs.sendMessage(tabId, { action: "scrapePageDetails" }, async (response) => {
                 if (chrome.runtime.lastError) {
                   chrome.tabs.remove(tabId);
                   return resolve({ success: false, error: chrome.runtime.lastError.message });
                 }
                 
                 if (response && response.success && response.profilePicUrl) {
+                  // Fetch image as base64 in browser — VPS IP is blocked by Facebook CDN
+                  let picBase64 = null;
+                  try {
+                    const imgRes = await fetch(response.profilePicUrl);
+                    if (imgRes.ok) {
+                      const blob = await imgRes.blob();
+                      picBase64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                      });
+                    }
+                  } catch (fetchErr) {
+                    console.warn('[AutoSync] Could not fetch image as base64:', fetchErr.message);
+                  }
+
                   fetch(`${connectionSettings.serverUrl}/api/admin/chrome-extension/sync-page-picture`, {
                     method: 'POST',
                     headers: {
@@ -1134,6 +1178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify({
                       facebookUrl: url,
                       profilePictureUrl: response.profilePicUrl,
+                      profilePictureBase64: picBase64 || '',
                       name: response.name
                     })
                   }).then(res => res.json())
