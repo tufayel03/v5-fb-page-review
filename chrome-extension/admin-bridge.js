@@ -1,6 +1,15 @@
 // Expose extension status by adding a custom data attribute on the html element (bypasses CSP)
 document.documentElement.setAttribute('data-fb-page-review-extension-installed', 'true');
 
+// Sync server settings to chrome.storage.local so background worker can poll even when tab is closed
+const token = localStorage.getItem("token");
+if (token) {
+  chrome.storage.local.set({
+    serverUrl: window.location.origin,
+    token: token
+  });
+}
+
 // Dispatch a custom event to notify React if it's already loaded
 window.dispatchEvent(new CustomEvent('FB_PAGE_REVIEW_EXTENSION_READY'));
 

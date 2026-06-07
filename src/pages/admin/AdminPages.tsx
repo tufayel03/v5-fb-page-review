@@ -222,6 +222,84 @@ export default function AdminPages() {
       return;
     }
 
+    // Fallback: Ask if we should queue for remote extension worker
+    const useRemoteQueue = window.confirm(
+      "No local Chrome Extension found on this browser.\n\n" +
+      "Would you like to queue these pages for your remote extension worker? (Choose this if you have the extension running on another active device to bypass Facebook IP blocks)"
+    );
+
+    if (useRemoteQueue) {
+      console.log('[Sync] Queueing pages for remote extension worker...');
+      fetch('/api/admin/pages/queue-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ids: isBulk ? ids : null, mode })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to queue pages');
+        }
+
+        const totalQueued = data.queuedCount;
+        if (totalQueued === 0) {
+          alert("No pages needed syncing!");
+          setIsSyncing(false);
+          setSyncProgress(null);
+          return;
+        }
+
+        setSyncProgress({
+          current: 0,
+          total: totalQueued,
+          pageName: `Remote worker queue initialized (${totalQueued} pages). Waiting for remote device...`,
+          count: 0
+        });
+
+        // Start polling the queue count to show progress
+        const pollInterval = setInterval(() => {
+          fetch(`/api/admin/chrome-extension/pending-sync-pages?mode=queue`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          .then(r => r.json())
+          .then(pollData => {
+            const remaining = (pollData.pages || []).length;
+            const current = totalQueued - remaining;
+
+            setSyncProgress({
+              current,
+              total: totalQueued,
+              pageName: remaining > 0
+                ? `Remote worker processing queue (${remaining} pages remaining)...`
+                : "Completing sync...",
+              count: current
+            });
+
+            if (remaining === 0) {
+              clearInterval(pollInterval);
+              alert("Successfully synced profile pictures via remote extension worker!");
+              setIsSyncing(false);
+              setSyncProgress(null);
+              setSelectedPageIds([]);
+              fetchPages();
+            }
+          })
+          .catch(err => {
+            console.error('[Sync Queue Poll] Error:', err);
+          });
+        }, 3000);
+      })
+      .catch(err => {
+        alert("Failed to queue pages: " + err.message);
+        setIsSyncing(false);
+        setSyncProgress(null);
+      });
+      return;
+    }
+
     // Fallback: server SSE
     console.log('[Sync] Chrome Extension not found. Falling back to server-side scraping...');
     let url = `/api/admin/pages/sync-pictures-progress?token=${encodeURIComponent(token)}&mode=${mode}`;

@@ -2743,7 +2743,7 @@ async function startServer() {
 
   app.post('/api/admin/chrome-extension/sync-page-picture', requireModerator, async (req, res) => {
     try {
-      const { facebookUrl, profilePictureUrl, profilePictureBase64, name } = req.body;
+      const { facebookUrl, profilePictureUrl, profilePictureBase64, name, failed } = req.body;
       if (!facebookUrl) {
         return res.status(400).json({ error: 'Facebook URL is required' });
       }
@@ -2751,6 +2751,12 @@ async function startServer() {
       const page = db.prepare('SELECT id, current_name, profile_picture FROM FacebookPages WHERE facebook_url = ?').get(facebookUrl.trim()) as any;
       if (!page) {
         return res.status(404).json({ error: 'Page not found in database. Add it first.' });
+      }
+
+      if (failed) {
+        db.prepare("UPDATE FacebookPages SET profile_picture = 'failed' WHERE id = ?").run(page.id);
+        console.log(`[Sync Direct] Marked page ${page.id} as failed via extension report`);
+        return res.json({ success: true, message: 'Sync marked as failed' });
       }
 
       // Helper to save and optimize a buffer as profile picture
@@ -2849,7 +2855,13 @@ async function startServer() {
       const mode = (req.query.mode as string) || 'sync';
       let pages = [];
 
-      if (mode === 'update') {
+      if (mode === 'queue') {
+        pages = db.prepare(`
+          SELECT id, facebook_url, current_name 
+          FROM FacebookPages 
+          WHERE profile_picture = 'pending_extension'
+        `).all() as any[];
+      } else if (mode === 'update') {
         if (idsParam) {
           const idList = idsParam.split(',').filter(Boolean);
           if (idList.length > 0) {
@@ -2896,6 +2908,40 @@ async function startServer() {
     } catch (err: any) {
       console.error('[Pending Sync] Error:', err.message);
       res.status(500).json({ error: 'Server error fetching pending pages: ' + err.message });
+    }
+  });
+
+  app.post('/api/admin/pages/queue-sync', requireModerator, (req, res) => {
+    try {
+      const { ids, mode } = req.body;
+      let targetIds: string[] = [];
+
+      if (ids && Array.isArray(ids) && ids.length > 0) {
+        targetIds = ids;
+      } else {
+        const pages = db.prepare(`
+          SELECT id FROM FacebookPages 
+          WHERE profile_picture IS NULL 
+             OR profile_picture = ''
+             OR profile_picture = 'failed' 
+             OR profile_picture LIKE '%silhouette%' 
+             OR profile_picture LIKE '%placeholder%'
+             OR profile_picture LIKE '%gPCjrIGykBe.gif%'
+             OR profile_picture LIKE '%HsTZSDw4avx.gif%'
+        `).all() as any[];
+        targetIds = pages.map(p => p.id);
+      }
+
+      if (targetIds.length > 0) {
+        const placeholders = targetIds.map(() => '?').join(',');
+        db.prepare(`UPDATE FacebookPages SET profile_picture = 'pending_extension' WHERE id IN (${placeholders})`).run(...targetIds);
+      }
+
+      console.log(`[Queue Sync] Queued ${targetIds.length} pages for remote extension sync`);
+      res.json({ success: true, queuedCount: targetIds.length });
+    } catch (e: any) {
+      console.error('[Queue Sync] Error:', e);
+      res.status(500).json({ error: 'Server error: ' + e.message });
     }
   });
 

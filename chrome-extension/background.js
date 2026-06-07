@@ -3,6 +3,16 @@ let activeSyncSession = null; // Prevent concurrent sync runs
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error(error));
+
+  // Set up periodic alarm to check remote sync queue every 1 minute
+  chrome.alarms.create('checkRemoteSyncQueue', { periodInMinutes: 1 });
+});
+
+// Top level alarm registration
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'checkRemoteSyncQueue') {
+    processRemoteSyncQueue();
+  }
 });
 
 // Listen for messages from the content bridge script running in AdminPages
@@ -114,6 +124,66 @@ async function runBackgroundSync(request, sourceTabId) {
   }
 }
 
+async function processRemoteSyncQueue() {
+  const stored = await chrome.storage.local.get(['serverUrl', 'token']);
+  if (!stored.serverUrl || !stored.token) {
+    return; // Silent skip if no user settings synced yet
+  }
+
+  if (activeSyncSession) {
+    console.log('[Background Queue] Sync session already active, skipping poll.');
+    return;
+  }
+
+  try {
+    const origin = new URL(stored.serverUrl).origin;
+    const res = await fetch(`${origin}/api/admin/chrome-extension/pending-sync-pages?mode=queue`, {
+      headers: {
+        'Authorization': `Bearer ${stored.token}`
+      }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const pages = data.pages || [];
+    if (pages.length === 0) return;
+
+    console.log(`[Background Queue] Found ${pages.length} remote queued pages to sync.`);
+
+    // Run remote queue processing session
+    activeSyncSession = { polling: true };
+    for (const page of pages) {
+      console.log(`[Background Queue] Processing remote sync for: ${page.facebook_url}`);
+      await syncSinglePage(page.facebook_url, origin, stored.token);
+      // Wait 3 seconds between tabs to cool down
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  } catch (err) {
+    console.error('[Background Queue] Error processing remote sync queue:', err);
+  } finally {
+    activeSyncSession = null;
+  }
+}
+
+async function reportSyncFailure(url, serverUrl, token) {
+  try {
+    await fetch(`${serverUrl}/api/admin/chrome-extension/sync-page-picture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        facebookUrl: url,
+        failed: true
+      })
+    });
+  } catch (err) {
+    console.error('[Background Sync] Failed to report sync failure to server:', err.message);
+  }
+}
+
 async function syncSinglePage(url, serverUrl, token) {
   return new Promise((resolve) => {
     chrome.tabs.create({ url: url, active: false }, (tab) => {
@@ -130,6 +200,7 @@ async function syncSinglePage(url, serverUrl, token) {
             chrome.tabs.sendMessage(tabId, { action: "scrapePageDetails" }, async (response) => {
               if (chrome.runtime.lastError) {
                 console.warn('[Background Sync] Scrape message error:', chrome.runtime.lastError.message);
+                await reportSyncFailure(url, serverUrl, token);
                 chrome.tabs.remove(tabId);
                 return resolve(false);
               }
@@ -165,14 +236,19 @@ async function syncSinglePage(url, serverUrl, token) {
                       name: response.name
                     })
                   });
+                  if (!syncRes.ok) {
+                    await reportSyncFailure(url, serverUrl, token);
+                  }
                   chrome.tabs.remove(tabId);
                   resolve(syncRes.ok);
                 } catch (err) {
                   console.error('[Background Sync] Sync request failed:', err.message);
+                  await reportSyncFailure(url, serverUrl, token);
                   chrome.tabs.remove(tabId);
                   resolve(false);
                 }
               } else {
+                await reportSyncFailure(url, serverUrl, token);
                 chrome.tabs.remove(tabId);
                 resolve(false);
               }
@@ -184,9 +260,10 @@ async function syncSinglePage(url, serverUrl, token) {
       chrome.tabs.onUpdated.addListener(listener);
 
       // 15 seconds fail-safe timeout
-      setTimeout(() => {
+      setTimeout(async () => {
         if (!tabLoaded) {
           chrome.tabs.onUpdated.removeListener(listener);
+          await reportSyncFailure(url, serverUrl, token);
           chrome.tabs.get(tabId, (existingTab) => {
             if (existingTab) {
               chrome.tabs.remove(tabId);
