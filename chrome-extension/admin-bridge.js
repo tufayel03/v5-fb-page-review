@@ -1,12 +1,8 @@
-// Inject global variable to let the React app know the extension is active
-try {
-  const script = document.createElement('script');
-  script.textContent = 'window.__fbPageReviewExtensionInstalled = true;';
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
-} catch (e) {
-  console.error('[Extension Bridge] Failed to inject active flag:', e);
-}
+// Expose extension status by adding a custom data attribute on the html element (bypasses CSP)
+document.documentElement.setAttribute('data-fb-page-review-extension-installed', 'true');
+
+// Dispatch a custom event to notify React if it's already loaded
+window.dispatchEvent(new CustomEvent('FB_PAGE_REVIEW_EXTENSION_READY'));
 
 // Listen for messages from the React Admin page
 window.addEventListener('message', (event) => {

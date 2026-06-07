@@ -135,19 +135,24 @@ export default function AdminPages() {
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; pageName: string; count: number } | null>(null);
   const [extensionInstalled, setExtensionInstalled] = useState(false);
 
-  // Check if Chrome extension is active
+  // Check if Chrome extension is active (checks legacy window flag, DOM attribute for CSP bypass, and ready event)
   useEffect(() => {
-    if ((window as any).__fbPageReviewExtensionInstalled) {
-      setExtensionInstalled(true);
-    } else {
-      const interval = setInterval(() => {
-        if ((window as any).__fbPageReviewExtensionInstalled) {
-          setExtensionInstalled(true);
-          clearInterval(interval);
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    }
+    const checkStatus = () => {
+      const hasAttr = document.documentElement.getAttribute('data-fb-page-review-extension-installed') === 'true';
+      const hasWindow = !!(window as any).__fbPageReviewExtensionInstalled;
+      if (hasAttr || hasWindow) {
+        setExtensionInstalled(true);
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 500);
+    window.addEventListener('FB_PAGE_REVIEW_EXTENSION_READY', checkStatus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('FB_PAGE_REVIEW_EXTENSION_READY', checkStatus);
+    };
   }, []);
 
   // Listen for sync progress messages from Chrome extension bridge
@@ -201,7 +206,11 @@ export default function AdminPages() {
     const token = localStorage.getItem("token") || "";
 
     // PRIORITY: If the Chrome extension is connected, run the sync in the browser to bypass VPS CDN blocks!
-    if ((window as any).__fbPageReviewExtensionInstalled) {
+    const isExtensionActive = extensionInstalled || 
+                              document.documentElement.getAttribute('data-fb-page-review-extension-installed') === 'true' || 
+                              !!(window as any).__fbPageReviewExtensionInstalled;
+
+    if (isExtensionActive) {
       console.log('[Sync] Delegating profile picture sync to Chrome Extension...');
       window.postMessage({
         type: 'FB_PAGE_REVIEW_START_SYNC',
