@@ -37,52 +37,52 @@ function decodeHTMLEntities(str: string): string {
 
 async function downloadUrlToTempFile(imgUrl: string, tempFilePath: string): Promise<boolean> {
   try {
+    // Check for known placeholder/silhouette URLs before downloading
     if (imgUrl.includes('176159830277856') || imgUrl.includes('silhouette') || imgUrl.includes('100x100-badge') || imgUrl.includes('HsTZSDw4avx.gif') || imgUrl.includes('rsrc.php') || imgUrl.includes('static.xx.fbcdn.net')) {
       console.warn(`[Download] URL is a placeholder/silhouette: ${imgUrl.substring(0, 80)}`);
       return false;
     }
 
-    const res = await fetch(imgUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(8000)
-    });
+    // Use curl to download - Node fetch gets blocked by VPS datacenter IP on Facebook/fbcdn URLs
+    // The -w "%{url_effective}" flag lets us detect placeholder redirect destinations
+    const safeUrl = imgUrl.replace(/"/g, '\\"');
+    const effectiveUrl = execSync(
+      `curl -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -o "${tempFilePath}" -w "%{url_effective}" "${safeUrl}"`,
+      { timeout: 10000 }
+    ).toString().trim();
 
-    if (!res.ok) {
-      console.warn(`[Download] Failed to fetch image. Status: ${res.status}`);
+    // Check if we got redirected to a placeholder
+    if (effectiveUrl.includes('176159830277856') || effectiveUrl.includes('silhouette') || effectiveUrl.includes('100x100-badge') || effectiveUrl.includes('HsTZSDw4avx.gif') || effectiveUrl.includes('rsrc.php') || effectiveUrl.includes('static.xx.fbcdn.net')) {
+      console.warn(`[Download] Final redirected URL is a placeholder/silhouette: ${effectiveUrl.substring(0, 80)}`);
+      try { fs.unlinkSync(tempFilePath); } catch (e) { }
       return false;
     }
 
-    const finalUrl = res.url || imgUrl;
-    if (finalUrl.includes('176159830277856') || finalUrl.includes('silhouette') || finalUrl.includes('100x100-badge') || finalUrl.includes('HsTZSDw4avx.gif') || finalUrl.includes('rsrc.php') || finalUrl.includes('static.xx.fbcdn.net')) {
-      console.warn(`[Download] Final redirected URL is a placeholder/silhouette: ${finalUrl.substring(0, 80)}`);
+    // Validate file size
+    if (!fs.existsSync(tempFilePath) || fs.statSync(tempFilePath).size < 200) {
+      console.warn(`[Download] File too small or missing after download`);
+      try { fs.unlinkSync(tempFilePath); } catch (e) { }
       return false;
     }
 
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    if (buffer.length < 200) {
-      console.warn(`[Download] File too small: ${buffer.length} bytes`);
-      return false;
-    }
-
+    // Validate image dimensions
     try {
-      const meta = await sharp(buffer).metadata();
+      const meta = await sharp(fs.readFileSync(tempFilePath)).metadata();
       if (meta.width && meta.height && (meta.width < 50 || meta.height < 50)) {
         console.warn(`[Download] Image dimensions too small: ${meta.width}x${meta.height}`);
+        try { fs.unlinkSync(tempFilePath); } catch (e) { }
         return false;
       }
     } catch (sharpErr: any) {
       console.warn('[Download] Invalid image format returned:', sharpErr.message);
+      try { fs.unlinkSync(tempFilePath); } catch (e) { }
       return false;
     }
 
-    fs.writeFileSync(tempFilePath, buffer);
     return true;
   } catch (err: any) {
     console.error('[Download] Error downloading image:', err.message);
+    try { fs.unlinkSync(tempFilePath); } catch (e) { }
     return false;
   }
 }
