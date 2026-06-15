@@ -8620,6 +8620,52 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
             }
           }
 
+          // Inject blog-specific meta tags for /blog/:slug routes
+          const blogMatch = reqPath.match(/^\/blog\/([\w-]+)$/);
+          if (blogMatch) {
+            const blogSlug = blogMatch[1];
+            const blogData = db.prepare(`
+              SELECT title, excerpt, featured_image, seo_title, seo_description 
+              FROM BlogPosts WHERE slug = ? AND status = 'Published'
+            `).get(blogSlug) as any;
+
+            if (blogData) {
+              const blogTitle = blogData.seo_title || `${blogData.title} | FB Page Review`;
+              const blogDesc = blogData.seo_description || blogData.excerpt || 'Read our latest safety guide on FB Page Review.';
+              const blogImage = blogData.featured_image || `${BASE_URL}/og-preview.png`;
+
+              html = html.replace(/<title>[^<]*<\/title>/, `<title>${blogTitle}</title>`);
+              html = html.replace(
+                /<meta name="description" content="[^"]*" \/>/,
+                `<meta name="description" content="${blogDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:title" content="[^"]*" \/>/,
+                `<meta property="og:title" content="${blogTitle.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:description" content="[^"]*" \/>/,
+                `<meta property="og:description" content="${blogDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta property="og:image" content="[^"]*" \/>/,
+                `<meta property="og:image" content="${blogImage}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:title" content="[^"]*" \/>/,
+                `<meta name="twitter:title" content="${blogTitle.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:description" content="[^"]*" \/>/,
+                `<meta name="twitter:description" content="${blogDesc.replace(/"/g, '&quot;')}" />`
+              );
+              html = html.replace(
+                /<meta name="twitter:image" content="[^"]*" \/>/,
+                `<meta name="twitter:image" content="${blogImage}" />`
+              );
+            }
+          }
+
           // Inject meta for /fraud-pages
           if (reqPath === '/fraud-pages') {
             html = html.replace(/<title>[^<]*<\/title>/, `<title>Fraud Pages Directory | FB Page Review</title>`);

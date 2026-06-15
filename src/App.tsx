@@ -91,12 +91,43 @@ function VisitTracker() {
       title = "Contact Us - Support & Business Inquiries | FB Page Review";
     } else if (path === "/terms") {
       title = "Terms & Conditions of Service | FB Page Review";
-    } else if (path === "/privacy") {
+    } else if (path === "/privacy-policy") {
       title = "Privacy Policy & Data Security | FB Page Review";
     }
 
     if (!path.startsWith("/page/") && !path.startsWith("/blog/") && !path.startsWith("/posts/")) {
       document.title = title;
+    }
+
+    // Update client-side canonical link and meta description
+    try {
+      let canonical = document.querySelector("link[rel='canonical']");
+      if (!canonical) {
+        canonical = document.createElement("link");
+        canonical.setAttribute("rel", "canonical");
+        document.head.appendChild(canonical);
+      }
+      canonical.setAttribute("href", "https://fbpagereview.com" + path);
+
+      let metaDesc = document.querySelector("meta[name='description']");
+      if (!metaDesc) {
+        metaDesc = document.createElement("meta");
+        metaDesc.setAttribute("name", "description");
+        document.head.appendChild(metaDesc);
+      }
+      let desc = "Verify Facebook pages, check seller trust scores, and scan bKash/Nagad numbers before you pay. Empowering safe online shopping in Bangladesh by exposing fraud.";
+      if (path.startsWith("/fraud-pages")) {
+        desc = "Browse the complete directory of reported fraud Facebook pages in Bangladesh. Check seller fraud reports, bKash scam numbers, and protect yourself from online fraud.";
+      } else if (path === "/blog") {
+        desc = "Read our security news, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions in Bangladesh.";
+      } else if (path === "/privacy-policy") {
+        desc = "Our Privacy Policy outlines how we collect, use, and safeguard your personal information when you use FB Page Review.";
+      } else if (path === "/terms") {
+        desc = "Read our Terms and Conditions of Service. Understand the rules, user responsibilities, and guidelines for using the FB Page Review platform.";
+      }
+      metaDesc.setAttribute("content", desc);
+    } catch (e) {
+      console.warn("SEO tag update failure:", e);
     }
   }, [location.pathname]);
 
