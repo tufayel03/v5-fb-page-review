@@ -8625,12 +8625,12 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
             }
           }
 
-          // Inject blog-specific meta tags for /blog/:slug routes
+          // Inject blog-specific meta tags and pre-rendered content for /blog/:slug routes
           const blogMatch = reqPath.match(/^\/blog\/([\w-]+)$/);
           if (blogMatch) {
             const blogSlug = blogMatch[1];
             const blogData = db.prepare(`
-              SELECT title, excerpt, featured_image, seo_title, seo_description 
+              SELECT title, excerpt, content, featured_image, seo_title, seo_description, published_at, created_at 
               FROM BlogPosts WHERE slug = ? AND status = 'Published'
             `).get(blogSlug) as any;
 
@@ -8638,6 +8638,48 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
               const blogTitle = blogData.seo_title || `${blogData.title} | FB Page Review`;
               const blogDesc = blogData.seo_description || blogData.excerpt || 'Read our latest safety guide on FB Page Review.';
               const blogImage = blogData.featured_image || `${BASE_URL}/og-preview.png`;
+
+              // Clean markdown formatting to produce simple semantic HTML structure for search indexing
+              const contentHtml = (blogData.content || '')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .split('\n')
+                .map((p: string) => {
+                  const trimmed = p.trim();
+                  if (!trimmed) return '';
+                  if (trimmed.startsWith('<h') || trimmed.startsWith('<li')) return trimmed;
+                  return `<p>${trimmed}</p>`;
+                })
+                .filter(Boolean)
+                .join('\n');
+
+              const date = new Date(blogData.published_at || blogData.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' });
+              
+              const blogPostHtml = `
+                <article class="max-w-4xl mx-auto px-4 py-16">
+                  <div class="mb-12">
+                    <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+                      ${blogData.title}
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-4 text-sm text-slate-600 border-b border-slate-100 pb-8">
+                      <span>Published: ${date}</span>
+                    </div>
+                  </div>
+                  ${blogData.featured_image ? `
+                    <div class="mb-12 rounded-3xl overflow-hidden shadow-lg border border-slate-100">
+                      <img src="${blogData.featured_image}" alt="${blogData.title}" class="w-full h-auto object-cover max-h-[500px]" />
+                    </div>
+                  ` : ''}
+                  <div class="prose prose-slate prose-lg max-w-none">
+                    ${contentHtml}
+                  </div>
+                </article>
+              `;
+
+              html = html.replace('<div id="root"></div>', `<div id="root">${blogPostHtml}</div>`);
 
               html = html.replace(/<title>[^<]*<\/title>/, `<title>${blogTitle}</title>`);
               html = html.replace(
@@ -8669,6 +8711,74 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
                 `<meta name="twitter:image" content="${blogImage}" />`
               );
             }
+          }
+
+          // Inject pre-rendered blogs list for /blog route to avoid Soft 404
+          if (reqPath === '/blog') {
+            const blogs = db.prepare(`
+              SELECT title, slug, excerpt, published_at, created_at, featured_image, is_pinned 
+              FROM BlogPosts WHERE status = 'Published' 
+              ORDER BY is_pinned DESC, published_at DESC LIMIT 12
+            `).all() as any[];
+
+            let blogListHtml = `
+              <div class="max-w-6xl mx-auto px-4 py-20">
+                <div class="text-center mb-12">
+                  <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Safety Blog</h1>
+                  <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                    Insights, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions.
+                  </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            `;
+
+            for (const post of blogs) {
+              const date = new Date(post.published_at || post.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' });
+              blogListHtml += `
+                <div class="group bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col h-full">
+                  <div class="p-6 flex-1 flex flex-col">
+                    <div class="text-xs text-slate-500 mb-3">${date}</div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">
+                      <a href="/blog/${post.slug}">${post.title}</a>
+                    </h3>
+                    <p class="text-slate-600 mb-5 text-sm flex-1">${post.excerpt}</p>
+                    <a href="/blog/${post.slug}" class="text-emerald-600 font-bold text-sm">Read Article</a>
+                  </div>
+                </div>
+              `;
+            }
+
+            blogListHtml += `
+                </div>
+              </div>
+            `;
+
+            html = html.replace('<div id="root"></div>', `<div id="root">${blogListHtml}</div>`);
+
+            const blogTitle = "Latest Security News & Help Guides | FB Page Review Blog";
+            const blogDesc = "Read our security news, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions in Bangladesh.";
+
+            html = html.replace(/<title>[^<]*<\/title>/, `<title>${blogTitle}</title>`);
+            html = html.replace(
+              /<meta name="description" content="[^"]*" \/>/,
+              `<meta name="description" content="${blogDesc}" />`
+            );
+            html = html.replace(
+              /<meta property="og:title" content="[^"]*" \/>/,
+              `<meta property="og:title" content="${blogTitle}" />`
+            );
+            html = html.replace(
+              /<meta property="og:description" content="[^"]*" \/>/,
+              `<meta property="og:description" content="${blogDesc}" />`
+            );
+            html = html.replace(
+              /<meta name="twitter:title" content="[^"]*" \/>/,
+              `<meta name="twitter:title" content="${blogTitle}" />`
+            );
+            html = html.replace(
+              /<meta name="twitter:description" content="[^"]*" \/>/,
+              `<meta name="twitter:description" content="${blogDesc}" />`
+            );
           }
 
           // Inject meta for /fraud-pages
