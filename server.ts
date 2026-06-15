@@ -8797,6 +8797,21 @@ Sitemap: https://fbpagereview.com/sitemap.xml`;
             html = html.replace(/<title>[^<]*<\/title>/, `<title>${searchTitle.replace(/"/g, '&quot;')}</title>`);
           }
 
+          // Strip script tags for search engine crawlers to prevent React client mount from overriding pre-rendered HTML with empty loading states
+          const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+          const isSearchCrawler = 
+            userAgent.includes('googlebot') ||
+            userAgent.includes('google-inspectiontool') ||
+            userAgent.includes('adsbot-google') ||
+            userAgent.includes('mediapartners-google') ||
+            userAgent.includes('bingbot') ||
+            userAgent.includes('duckduckbot') ||
+            userAgent.includes('yandexbot');
+
+          if (isSearchCrawler) {
+            html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+          }
+
           res.setHeader('Content-Type', 'text/html');
           return res.send(html);
         }
