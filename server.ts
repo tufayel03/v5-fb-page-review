@@ -371,6 +371,11 @@ async function startServer() {
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('Content-Security-Policy', "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-src 'self' https: data:;");
 
+    // Add noindex header for raw JSON API endpoints to prevent direct indexing of API responses
+    if (req.path.startsWith('/api/')) {
+      res.setHeader('X-Robots-Tag', 'noindex');
+    }
+
     next();
   });
 
@@ -8406,7 +8411,7 @@ async function startServer() {
     const robotsTxt = `User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /api/
+Disallow: /api/admin/
 Disallow: /login
 Disallow: /register
 

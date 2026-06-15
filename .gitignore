@@ -38,3 +38,6 @@ facebook-pages-export*.xlsx
 
 # System Overview
 system-overview.txt
+
+# Google Search Console coverage logs
+fbpagereview.com-Coverage-*.zip
