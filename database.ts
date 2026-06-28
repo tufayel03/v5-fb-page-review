@@ -448,6 +448,8 @@ try { db.exec('ALTER TABLE BlogPosts ADD COLUMN status TEXT DEFAULT "Draft";'); 
 try { db.exec('ALTER TABLE BlogPosts ADD COLUMN author_id TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE BlogPosts ADD COLUMN published_at DATETIME;'); } catch (e) {}
 try { db.exec('ALTER TABLE BlogPosts ADD COLUMN updated_at DATETIME;'); } catch (e) {}
+try { db.exec('ALTER TABLE BlogPosts ADD COLUMN attachment_url TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE BlogPosts ADD COLUMN attachment_name TEXT;'); } catch (e) {}
 
 try { db.exec('ALTER TABLE AbuseReports ADD COLUMN reported_user_id TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE AbuseReports ADD COLUMN evidence_file TEXT;'); } catch (e) {}

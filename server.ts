@@ -5750,16 +5750,16 @@ async function startServer() {
 
   app.post('/api/admin/blogs', requireAdmin, (req, res) => {
     try {
-      const { title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, published_at, is_pinned } = req.body;
+      const { title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, published_at, is_pinned, attachment_url, attachment_name } = req.body;
       const id = crypto.randomUUID();
       const author_id = (req as any).user.id;
       db.prepare(`
-        INSERT INTO BlogPosts (id, title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, author_id, published_at, is_pinned)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO BlogPosts (id, title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, author_id, published_at, is_pinned, attachment_url, attachment_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, title, slug, excerpt, content, category_id || '', tags || '', featured_image || '',
         seo_title || '', seo_description || '', focus_keyword || '', og_title || '', og_description || '', og_image || '',
-        status || 'Draft', author_id, published_at || null, is_pinned ? 1 : 0
+        status || 'Draft', author_id, published_at || null, is_pinned ? 1 : 0, attachment_url || '', attachment_name || ''
       );
       res.json({ success: true, id });
     } catch (e: any) {
@@ -5770,13 +5770,13 @@ async function startServer() {
 
   app.put('/api/admin/blogs/:id', requireAdmin, (req, res) => {
     try {
-      const { title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, published_at, is_pinned } = req.body;
+      const { title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, published_at, is_pinned, attachment_url, attachment_name } = req.body;
       db.prepare(`
-        UPDATE BlogPosts SET title=?, slug=?, excerpt=?, content=?, category_id=?, tags=?, featured_image=?, seo_title=?, seo_description=?, focus_keyword=?, og_title=?, og_description=?, og_image=?, status=?, published_at=?, is_pinned=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+        UPDATE BlogPosts SET title=?, slug=?, excerpt=?, content=?, category_id=?, tags=?, featured_image=?, seo_title=?, seo_description=?, focus_keyword=?, og_title=?, og_description=?, og_image=?, status=?, published_at=?, is_pinned=?, attachment_url=?, attachment_name=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
       `).run(
         title, slug, excerpt, content, category_id || '', tags || '', featured_image || '',
         seo_title || '', seo_description || '', focus_keyword || '', og_title || '', og_description || '', og_image || '',
-        status || 'Draft', published_at || null, is_pinned ? 1 : 0, req.params.id
+        status || 'Draft', published_at || null, is_pinned ? 1 : 0, attachment_url || '', attachment_name || '', req.params.id
       );
       res.json({ success: true });
     } catch (e) {

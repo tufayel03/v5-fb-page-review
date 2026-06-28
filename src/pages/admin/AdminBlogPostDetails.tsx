@@ -7,7 +7,7 @@ import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3, 
   List, ListOrdered, Quote, Code, Table, Minus, Link as LinkIcon, 
   Upload, Search, Trash, Check, HelpCircle, History, RefreshCw,
-  FileText, Plus
+  FileText, Plus, Download
 } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -20,6 +20,7 @@ export default function AdminBlogPostDetails() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const featuredFileInputRef = useRef<HTMLInputElement>(null);
   const ogFileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentFileInputRef = useRef<HTMLInputElement>(null);
 
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +80,8 @@ export default function AdminBlogPostDetails() {
     og_image: "",
     status: "Draft",
     is_pinned: false,
+    attachment_url: "",
+    attachment_name: "",
   });
 
   // Keep track of initial content to compare changes
@@ -121,6 +124,8 @@ export default function AdminBlogPostDetails() {
           og_image: data.og_image || "",
           status: data.status || "Draft",
           is_pinned: !!data.is_pinned,
+          attachment_url: data.attachment_url || "",
+          attachment_name: data.attachment_name || "",
         };
         setFormData(initialForm);
         originalDataRef.current = initialForm;
@@ -293,6 +298,36 @@ export default function AdminBlogPostDetails() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAttachmentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const response = await fetch("/api/admin/media-library/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        },
+        body: fd
+      });
+      if (response.ok) {
+        const uploaded = await response.json();
+        updateField("attachment_url", uploaded.url);
+        if (!formData.attachment_name) {
+          updateField("attachment_name", file.name);
+        }
+        alert(t("File uploaded successfully!"));
+      } else {
+        alert(t("Upload failed."));
+      }
+    } catch (err) {
+      alert(t("Upload error."));
+    }
   };
 
   // Media Library Selector Click
@@ -1084,6 +1119,32 @@ export default function AdminBlogPostDetails() {
                   <div className={`${headingList.length > 0 ? "md:col-span-3" : "md:col-span-4"} prose prose-invert max-w-none prose-sm sm:prose-base leading-relaxed`}>
                      <div className="text-slate-200 select-all font-sans space-y-4">
                        <Markdown rehypePlugins={[rehypeRaw]}>{formData.content || t("*There's no text in the dashboard content editor body yet. Please write some words.*")}</Markdown>
+                       
+                       {formData.attachment_url && (
+                         <div className="mt-8 p-5 bg-[#0a1424] rounded-2xl border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
+                           <div className="flex items-center gap-3.5">
+                             <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-400">
+                               <FileText className="h-6 w-6" />
+                             </div>
+                             <div className="text-left">
+                               <h4 className="text-sm font-bold text-white tracking-tight">
+                                 {formData.attachment_name || t("Attachment File")}
+                               </h4>
+                               <p className="text-xs text-slate-450 mt-0.5">
+                                 {t("Click the button to download this resource")}
+                               </p>
+                             </div>
+                           </div>
+                           <a
+                             href={formData.attachment_url}
+                             download={formData.attachment_name || "attachment.txt"}
+                             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-emerald-950/20 w-full sm:w-auto justify-center"
+                           >
+                             <Download className="h-4 w-4" />
+                             <span>{t("Download")}</span>
+                           </a>
+                         </div>
+                       )}
                      </div>
                   </div>
                 </div>
@@ -1376,6 +1437,62 @@ export default function AdminBlogPostDetails() {
                 />
               </div>
 
+            </div>
+
+            {/* module 2.5: Blog Attachment File */}
+            <div className="bg-[#050b12] rounded-xl border border-white/5 shadow-xl p-5 space-y-4">
+              <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
+                <h3 className="text-xs font-black text-[#a3b3cc] uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-400" />
+                  <span>{t("File Attachment")}</span>
+                </h3>
+                <span className="text-[10px] text-slate-550">{t("Allow downloads")}</span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
+                    {t("Attachment Name")}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.attachment_name || ""}
+                    onChange={(e) => updateField("attachment_name", e.target.value)}
+                    placeholder="e.g. Fraud List.txt"
+                    className="w-full border border-white/5 bg-[#02050c] text-white p-2 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
+                    {t("Attachment File")}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.attachment_url || ""}
+                      onChange={(e) => updateField("attachment_url", e.target.value)}
+                      placeholder={t("Paste URL or upload a file...")}
+                      className="w-full border border-white/5 bg-[#02050c] text-white p-2 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                    <input
+                      type="file"
+                      ref={attachmentFileInputRef}
+                      onChange={handleAttachmentFileChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => attachmentFileInputRef.current?.click()}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 px-3 text-xs font-black rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                      title={t("Upload text file")}
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-550">{t("Users will see a beautiful download button under the blog post.")}</p>
+                </div>
+              </div>
             </div>
 
             {/* module 3: Advanced SEO Section */}

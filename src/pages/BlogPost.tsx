@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router";
-import { ChevronLeft, Calendar, User } from "lucide-react";
+import { ChevronLeft, Calendar, User, FileText, Download } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { useLanguage } from "../context/LanguageContext";
@@ -167,6 +167,32 @@ export default function BlogPost() {
       <div className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-emerald-600 hover:prose-a:text-emerald-700 prose-img:rounded-xl">
         <Markdown rehypePlugins={[rehypeRaw]}>{post.content}</Markdown>
       </div>
+
+      {post.attachment_url && (
+        <div className="my-10 p-6 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/40 dark:to-slate-900/20 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="flex items-center gap-4 text-left w-full sm:w-auto">
+            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+              <FileText className="h-7 w-7" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug break-all">
+                {post.attachment_name || t("Attachment Resource")}
+              </h4>
+              <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
+                {t("This article includes a downloadable text file resource.")}
+              </p>
+            </div>
+          </div>
+          <a
+            href={post.attachment_url}
+            download={post.attachment_name || "attachment.txt"}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-emerald-500/10 w-full sm:w-auto justify-center cursor-pointer shrink-0"
+          >
+            <Download className="h-4 w-4" />
+            <span>{t("Download File")}</span>
+          </a>
+        </div>
+      )}
 
       <AdBanner htmlCode={publicSettings.blog_ad_native} />
     </article>
