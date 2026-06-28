@@ -1550,7 +1550,7 @@ export default function WriteReview() {
                       },
                     })}
                     className={`w-full h-14 pl-15 pr-4 bg-white border rounded-2xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400 ${errors.bkash_number ? "border-rose-400 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500" : "border-slate-205 focus:ring-4 focus:ring-[#00a859]/8 focus:border-[#00a859]"}`}
-                    placeholder="e.g. 01XXXXXXXXX"
+                    placeholder={t("e.g. 01XXXXXXXXX")}
                   />
                 </div>
                 {errors.bkash_number && (
