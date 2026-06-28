@@ -142,7 +142,7 @@ export default function BlogPost() {
       </Link>
 
       <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
           {post.title}
         </h1>
         
