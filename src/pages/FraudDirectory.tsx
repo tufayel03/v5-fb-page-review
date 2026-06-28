@@ -17,7 +17,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 
 export default function FraudDirectory() {
-  const { t, n } = useLanguage();
+  const { language, t, n } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
