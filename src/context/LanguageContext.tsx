@@ -396,13 +396,21 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     localStorage.setItem('language', lang);
   };
 
+  const isAdminOrBusinessPath = () => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    return path.startsWith('/tufayel') || path.startsWith('/business') || path.startsWith('/business-dashboard');
+  };
+
   const t = (key: string): string => {
+    if (isAdminOrBusinessPath()) return key;
     if (language === 'en') return key;
     return translations[key] || key;
   };
 
   const n = (num: number | string): string => {
     const str = String(num);
+    if (isAdminOrBusinessPath()) return str;
     if (language === 'en') return str;
     return str.replace(/[0-9]/g, (w) => banglaDigits[parseInt(w, 10)]);
   };
