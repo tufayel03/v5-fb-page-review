@@ -175,24 +175,21 @@ export default function BlogPost() {
       </div>
 
       {post.attachment_url && (
-        <div className="my-10 p-6 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/40 dark:to-slate-900/20 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="my-10 p-5 bg-emerald-50/20 border border-emerald-100/70 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-5 shadow-3xs">
           <div className="flex items-center gap-4 text-left w-full sm:w-auto">
-            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
-              <FileText className="h-7 w-7" />
+            <div className="p-3 bg-white rounded-xl border border-emerald-100 text-emerald-600 shadow-3xs shrink-0">
+              <FileText className="h-6.5 w-6.5" />
             </div>
-            <div>
-              <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug break-all">
+            <div className="min-w-0 flex-1">
+              <h4 className="text-[15px] sm:text-base font-black text-emerald-950 tracking-tight leading-snug break-all">
                 {post.attachment_name || t("Attachment Resource")}
               </h4>
-              <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
-                {t("This article includes a downloadable text file resource.")}
-              </p>
             </div>
           </div>
           <a
             href={post.attachment_url}
             download={post.attachment_name || "attachment.txt"}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-emerald-500/10 w-full sm:w-auto justify-center cursor-pointer shrink-0"
+            className="flex items-center gap-2 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-black text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-xs w-full sm:w-auto justify-center cursor-pointer shrink-0"
           >
             <Download className="h-4 w-4" />
             <span>{t("Download File")}</span>
