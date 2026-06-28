@@ -897,7 +897,7 @@ export default function PageProfile() {
               (user.role !== "owner" &&
                 user.role !== "page_owner" &&
                 user.role !== "Business Owner")) && (
-              <div className="flex flex-row items-stretch lg:items-center gap-2 sm:gap-3 w-full lg:w-auto mt-4 lg:mt-0 select-none">
+              <div className="flex flex-col sm:flex-row items-stretch lg:items-center gap-2 sm:gap-3 w-full lg:w-auto mt-4 lg:mt-0 select-none">
                 <Link
                   to={`/write-review?pageId=${page.id}`}
                   className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 bg-[#0fbc6f] text-white hover:bg-[#0da662] rounded-lg font-bold transition-all shadow-xs text-[13px] sm:text-sm cursor-pointer whitespace-nowrap"
