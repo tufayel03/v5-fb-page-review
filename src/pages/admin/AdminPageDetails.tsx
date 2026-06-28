@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
-  ShieldCheck,
   ChevronLeft,
   Save,
   RefreshCw,
@@ -9,11 +8,11 @@ import {
   Camera,
   ShieldAlert,
 } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminPageDetails() {
+  const { t, n } = useLanguage();
   const { id } = useParams();
-  const { theme } = useTheme();
 
   const navigate = useNavigate();
   const [pageData, setPageData] = useState<any>(null);
@@ -81,8 +80,6 @@ export default function AdminPageDetails() {
   // For "Add Page" we can use id === 'new'
   const isNew = id === "new";
 
-
-
   useEffect(() => {
     if (isNew) {
       setLoading(false);
@@ -98,7 +95,7 @@ export default function AdminPageDetails() {
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
-          alert(data.error);
+          alert(t(data.error));
         } else {
           setPageData(data);
           setCurrentName(data.current_name || "");
@@ -120,7 +117,7 @@ export default function AdminPageDetails() {
           setRequireManualFraudApproval(
             data.require_manual_fraud_approval === 1,
           );
-           setIsFraudListed(data.is_fraud_listed === 1 || data.status_badge === "Reported as Fraud" || data.status_badge === "Old/Dead Reported Page");
+          setIsFraudListed(data.is_fraud_listed === 1 || data.status_badge === "Reported as Fraud" || data.status_badge === "Old/Dead Reported Page");
           setFraudSeverity(data.fraud_severity || "Low Risk");
           setFraudListReason(data.fraud_list_reason || "");
           setFraudInternalNote(data.fraud_internal_note || "");
@@ -223,10 +220,10 @@ export default function AdminPageDetails() {
       .then((res) => res.json())
       .then((data) => {
         setSaving(false);
-        if (data.error) alert(data.error);
+        if (data.error) alert(t(data.error));
         else {
           alert(
-            isNew ? "Page added successfully" : "Page updated successfully",
+            isNew ? t("Page added successfully") : t("Page updated successfully"),
           );
           if (isNew) navigate(`/tufayel/pages`);
         }
@@ -236,9 +233,9 @@ export default function AdminPageDetails() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const tabs = [
-    { id: "primary", label: "Primary Information" },
-    { id: "contact", label: "Contact & Extra Links" },
-    { id: "status", label: "Status & Business Verification" },
+    { id: "primary", label: t("Primary Information") },
+    { id: "contact", label: t("Contact & Extra Links") },
+    { id: "status", label: t("Status & Business Verification") },
   ] as const;
 
   const [activeTab, setActiveTab] = useState<typeof tabs[number]["id"]>("primary");
@@ -250,9 +247,9 @@ export default function AdminPageDetails() {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.error) alert(data.error);
+        if (data.error) alert(t(data.error));
         else {
-          alert("Deleted");
+          alert(t("Deleted"));
           navigate("/tufayel/pages");
         }
       });
@@ -268,13 +265,13 @@ export default function AdminPageDetails() {
   if (loading)
     return (
       <div className={`p-10 text-center font-bold ${cTextMuted}`}>
-        Loading...
+        {t("Loading...")}
       </div>
     );
   if (!isNew && !pageData)
     return (
       <div className="p-10 text-center text-red-500 font-bold">
-        Page not found
+        {t("Page not found")}
       </div>
     );
 
@@ -289,16 +286,16 @@ export default function AdminPageDetails() {
               navigate("/tufayel/pages");
             }
           }}
-          className={`p-2 border rounded-lg transition-colors border-white/10 hover:bg-white/5 cursor-pointer`}
+          className="p-2 border rounded-lg transition-colors border-white/10 hover:bg-white/5 cursor-pointer"
         >
           <ChevronLeft className={`h-5 w-5 ${cTextMuted}`} />
         </button>
         <div className="flex-1">
           <h1 className={`text-2xl font-bold ${cText}`}>
-            {isNew ? "Add New Page" : "Edit Page info"}
+            {isNew ? t("Add New Page") : t("Edit Page info")}
           </h1>
           <p className={`text-sm ${cTextMuted}`}>
-            Manage facebook page details and metrics
+            {t("Manage facebook page details and metrics")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -307,7 +304,7 @@ export default function AdminPageDetails() {
               onClick={() => setShowDeleteModal(true)}
               className="bg-transparent border border-rose-200 text-rose-500 px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-bold hover:bg-rose-500/10 transition-colors"
             >
-              <Trash2 className="h-4 w-4" /> Delete
+              <Trash2 className="h-4 w-4" /> {t("Delete")}
             </button>
           )}
           <button
@@ -320,7 +317,7 @@ export default function AdminPageDetails() {
             ) : (
               <Save className="h-4 w-4" />
             )}{" "}
-            {isNew ? "Create Page" : "Save Changes"}
+            {isNew ? t("Create Page") : t("Save Changes")}
           </button>
         </div>
       </div>
@@ -345,226 +342,225 @@ export default function AdminPageDetails() {
         {activeTab === 'primary' && (
           <div className="space-y-6">
             <h2 className={`font-bold border-b ${cBorder} pb-2 ${cText}`}>
-              Primary Information
+              {t("Primary Information")}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
-              Page Name
-            </label>
-            <input
-              type="text"
-              value={currentName}
-              onChange={(e) => setCurrentName(e.target.value)}
-              className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-            />
-          </div>
-          <div>
-            <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
-              Facebook URL
-            </label>
-            <input
-              type="text"
-              value={facebookUrl}
-              onChange={(e) => setFacebookUrl(e.target.value)}
-              className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-            />
-          </div>
-
-
-          <div className="md:col-span-2">
-            <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
-              Description / Page Details
-            </label>
-            <textarea
-              value={pageDetails}
-              onChange={(e) => setPageDetails(e.target.value)}
-              rows={3}
-              className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-              placeholder="Detailed info about the page..."
-            ></textarea>
-          </div>
-          <div className="md:col-span-2">
-            <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
-              Profile Picture
-            </label>
-            <div className="flex items-center gap-4">
-              <div className={`h-16 w-16 rounded-full border overflow-hidden flex items-center justify-center flex-shrink-0 ${cInputSec}`}>
-                {profilePicture ? (
-                  <img
-                    src={profilePicture.startsWith("data:") ? profilePicture : `${profilePicture}?t=${cacheBust}`}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Camera className="h-6 w-6 opacity-30 text-emerald-500" />
-                )}
-              </div>
-              <div className="flex flex-1 items-center gap-2">
+              <div>
+                <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
+                  {t("Page Name")}
+                </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className={`w-full border rounded-lg px-4 py-2 outline-none text-sm ${cInput}`}
+                  type="text"
+                  value={currentName}
+                  onChange={(e) => setCurrentName(e.target.value)}
+                  className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
                 />
-                {profilePicture && (
-                  <button
-                    type="button"
-                    onClick={() => setProfilePicture("")}
-                    className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-3 py-2 rounded-lg text-sm font-bold hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                    title="Remove profile picture"
-                  >
-                    <Trash2 className="h-4 w-4" /> Remove
-                  </button>
-                )}
+              </div>
+              <div>
+                <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
+                  {t("Facebook URL")}
+                </label>
+                <input
+                  type="text"
+                  value={facebookUrl}
+                  onChange={(e) => setFacebookUrl(e.target.value)}
+                  className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
+                  {t("Description / Page Details")}
+                </label>
+                <textarea
+                  value={pageDetails}
+                  onChange={(e) => setPageDetails(e.target.value)}
+                  rows={3}
+                  className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
+                  placeholder={t("Detailed info about the page...")}
+                ></textarea>
+              </div>
+              <div className="md:col-span-2">
+                <label className={`block font-bold mb-1 text-sm ${cTextMuted}`}>
+                  {t("Profile Picture")}
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className={`h-16 w-16 rounded-full border overflow-hidden flex items-center justify-center flex-shrink-0 ${cInputSec}`}>
+                    {profilePicture ? (
+                      <img
+                        src={profilePicture.startsWith("data:") ? profilePicture : `${profilePicture}?t=${cacheBust}`}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Camera className="h-6 w-6 opacity-30 text-emerald-500" />
+                    )}
+                  </div>
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className={`w-full border rounded-lg px-4 py-2 outline-none text-sm ${cInput}`}
+                    />
+                    {profilePicture && (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePicture("")}
+                        className="bg-rose-500/10 text-rose-500 border border-rose-500/20 px-3 py-2 rounded-lg text-sm font-bold hover:bg-rose-500/20 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                        title={t("Remove profile picture")}
+                      >
+                        <Trash2 className="h-4 w-4" /> {t("Remove")}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
           </div>
         )}
 
         {activeTab === 'contact' && (
           <div className="space-y-6">
             <h2 className={`font-bold border-b ${cBorder} pb-2 ${cText}`}>
-              Contact & Extra Links
+              {t("Contact & Extra Links")}
             </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`p-4 rounded-xl border ${cInputSec}`}>
-            <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
-              Contact Numbers (Main + Extras)
-            </label>
-            <input
-              type="text"
-              value={contactNumber}
-              onChange={(e) => setContactNumber(e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 text-sm mb-3 outline-none ${cInput}`}
-              placeholder="Main Contact..."
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className={`p-4 rounded-xl border ${cInputSec}`}>
+                <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
+                  {t("Contact Numbers (Main + Extras)")}
+                </label>
+                <input
+                  type="text"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm mb-3 outline-none ${cInput}`}
+                  placeholder={t("Main Contact...")}
+                />
 
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newExtraContact}
-                onChange={(e) => setNewExtraContact(e.target.value)}
-                className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
-                placeholder="Additional number"
-              />
-              <button
-                onClick={addExtraContact}
-                className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {extraContacts.length > 0 && (
-              <ul className="space-y-1 mt-2">
-                {extraContacts.map((c, i) => (
-                  <li
-                    key={i}
-                    className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newExtraContact}
+                    onChange={(e) => setNewExtraContact(e.target.value)}
+                    className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
+                    placeholder={t("Additional number")}
+                  />
+                  <button
+                    onClick={addExtraContact}
+                    className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
                   >
-                    <span className={cText}>{c}</span>
-                    <button
-                      onClick={() =>
-                        setExtraContacts(
-                          extraContacts.filter((_, idx) => idx !== i),
-                        )
-                      }
-                      className="text-red-500 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    {t("Add")}
+                  </button>
+                </div>
+                {extraContacts.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {extraContacts.map((c, i) => (
+                      <li
+                        key={i}
+                        className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+                      >
+                        <span className={cText}>{n(c)}</span>
+                        <button
+                          onClick={() =>
+                            setExtraContacts(
+                              extraContacts.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="text-red-500 hover:text-red-400"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-          <div className={`p-4 rounded-xl border ${cInputSec}`}>
-            <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
-              Payment Methods
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newPaymentMethod}
-                onChange={(e) => setNewPaymentMethod(e.target.value)}
-                className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
-                placeholder="e.g. bKash, Card..."
-              />
-              <button
-                onClick={addPaymentMethod}
-                className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {paymentMethods.length > 0 && (
-              <ul className="space-y-1 mt-2">
-                {paymentMethods.map((c, i) => (
-                  <li
-                    key={i}
-                    className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+              <div className={`p-4 rounded-xl border ${cInputSec}`}>
+                <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
+                  {t("Payment Methods")}
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newPaymentMethod}
+                    onChange={(e) => setNewPaymentMethod(e.target.value)}
+                    className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
+                    placeholder={t("e.g. bKash, Card...")}
+                  />
+                  <button
+                    onClick={addPaymentMethod}
+                    className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
                   >
-                    <span className={cText}>{c}</span>
-                    <button
-                      onClick={() =>
-                        setPaymentMethods(
-                          paymentMethods.filter((_, idx) => idx !== i),
-                        )
-                      }
-                      className="text-red-500 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    {t("Add")}
+                  </button>
+                </div>
+                {paymentMethods.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {paymentMethods.map((c, i) => (
+                      <li
+                        key={i}
+                        className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+                      >
+                        <span className={cText}>{t(c)}</span>
+                        <button
+                          onClick={() =>
+                            setPaymentMethods(
+                              paymentMethods.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="text-red-500 hover:text-red-400"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-          <div className={`p-4 rounded-xl border md:col-span-2 ${cInputSec}`}>
-            <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
-              Other Pages / Group URLs
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newOtherUrl}
-                onChange={(e) => setNewOtherUrl(e.target.value)}
-                className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
-                placeholder="https://..."
-              />
-              <button
-                onClick={addOtherUrl}
-                className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {otherUrls.length > 0 && (
-              <ul className="space-y-1 mt-2">
-                {otherUrls.map((c, i) => (
-                  <li
-                    key={i}
-                    className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+              <div className={`p-4 rounded-xl border md:col-span-2 ${cInputSec}`}>
+                <label className={`block font-bold mb-2 text-sm ${cTextMuted}`}>
+                  {t("Other Pages / Group URLs")}
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newOtherUrl}
+                    onChange={(e) => setNewOtherUrl(e.target.value)}
+                    className={`flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none ${cInput}`}
+                    placeholder="https://..."
+                  />
+                  <button
+                    onClick={addOtherUrl}
+                    className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-colors"
                   >
-                    <span className={`truncate flex-1 max-w-[90%] ${cText}`}>{c}</span>
-                    <button
-                      onClick={() =>
-                        setOtherUrls(otherUrls.filter((_, idx) => idx !== i))
-                      }
-                      className="text-red-500 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+                    {t("Add")}
+                  </button>
+                </div>
+                {otherUrls.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {otherUrls.map((c, i) => (
+                      <li
+                        key={i}
+                        className={`flex justify-between items-center px-3 py-1.5 border rounded-md text-sm ${cContainer}`}
+                      >
+                        <span className={`truncate flex-1 max-w-[90%] ${cText}`}>{c}</span>
+                        <button
+                          onClick={() =>
+                            setOtherUrls(otherUrls.filter((_, idx) => idx !== i))
+                          }
+                          className="text-red-500 hover:text-red-400"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -574,15 +570,15 @@ export default function AdminPageDetails() {
             <div className="space-y-4">
               <h3 className={`text-base font-bold flex items-center gap-2 ${cText}`}>
                 <span className="w-1.5 h-4 bg-emerald-500 rounded-sm inline-block"></span>
-                Status & Discoverability
+                {t("Status & Discoverability")}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-5">
                   <div>
                     <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                      Status Badge (Standard)
+                      {t("Status Badge (Standard)")}
                     </label>
-                     <select
+                    <select
                       value={statusBadge}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -591,13 +587,13 @@ export default function AdminPageDetails() {
                       }}
                       className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                     >
-                      <option value="Under Review">Under Review</option>
-                      <option value="Verified Marketplace Seller">Verified Seller</option>
-                      <option value="Suspicious">Suspicious</option>
-                      <option value="Reported as Fraud">Fraud</option>
-                      <option value="Gold Seller">⭐ Gold Seller</option>
-                      <option value="Old/Dead Page">💀 Old/Dead Page</option>
-                      <option value="Old/Dead Reported Page">💀🚩 Old/Dead Reported Page</option>
+                      <option value="Under Review">{t("Under Review")}</option>
+                      <option value="Verified Marketplace Seller">{t("Verified Seller")}</option>
+                      <option value="Suspicious">{t("Suspicious")}</option>
+                      <option value="Reported as Fraud">{t("Fraud")}</option>
+                      <option value="Gold Seller">{t("⭐ Gold Seller")}</option>
+                      <option value="Old/Dead Page">{t("💀 Old/Dead Page")}</option>
+                      <option value="Old/Dead Reported Page">{t("💀🚩 Old/Dead Reported Page")}</option>
                     </select>
                   </div>
 
@@ -611,10 +607,10 @@ export default function AdminPageDetails() {
                       />
                       <div className="flex flex-col">
                         <span className={`text-sm font-bold group-hover:text-emerald-400 transition-colors ${cText}`}>
-                          Featured Trusted Seller
+                          {t("Featured Trusted Seller")}
                         </span>
                         <span className="text-xs text-slate-500 mt-0.5">
-                          Highlights this page as featured and highly trusted across the site.
+                          {t("Highlights this page as featured and highly trusted across the site.")}
                         </span>
                       </div>
                     </label>
@@ -628,10 +624,10 @@ export default function AdminPageDetails() {
                       />
                       <div className="flex flex-col">
                         <span className={`text-sm font-bold group-hover:text-indigo-400 transition-colors ${cText}`}>
-                          Require Manual Fraud Approval
+                          {t("Require Manual Fraud Approval")}
                         </span>
                         <span className="text-xs text-slate-500 mt-0.5">
-                          Requires admin review to publish incoming user complaints, preventing automated posting.
+                          {t("Requires admin review to publish incoming user complaints, preventing automated posting.")}
                         </span>
                       </div>
                     </label>
@@ -640,26 +636,24 @@ export default function AdminPageDetails() {
 
                 <div>
                   <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                    Admin Private Note (Internal)
+                    {t("Admin Private Note (Internal)")}
                   </label>
                   <textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     rows={4}
                     className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-                    placeholder="Internal notes about this seller (not visible to users)..."
+                    placeholder={t("Internal notes about this seller (not visible to users)...")}
                   ></textarea>
                 </div>
               </div>
             </div>
 
-
-
             {/* Section 3: Fraud Directory Listing */}
             <div className="space-y-4 pt-6">
               <h3 className={`text-base font-bold flex items-center gap-2 ${cText}`}>
                 <ShieldAlert className="h-5 w-5 text-rose-500" />
-                Fraud Directory Listing
+                {t("Fraud Directory Listing")}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-5">
@@ -669,10 +663,10 @@ export default function AdminPageDetails() {
                         <ShieldAlert className="h-5 w-5 mt-0.5 text-rose-500 shrink-0" />
                         <div className="flex flex-col">
                           <span className={`text-sm font-bold ${cText}`}>
-                            Listed in Detected Fraud Directory
+                            {t("Listed in Detected Fraud Directory")}
                           </span>
                           <span className="text-xs text-slate-400 mt-0.5 max-w-xs">
-                            This profile is published inside the fraud directory because its status is marked as Fraud.
+                            {t("This profile is published inside the fraud directory because its status is marked as Fraud.")}
                           </span>
                         </div>
                       </div>
@@ -682,17 +676,17 @@ export default function AdminPageDetails() {
                   {isFraudListed && (
                     <div>
                       <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                        Fraud Severity Level
+                        {t("Fraud Severity Level")}
                       </label>
                       <select
                         value={fraudSeverity}
                         onChange={(e) => setFraudSeverity(e.target.value)}
                         className={`w-full border rounded-lg px-4 py-2.5 outline-none ${cInput}`}
                       >
-                        <option value="Low Risk">Low Risk</option>
-                        <option value="Medium Risk">Medium Risk</option>
-                        <option value="High Risk">High Risk</option>
-                        <option value="Critical">Critical</option>
+                        <option value="Low Risk">{t("Low Risk")}</option>
+                        <option value="Medium Risk">{t("Medium Risk")}</option>
+                        <option value="High Risk">{t("High Risk")}</option>
+                        <option value="Critical">{t("Critical")}</option>
                       </select>
                     </div>
                   )}
@@ -702,34 +696,34 @@ export default function AdminPageDetails() {
                   <div className="space-y-4">
                     <div>
                       <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                        Public Reason
+                        {t("Public Reason")}
                       </label>
                       <textarea
                         value={fraudListReason}
                         onChange={(e) => setFraudListReason(e.target.value)}
                         rows={2}
                         className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-                        placeholder="Explain publicly (e.g., persistent mock reviews, non-delivery after payment)..."
+                        placeholder={t("Explain publicly (e.g., persistent mock reviews, non-delivery after payment)...")}
                       ></textarea>
                     </div>
 
                     <div>
                       <label className={`block font-bold mb-1.5 text-xs uppercase tracking-wider ${cTextMuted}`}>
-                        Internal Fraud Investigation Note
+                        {t("Internal Fraud Investigation Note")}
                       </label>
                       <textarea
                         value={fraudInternalNote}
                         onChange={(e) => setFraudInternalNote(e.target.value)}
                         rows={2}
                         className={`w-full border rounded-lg px-4 py-2 outline-none ${cInput}`}
-                        placeholder="Private investigation notes and links to evidence..."
+                        placeholder={t("Private investigation notes and links to evidence...")}
                       ></textarea>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center p-6 border border-dashed border-white/5 rounded-lg h-full text-center min-h-[140px]">
                     <p className={`text-xs ${cTextMuted} max-w-xs`}>
-                      Check "List Page in Detected Fraud Directory" to configure public reasons and severity indicators.
+                      {t("Check \"List Page in Detected Fraud Directory\" to configure public reasons and severity indicators.")}
                     </p>
                   </div>
                 )}
@@ -743,24 +737,23 @@ export default function AdminPageDetails() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className={`${cContainer} rounded-xl shadow-xl w-full max-w-md p-6`}>
             <h3 className={`text-xl font-bold mb-2 ${cText}`}>
-              Delete Page?
+              {t("Delete Page?")}
             </h3>
             <p className={`mb-6 ${cTextMuted}`}>
-              Are you sure you want to permanently delete this page? This action
-              cannot be undone.
+              {t("Are you sure you want to permanently delete this page? This action cannot be undone.")}
             </p>
             <div className="flex items-center gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className={`px-4 py-2 rounded-lg font-bold transition-colors bg-white/10 hover:bg-white/20 text-white`}
+                className="px-4 py-2 rounded-lg font-bold transition-colors bg-white/10 hover:bg-white/20 text-white"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 onClick={handleDelete}
                 className="px-4 py-2 bg-rose-600 text-white hover:bg-rose-700 rounded-lg font-bold transition-colors"
               >
-                Confirm Delete
+                {t("Confirm Delete")}
               </button>
             </div>
           </div>

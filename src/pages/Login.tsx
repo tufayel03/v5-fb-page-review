@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, MessageSquare, BarChart3, User, Lock, Users, ChevronRight, Eye, EyeOff, Star } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Login() {
+  const { t, n } = useLanguage();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -68,9 +70,9 @@ export default function Login() {
             {/* LEFT COLUMN: Features List */}
             <div className="lg:col-span-6 p-8 sm:p-12 bg-white flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-100">
               <div>
-                <h1 className="text-[32px] font-black text-[#0f172a] tracking-tight leading-tight">Business Log In</h1>
+                <h1 className="text-[32px] font-black text-[#0f172a] tracking-tight leading-tight">{t("Business Log In")}</h1>
                 <p className="text-slate-500 text-[14.5px] leading-relaxed mt-3.5 font-medium max-w-md">
-                  Secure access to your Facebook Page Review business dashboard and tools.
+                  {t("Secure access to your Facebook Page Review business dashboard and tools.")}
                 </p>
                 
                 {/* Visual Accent Green Bar */}
@@ -84,9 +86,9 @@ export default function Login() {
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Claimed Page Management</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Claimed Page Management")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Manage and verify your claimed pages with ease.
+                        {t("Manage and verify your claimed pages with ease.")}
                       </p>
                     </div>
                   </div>
@@ -97,9 +99,9 @@ export default function Login() {
                       <MessageSquare className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Reply to Reviews</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Reply to Reviews")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Engage with customers by replying to reviews directly.
+                        {t("Engage with customers by replying to reviews directly.")}
                       </p>
                     </div>
                   </div>
@@ -110,9 +112,9 @@ export default function Login() {
                       <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Business Dashboard</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Business Dashboard")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Track performance, insights, and activity in one place.
+                        {t("Track performance, insights, and activity in one place.")}
                       </p>
                     </div>
                   </div>
@@ -123,9 +125,9 @@ export default function Login() {
             {/* RIGHT COLUMN: Business Login Form */}
             <div className="lg:col-span-6 p-8 sm:p-12 flex flex-col justify-center">
               <div className="lg:hidden mb-6">
-                <h1 className="text-2xl font-black text-slate-900">Business Log In</h1>
+                <h1 className="text-2xl font-black text-slate-900">{t("Business Log In")}</h1>
                 <p className="text-slate-500 text-sm font-medium mt-1">
-                  Secure access to your Facebook Page Review business dashboard and tools.
+                  {t("Secure access to your Facebook Page Review business dashboard and tools.")}
                 </p>
                 
                 {/* Visual Accent Green Bar */}
@@ -134,19 +136,19 @@ export default function Login() {
 
               {error && (
                 <div className="bg-rose-50 text-rose-600 text-[13.5px] font-bold p-3.5 rounded-xl mb-6 border border-rose-100">
-                  {error}
+                  {t(error)}
                 </div>
               )}
 
               <form onSubmit={handleLogin} className="space-y-4.5 text-left">
                 {/* Email input */}
                 <div>
-                  <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Email or Username</label>
+                  <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Email or Username")}</label>
                   <div className="relative">
                     <input 
                       required
                       type="text" 
-                      placeholder="Enter email or username"
+                      placeholder={t("Enter email or username")}
                       value={emailOrUsername}
                       onChange={e => setEmailOrUsername(e.target.value)}
                       className="w-full border border-slate-200/90 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -160,16 +162,16 @@ export default function Login() {
                 {/* Password input */}
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
-                    <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Password</label>
+                    <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Password")}</label>
                     <Link to={forgotPasswordLink} className="text-[12px] text-[#10b981] font-extrabold hover:underline transition-colors pb-1.5">
-                      Forgot password?
+                      {t("Forgot password?")}
                     </Link>
                   </div>
                   <div className="relative">
                     <input 
                       required
                       type={showPassword ? "text" : "password"} 
-                      placeholder="Enter your password"
+                      placeholder={t("Enter your password")}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       className="w-full border border-slate-200/90 rounded-xl pl-11 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -194,22 +196,22 @@ export default function Login() {
                   className="w-full bg-[#0b1329] hover:bg-slate-900 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer"
                 >
                   <Lock className="w-4 h-4 text-emerald-400" />
-                  <span>{loading ? 'Logging in...' : 'Log In'}</span>
+                  <span>{loading ? t('Logging in...') : t('Log In')}</span>
                 </button>
               </form>
 
               {/* Or divider */}
               <div className="flex items-center my-6">
                 <div className="flex-1 border-t border-slate-200" />
-                <span className="px-3 text-slate-400 font-extrabold text-[12px] uppercase tracking-wider">or</span>
+                <span className="px-3 text-slate-400 font-extrabold text-[12px] uppercase tracking-wider">{t("or")}</span>
                 <div className="flex-1 border-t border-slate-200" />
               </div>
 
               {/* Signup Link */}
               <p className="text-center text-[13.5px] text-slate-500 font-bold">
-                Don't have an account?{' '}
+                {t("Don't have an account?")}{' '}
                 <Link to={registerLink} className="text-[#10b981] font-extrabold hover:underline">
-                  Sign Up
+                  {t("Sign Up")}
                 </Link>
               </p>
 
@@ -223,8 +225,8 @@ export default function Login() {
                     <Users className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[#064e3b] font-bold text-[12.5px] leading-tight">Not a business owner?</p>
-                    <p className="text-[#059669] font-extrabold text-[13px] hover:underline mt-0.5">Log in as a regular user</p>
+                    <p className="text-[#064e3b] font-bold text-[12.5px] leading-tight">{t("Not a business owner?")}</p>
+                    <p className="text-[#059669] font-extrabold text-[13px] hover:underline mt-0.5">{t("Log in as a regular user")}</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-[#10b981] group-hover:translate-x-1 transition-transform" />
@@ -236,7 +238,7 @@ export default function Login() {
         {/* Mobile Features List Container */}
         <div className="w-full mt-6 bg-white border border-[#e2e8f0] rounded-3xl p-6 shadow-3xs space-y-4 lg:hidden">
           <div className="border-b border-slate-100 pb-3 mb-2">
-            <h3 className="font-extrabold text-slate-900 text-sm">Why FB Page Review for Business?</h3>
+            <h3 className="font-extrabold text-slate-900 text-sm">{t("Why FB Page Review for Business?")}</h3>
           </div>
           
           <div className="space-y-4">
@@ -246,8 +248,8 @@ export default function Login() {
                   <ShieldCheck className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Claimed Page Management</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Manage and verify your claimed pages with ease.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Claimed Page Management")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Manage and verify your claimed pages with ease.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -259,8 +261,8 @@ export default function Login() {
                   <MessageSquare className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Reply to Reviews</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Engage with customers by replying to reviews directly.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Reply to Reviews")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Engage with customers by replying to reviews directly.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -272,8 +274,8 @@ export default function Login() {
                   <BarChart3 className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Business Dashboard</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Track performance, insights, and activity in one place.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Business Dashboard")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Track performance, insights, and activity in one place.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -298,11 +300,11 @@ export default function Login() {
         <div className="lg:col-span-6 space-y-8 text-left hidden lg:block">
           <div>
             <h1 className="text-4xl lg:text-5.5.xl font-black text-slate-900 tracking-tight leading-none">
-              Join the community <br />
-              <span className="text-[#10b981]">that shops smarter.</span>
+              {t("Join the community")}<br />
+              <span className="text-[#10b981]">{t("that shops smarter.")}</span>
             </h1>
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed mt-4 max-w-lg font-medium">
-              FB Page Review helps you check Facebook pages, share real experiences, and protect others from scams.
+              {t("FB Page Review helps you check Facebook pages, share real experiences, and protect others from scams.")}
             </p>
           </div>
 
@@ -313,7 +315,7 @@ export default function Login() {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Detect</strong> risky Facebook pages
+                <strong className="text-slate-900 font-bold">{t("Detect")}</strong> {t("risky Facebook pages")}
               </span>
             </div>
 
@@ -322,7 +324,7 @@ export default function Login() {
                 <Users className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Real reviews</strong> from verified users
+                <strong className="text-slate-900 font-bold">{t("Real reviews")}</strong> {t("from verified users")}
               </span>
             </div>
 
@@ -331,7 +333,7 @@ export default function Login() {
                 <MessageSquare className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Help build</strong> a safer community
+                <strong className="text-slate-900 font-bold">{t("Help build")}</strong> {t("a safer community")}
               </span>
             </div>
           </div>
@@ -341,7 +343,7 @@ export default function Login() {
             {/* Card 1 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-emerald-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 rounded-full">Trusted</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 rounded-full">{t("Trusted")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center text-white font-black text-[11px] shrink-0">LW</div>
@@ -352,15 +354,15 @@ export default function Login() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>4.8</span>
-                <span className="text-slate-400 font-normal">(256)</span>
+                <span>{n(4.8)}</span>
+                <span className="text-slate-400 font-normal">({n(256)})</span>
               </div>
             </div>
 
             {/* Card 2 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-amber-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/10 text-amber-600 rounded-full">Caution</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/10 text-amber-600 rounded-full">{t("Caution")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-[#10b981]/10 flex items-center justify-center text-rose-500 font-black text-[11px] shrink-0">GH</div>
@@ -371,15 +373,15 @@ export default function Login() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>3.1</span>
-                <span className="text-slate-400 font-normal">(42)</span>
+                <span>{n(3.1)}</span>
+                <span className="text-slate-400 font-normal">({n(42)})</span>
               </div>
             </div>
 
             {/* Card 3 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-rose-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-rose-500/10 text-rose-600 rounded-full">High Risk</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-rose-500/10 text-rose-600 rounded-full">{t("High Risk")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-black text-[11px] shrink-0">MD</div>
@@ -390,8 +392,8 @@ export default function Login() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>1.2</span>
-                <span className="text-slate-400 font-normal">(18)</span>
+                <span>{n(1.2)}</span>
+                <span className="text-slate-400 font-normal">({n(18)})</span>
               </div>
             </div>
           </div>
@@ -400,14 +402,14 @@ export default function Login() {
           <div className="bg-[#f0fdf4]/65 border border-emerald-500/15 rounded-2xl p-5 sm:p-6 shadow-3xs">
             <div className="text-[#10b981] font-black text-4xl leading-none font-serif select-none mb-2">“</div>
             <p className="text-slate-700 font-semibold text-[14.5px] leading-relaxed">
-              FB Page Review saved me from a scam. Now I always check before I buy!
+              {t("FB Page Review saved me from a scam. Now I always check before I buy!")}
             </p>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-[#10b981]/15 text-[#10b981] font-black flex items-center justify-center text-xs shrink-0">JD</div>
                 <div>
-                  <h5 className="font-bold text-slate-900 text-xs">Jane D.</h5>
-                  <span className="text-[#10b981] font-extrabold text-[9px] tracking-wider uppercase block mt-0.5">Verified Reviewer</span>
+                  <h5 className="font-bold text-slate-900 text-xs">{t("Jane D.")}</h5>
+                  <span className="text-[#10b981] font-extrabold text-[9px] tracking-wider uppercase block mt-0.5">{t("Verified Reviewer")}</span>
                 </div>
               </div>
               <div className="flex gap-0.5 text-amber-400">
@@ -422,26 +424,26 @@ export default function Login() {
         {/* RIGHT COLUMN: Login Card */}
         <div className="lg:col-span-6 flex flex-col justify-center items-center w-full">
           <div className="bg-white border border-slate-100 rounded-[32px] p-6 sm:p-10 shadow-xl w-full max-w-[480px]">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">Log In</h2>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">{t("Log In")}</h2>
             <p className="text-slate-450 text-sm font-medium mt-1 text-center sm:text-left">
-              Welcome back! Please enter your details.
+              {t("Welcome back! Please enter your details.")}
             </p>
 
             {error && (
               <div className="bg-rose-50 text-rose-600 text-xs font-bold p-3.5 rounded-xl mt-4 border border-rose-100 text-left block w-full">
-                {error}
+                {t(error)}
               </div>
             )}
 
             <form onSubmit={handleLogin} className="space-y-4.5 text-left mt-6">
               {/* Email/Username */}
               <div>
-                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Email or Username</label>
+                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Email or Username")}</label>
                 <div className="relative">
                   <input 
                     required
                     type="text" 
-                    placeholder="Enter email or username"
+                    placeholder={t("Enter email or username")}
                     value={emailOrUsername}
                     onChange={e => setEmailOrUsername(e.target.value)}
                     className="w-full border border-slate-200/90 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -455,27 +457,27 @@ export default function Login() {
               {/* Password */}
               <div>
                 <div className="flex justify-between items-end mb-1.5">
-                  <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Password</label>
+                  <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Password")}</label>
                   <Link to={forgotPasswordLink} className="text-[12px] text-[#10b981] font-extrabold hover:underline transition-colors pb-1.5">
-                    Forgot password?
+                    {t("Forgot password?")}
                   </Link>
                 </div>
                 <div className="relative">
                   <input 
                     required
                     type={showPassword ? "text" : "password"} 
-                    placeholder="Enter your password"
+                    placeholder={t("Enter your password")}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full border border-slate-200/90 rounded-xl pl-11 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
                   />
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-450">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-455">
                     <Lock className="w-4.5 h-4.5" />
                   </div>
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-650 outline-none transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-455 hover:text-slate-655 outline-none transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                   </button>
@@ -488,16 +490,16 @@ export default function Login() {
                 type="submit" 
                 className="w-full bg-[#0b1329] hover:bg-slate-900 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-between px-6 text-sm shadow-sm cursor-pointer mt-5 group"
               >
-                <span className="flex-1 text-center">{loading ? 'Logging in...' : 'Log In'}</span>
+                <span className="flex-1 text-center">{loading ? t('Logging in...') : t('Log In')}</span>
                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
             </form>
 
             {/* Signup Link */}
             <p className="text-center text-[13.5px] text-slate-500 font-bold mt-6">
-              Don't have an account?{' '}
+              {t("Don't have an account?")}{' '}
               <Link to={registerLink} className="text-[#10b981] font-extrabold hover:underline">
-                Sign Up
+                {t("Sign Up")}
               </Link>
             </p>
 
@@ -511,8 +513,8 @@ export default function Login() {
                   <Users className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[#064e3b] font-bold text-[12px] leading-tight font-sans">Are you a business owner?</p>
-                  <p className="text-[#059669] font-extrabold text-[12px] hover:underline mt-0.5 font-sans">Log in as a business owner</p>
+                  <p className="text-[#064e3b] font-bold text-[12px] leading-tight font-sans">{t("Are you a business owner?")}</p>
+                  <p className="text-[#059669] font-extrabold text-[12px] hover:underline mt-0.5 font-sans">{t("Log in as a business owner")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4.5 h-4.5 text-[#10b981] group-hover:translate-x-1 transition-transform" />
@@ -527,9 +529,10 @@ export default function Login() {
                 <ShieldCheck className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Detect <span className="text-[10px] text-slate-500 font-medium">risky</span>
+                {t("Detect")}{' '}
+                <span className="text-[10px] text-slate-500 font-medium">{t("risky")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">Facebook pages</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("Facebook pages")}</p>
             </div>
 
             {/* Column 2 */}
@@ -538,9 +541,10 @@ export default function Login() {
                 <Users className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Real reviews <span className="text-[10px] text-slate-500 font-medium">from</span>
+                {t("Real reviews")}{' '}
+                <span className="text-[10px] text-slate-500 font-medium">{t("from")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">verified users</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("verified users")}</p>
             </div>
 
             {/* Column 3 */}
@@ -549,9 +553,10 @@ export default function Login() {
                 <Lock className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Help <span className="text-[10px] text-slate-500 font-medium">build a safer</span>
+                {t("Help")}{' '}
+                <span className="text-[10px] text-slate-500 font-medium">{t("build a safer")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">shopping community</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("shopping community")}</p>
             </div>
           </div>
         </div>

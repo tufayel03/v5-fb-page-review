@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminBlogPostDetails() {
+  const { t, n } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +28,7 @@ export default function AdminBlogPostDetails() {
   
   // UI States
   const [activeTab, setActiveTab] = useState<"edit" | "preview" | "split">("edit");
-  const [autosaveStatus, setAutosaveStatus] = useState<string>("All changes saved");
+  const [autosaveStatus, setAutosaveStatus] = useState<string>(t("All changes saved"));
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string>("");
   const [revisions, setRevisions] = useState<Array<{ time: string; content: string; title: string }>>([]);
@@ -146,7 +148,7 @@ export default function AdminBlogPostDetails() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        e.returnValue = t("You have unsaved changes. Are you sure you want to leave?");
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -184,7 +186,7 @@ export default function AdminBlogPostDetails() {
 
   // Auto-generate SEO details helper
   const handleAutoRecommendSEO = () => {
-    updateField("seo_title", `${formData.title} | Blog post`);
+    updateField("seo_title", `${formData.title} | ${t('Blog post')}`);
     updateField("seo_description", formData.excerpt || formData.content.split("\n")[0]?.substring(0, 150) || "");
     updateField("og_title", formData.title);
     updateField("og_description", formData.excerpt || formData.content.split("\n")[0]?.substring(0, 150) || "");
@@ -196,7 +198,7 @@ export default function AdminBlogPostDetails() {
     if (formData.status !== "Draft" || !formData.title || !hasUnsavedChanges) return;
 
     const timer = setTimeout(() => {
-      setAutosaveStatus("Autosaving...");
+      setAutosaveStatus(t("Autosaving..."));
       fetch(`/api/admin/blogs/${id}`, {
         method: "PUT",
         headers: {
@@ -215,7 +217,7 @@ export default function AdminBlogPostDetails() {
           setHasUnsavedChanges(false);
           const savedTime = new Date().toLocaleTimeString();
           setLastSavedTime(savedTime);
-          setAutosaveStatus(`Saved draft at ${savedTime}`);
+          setAutosaveStatus(t("Saved draft at {{time}}", { time: savedTime }));
           
           // Add to custom local revision history
           setRevisions((prev) => [
@@ -223,7 +225,7 @@ export default function AdminBlogPostDetails() {
             ...prev.slice(0, 9)
           ]);
         } else {
-          setAutosaveStatus("Autosave failed");
+          setAutosaveStatus(t("Autosave failed"));
         }
       });
     }, 15000); // 15 seconds debounce
@@ -284,10 +286,10 @@ export default function AdminBlogPostDetails() {
           }
           fetchMediaLibrary();
         } else {
-          alert("Upload failed. Make sure it's a valid image file.");
+          alert(t("Upload failed. Make sure it's a valid image file."));
         }
       } catch (err) {
-        alert("Upload error.");
+        alert(t("Upload error."));
       }
     };
     reader.readAsDataURL(file);
@@ -329,7 +331,7 @@ export default function AdminBlogPostDetails() {
         }
       }
     } catch (err) {
-      alert("Delete call failed.");
+      alert(t("Delete call failed."));
     } finally {
       setPendingMediaDeleteId(null);
     }
@@ -383,7 +385,7 @@ export default function AdminBlogPostDetails() {
         inserted = `\n---\n`;
         break;
       case "link":
-        const linkUrl = prompt("Enter HTTP/HTTPS Link URL:", "https://");
+        const linkUrl = prompt(t("Enter HTTP/HTTPS Link URL:"), "https://");
         if (linkUrl === null) return;
         inserted = `[${selectedText || "Link Text"}](${linkUrl})`;
         break;
@@ -403,7 +405,7 @@ export default function AdminBlogPostDetails() {
   // Insert Inline Image HTML widget constructed inside editorial content
   const handleInsertInlineConfigImage = () => {
     if (!inlineImageConfig.src) {
-      alert("Please upload or choose an image source first.");
+      alert(t("Please upload or choose an image source first."));
       return;
     }
 
@@ -456,7 +458,7 @@ export default function AdminBlogPostDetails() {
   const handleConfirmDuplicate = async () => {
     setShowDetailDuplicateConfirm(false);
     try {
-      const dupTitle = `${formData.title} (Duplicate)`;
+      const dupTitle = `${formData.title} (${t('Duplicate')})`;
       const dupSlug = `${formData.slug}-copy-${Math.floor(100 + Math.random() * 900)}`;
       
       const res = await fetch("/api/admin/blogs", {
@@ -478,13 +480,13 @@ export default function AdminBlogPostDetails() {
       });
       if (res.ok) {
         const data = await res.json();
-        alert("Post duplicated successfully!");
+        alert(t("Post duplicated successfully!"));
         navigate(`/tufayel/blog-posts/${data.id}`);
       } else {
-        alert("Failed to duplicate. Please ensure a unique slug is generated.");
+        alert(t("Failed to duplicate. Please ensure a unique slug is generated."));
       }
     } catch (e) {
-      alert("Error duplicating post.");
+      alert(t("Error duplicating post."));
     }
   };
 
@@ -498,7 +500,7 @@ export default function AdminBlogPostDetails() {
       finalPublishedAt = new Date().toISOString();
     } else if (finalStatus === "Scheduled") {
       if (!scheduledDate) {
-        alert("Please set a Future Date and Time for scheduled blogs.");
+        alert(t("Please set a Future Date and Time for scheduled blogs."));
         setSaving(false);
         return;
       }
@@ -525,14 +527,14 @@ export default function AdminBlogPostDetails() {
         originalDataRef.current = { ...formData, status: finalStatus };
         updateField("status", finalStatus);
         setHasUnsavedChanges(false);
-        alert(`Successfully saved as "${finalStatus}"!`);
+        alert(t('Successfully saved as "{{status}}"!', { status: t(finalStatus) }));
       } else {
         const errData = await res.json();
-        alert(errData.error || "Failed to update blog post. Make sure the slug is unique.");
+        alert(errData.error || t("Failed to update blog post. Make sure the slug is unique."));
       }
     } catch (e) {
       console.error(e);
-      alert("Error saving blog details.");
+      alert(t("Error saving blog details."));
     }
     setSaving(false);
   };
@@ -563,10 +565,10 @@ export default function AdminBlogPostDetails() {
       if (res.ok) {
         navigate("/tufayel/blog-posts");
       } else {
-        alert("Failed to delete post.");
+        alert(t("Failed to delete post."));
       }
     } catch (e) {
-      alert("Error deleting post.");
+      alert(t("Error deleting post."));
     }
   };
 
@@ -587,7 +589,7 @@ export default function AdminBlogPostDetails() {
       if (file.type.startsWith("image/")) {
         await processAndUploadFile(file, "inline");
       } else {
-        alert("Only images are supported for drag-and-drop uploads.");
+        alert(t("Only images are supported for drag-and-drop uploads."));
       }
     }
   };
@@ -634,7 +636,7 @@ export default function AdminBlogPostDetails() {
             <div className="absolute inset-0 rounded-full border-4 border-emerald-500/10"></div>
             <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
           </div>
-          <p className="text-slate-400 font-bold tracking-wide text-sm">Loading Custom Post Engine...</p>
+          <p className="text-slate-400 font-bold tracking-wide text-sm">{t("Loading Custom Post Engine...")}</p>
         </div>
       </div>
     );
@@ -647,10 +649,10 @@ export default function AdminBlogPostDetails() {
           <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20 inline-block">
             <HelpCircle className="h-8 w-8 text-red-400" />
           </div>
-          <h2 className="text-lg font-black tracking-tight text-white">Post Not Found</h2>
-          <p className="text-slate-400 text-sm">The article you are trying to query does not exist in the database or error occurred.</p>
+          <h2 className="text-lg font-black tracking-tight text-white">{t("Post Not Found")}</h2>
+          <p className="text-slate-400 text-sm">{t("The article you are trying to query does not exist in the database or error occurred.")}</p>
           <Link to="/tufayel/blog-posts" className="inline-block mt-4 text-emerald-400 font-bold text-sm bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/20 py-2.5 px-5 rounded-lg transition-all">
-            Return to Blog Table
+            {t("Return to Blog Table")}
           </Link>
         </div>
       </div>
@@ -666,29 +668,29 @@ export default function AdminBlogPostDetails() {
             <Link
               to="/tufayel/blog-posts"
               className="flex items-center justify-center p-2 rounded-lg border border-white/5 bg-white/[0.02] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
-              title="Return to posts table"
+              title={t("Return to posts table")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <div>
               <div className="flex items-center gap-2.5">
                 <span className="text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black tracking-widest uppercase px-1.5 py-0.5 rounded">
-                  WP Post Studio
+                  {t("WP Post Studio")}
                 </span>
                 {hasUnsavedChanges ? (
                   <span className="text-xs text-amber-400 font-bold flex items-center gap-1.5 animate-pulse">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-                    Unsaved changes
+                    {t("Unsaved changes")}
                   </span>
                 ) : (
                   <span className="text-xs text-slate-400 font-bold flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    Saved
+                    {t("Saved")}
                   </span>
                 )}
               </div>
               <h1 className="text-base font-black tracking-tight text-white mt-0.5 line-clamp-1 max-w-[320px] sm:max-w-[480px]">
-                {formData.title || "Untitled Post Draft"}
+                {formData.title || t("Untitled Post Draft")}
               </h1>
             </div>
           </div>
@@ -704,7 +706,7 @@ export default function AdminBlogPostDetails() {
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Editor
+                {t("Editor")}
               </button>
               <button
                 onClick={() => setActiveTab("split")}
@@ -714,7 +716,7 @@ export default function AdminBlogPostDetails() {
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Split
+                {t("Split")}
               </button>
               <button
                 onClick={() => setActiveTab("preview")}
@@ -724,7 +726,7 @@ export default function AdminBlogPostDetails() {
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Preview Live Layout
+                {t("Preview Live Layout")}
               </button>
             </div>
 
@@ -732,10 +734,10 @@ export default function AdminBlogPostDetails() {
             <button
               onClick={handleDuplicatePost}
               className="flex items-center gap-2 border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] text-slate-300 hover:text-white px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer"
-              title="Duplicate post to a draft"
+              title={t("Duplicate post to a draft")}
             >
               <Copy className="h-3.5 w-3.5" />
-              <span>Duplicate</span>
+              <span>{t("Duplicate")}</span>
             </button>
             
             <a
@@ -745,7 +747,7 @@ export default function AdminBlogPostDetails() {
               className="flex items-center gap-2 border border-white/5 bg-[#0d1627] hover:bg-[#121f36] text-emerald-400 px-3.5 py-2 rounded-lg text-xs font-black transition-all"
             >
               <Eye className="h-3.5 w-3.5" />
-              <span>Preview</span>
+              <span>{t("Preview")}</span>
             </a>
 
             <button
@@ -754,7 +756,7 @@ export default function AdminBlogPostDetails() {
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer disabled:opacity-40 shadow-lg shadow-emerald-950/20"
             >
               <Save className="h-3.5 w-3.5" />
-              <span>{saving ? "Saving..." : "Update Post"}</span>
+              <span>{saving ? t("Saving...") : t("Update Post")}</span>
             </button>
           </div>
         </div>
@@ -774,13 +776,13 @@ export default function AdminBlogPostDetails() {
                 {/* General Title Block */}
                 <div className="space-y-2">
                   <label className="text-[11px] font-black tracking-widest text-[#a3b3cc] uppercase block">
-                    Post Title
+                    {t("Post Title")}
                   </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => updateField("title", e.target.value)}
-                    placeholder="Enter an intriguing, highly clickable headline..."
+                    placeholder={t("Enter an intriguing, highly clickable headline...")}
                     className="w-full border border-white/5 bg-[#02050c]/50 text-white rounded-lg p-3 px-4 text-xl font-black font-sans focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-slate-600 transition-all text-shadow"
                     id="blog-post-title-input"
                   />
@@ -791,9 +793,9 @@ export default function AdminBlogPostDetails() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <label className="text-[11px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                        URL Slug
+                        {t("URL Slug")}
                       </label>
-                      <span className="text-[10px] text-slate-500 font-mono">Auto-sanitizes on edit</span>
+                      <span className="text-[10px] text-slate-500 font-mono">{t("Auto-sanitizes on edit")}</span>
                     </div>
                     <input
                       type="text"
@@ -810,27 +812,27 @@ export default function AdminBlogPostDetails() {
                     />
                     <div className="text-[10px] text-emerald-400/70 font-mono tracking-tight flex items-center gap-1">
                       <Globe className="h-3 w-3 inline" /> 
-                      <span className="truncate">URL preview: /blog/{formData.slug || "post-url-handle"}</span>
+                      <span className="truncate">{t("URL preview:")} /blog/{formData.slug || "post-url-handle"}</span>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[11px] font-black tracking-widest text-[#a3b3cc] uppercase block">
-                      Category / Topic SELECTOR
+                      {t("Category / Topic SELECTOR")}
                     </label>
                     <select
                       value={formData.category_id}
                       onChange={(e) => updateField("category_id", e.target.value)}
-                      className="w-full border border-white/5 bg-[#02050c]/50 text-state-300 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full border border-white/5 bg-[#02050c]/50 text-slate-300 rounded-lg p-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     >
-                      <option value="" className="bg-[#02050c]">Select Category...</option>
+                      <option value="" className="bg-[#02050c]">{t("Select Category...")}</option>
                       {categories.map((cat) => (
                         <option key={cat.id} value={cat.id} className="bg-[#02050c] text-white">
-                          {cat.name} ({cat.type || "Topic"})
+                          {cat.name} ({cat.type || t("Topic")})
                         </option>
                       ))}
                     </select>
-                    <span className="text-[10px] text-slate-500 block">Or manually supply one in text format.</span>
+                    <span className="text-[10px] text-slate-500 block">{t("Or manually supply one in text format.")}</span>
                   </div>
                 </div>
 
@@ -838,15 +840,15 @@ export default function AdminBlogPostDetails() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <label className="text-[11px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                      Excerpt / Summary
+                      {t("Excerpt / Summary")}
                     </label>
-                    <span className="text-[10px] text-slate-500">Shows on list indices (Optional)</span>
+                    <span className="text-[10px] text-slate-500">{t("Shows on list indices (Optional)")}</span>
                   </div>
                   <textarea
                     rows={2}
                     value={formData.excerpt}
                     onChange={(e) => updateField("excerpt", e.target.value)}
-                    placeholder="Provide a compelling 1-2 sentence hook summarizing the blog article..."
+                    placeholder={t("Provide a compelling 1-2 sentence hook summarizing the blog article...")}
                     className="w-full border border-white/5 bg-[#02050c]/50 text-slate-300 text-xs rounded-lg p-3 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-slate-600 transition-all font-sans leading-relaxed"
                   />
                 </div>
@@ -856,21 +858,21 @@ export default function AdminBlogPostDetails() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div className="flex items-center gap-2">
                       <label className="text-[11px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                        Article Editorial Body
+                        {t("Article Editorial Body")}
                       </label>
                       <span className="text-[10px] text-slate-500 px-2 py-0.5 rounded border border-white/5 bg-white/[0.01] tracking-wide font-mono">
-                        Markdown + HTML support
+                        {t("Markdown + HTML support")}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] text-slate-500 font-bold bg-white/[0.01] px-2 py-0.5 rounded border border-white/5 flex items-center gap-1">
                         <BookOpen className="h-3 w-3 text-slate-400" />
-                        {wordCount} words
+                        {n(wordCount)} {t("words")}
                       </span>
                       <span className="text-[10px] text-slate-500 font-bold bg-white/[0.01] px-2 py-0.5 rounded border border-white/5 flex items-center gap-1">
                         <Clock className="h-3 w-3 text-slate-400" />
-                        {readingTime} min read
+                        {n(readingTime)} {t("min read")}
                       </span>
                     </div>
                   </div>
@@ -879,31 +881,31 @@ export default function AdminBlogPostDetails() {
                   <div className="bg-[#02050c] border border-white/5 p-2 rounded-t-xl flex flex-wrap gap-1 items-center justify-between">
                     <div className="flex flex-wrap gap-1">
                       {/* Font togglers */}
-                      <button type="button" onClick={() => handleToolbarAction("bold")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Bold text"><Bold className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("italic")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Italic text"><Italic className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("underline")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Underline Text"><Underline className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("bold")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Bold text")}><Bold className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("italic")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Italic text")}><Italic className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("underline")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Underline Text")}><Underline className="h-3.5 w-3.5" /></button>
                       
                       <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
 
                       {/* Headings */}
-                      <button type="button" onClick={() => handleToolbarAction("h1")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title="Heading 1"><Heading1 className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("h2")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title="Heading 2"><Heading2 className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("h3")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title="Heading 3"><Heading3 className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("h1")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title={t("Heading 1")}><Heading1 className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("h2")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title={t("Heading 2")}><Heading2 className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("h3")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 font-black text-xs" title={t("Heading 3")}><Heading3 className="h-3.5 w-3.5" /></button>
                       
                       <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
 
                       {/* Blocks list content formatting */}
-                      <button type="button" onClick={() => handleToolbarAction("bullet")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Bullet list"><List className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("numeric")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Numbered list"><ListOrdered className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("blockquote")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Blockquote"><Quote className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("bullet")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Bullet list")}><List className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("numeric")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Numbered list")}><ListOrdered className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("blockquote")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Blockquote")}><Quote className="h-3.5 w-3.5" /></button>
                       
                       <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
 
                       {/* Media inserts helpers */}
-                      <button type="button" onClick={() => handleToolbarAction("table")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Insert Table"><Table className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("code")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Code Block"><Code className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("divider")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Horizontal Line"><Minus className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => handleToolbarAction("link")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title="Insert Link"><LinkIcon className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("table")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Insert Table")}><Table className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("code")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Code Block")}><Code className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("divider")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Horizontal Line")}><Minus className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => handleToolbarAction("link")} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5" title={t("Insert Link")}><LinkIcon className="h-3.5 w-3.5" /></button>
                     </div>
 
                     {/* Integrated custom Inline Image media tools inside content */}
@@ -915,10 +917,10 @@ export default function AdminBlogPostDetails() {
                           setMediaLibraryOpen(true);
                         }}
                         className="flex items-center gap-1.5 text-[10px] font-black bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded transition-all cursor-pointer"
-                        title="Upload/Select inline image"
+                        title={t("Upload/Select inline image")}
                       >
                         <ImageIcon className="h-3 w-3" />
-                        <span>Insert Content Image</span>
+                        <span>{t("Insert Content Image")}</span>
                       </button>
 
                       <input
@@ -932,7 +934,7 @@ export default function AdminBlogPostDetails() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5"
-                        title="Quick upload local file here"
+                        title={t("Quick upload local file here")}
                       >
                         <Upload className="h-3.5 w-3.5" />
                       </button>
@@ -951,15 +953,15 @@ export default function AdminBlogPostDetails() {
                       rows={24}
                       value={formData.content}
                       onChange={(e) => updateField("content", e.target.value)}
-                      placeholder="# Welcome to your blog post edit workspace... Write beautiful stories or guides."
+                      placeholder={t("# Welcome to your blog post edit workspace... Write beautiful stories or guides.")}
                       className="w-full border-x border-b border-white/5 bg-[#02050c]/30 text-slate-100 rounded-b-xl p-4.5 font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
                     />
 
                     {isDraggingOverEditor && (
                       <div className="absolute inset-0 bg-emerald-950/80 border-2 border-dashed border-emerald-400/50 rounded-b-xl flex flex-col items-center justify-center space-y-3 animate-fade-in backdrop-blur-sm">
                         <Upload className="h-10 w-10 text-emerald-400 animate-bounce" />
-                        <h3 className="text-base font-black text-white">Drop to Upload Your Graphic</h3>
-                        <p className="text-xs text-slate-350">Images dropped here automatically load to the directory and insert into content.</p>
+                        <h3 className="text-base font-black text-white">{t("Drop to Upload Your Graphic")}</h3>
+                        <p className="text-xs text-slate-350">{t("Images dropped here automatically load to the directory and insert into content.")}</p>
                       </div>
                     )}
                   </div>
@@ -968,9 +970,9 @@ export default function AdminBlogPostDetails() {
                 <div className="flex items-center justify-between text-xs text-slate-500 border-t border-white/5 pt-4">
                   <span className="flex items-center gap-1 max-w-[280px]">
                     <Clock className="h-3.5 w-3.5 text-slate-450" />
-                    <span>Autosave: {autosaveStatus}</span>
+                    <span>{t("Autosave:")} {t(autosaveStatus)}</span>
                   </span>
-                  <span>Last database saved: <strong className="text-slate-400">{lastSavedTime}</strong></span>
+                  <span>{t("Last database saved:")} <strong className="text-slate-400">{lastSavedTime}</strong></span>
                 </div>
 
               </div>
@@ -979,7 +981,7 @@ export default function AdminBlogPostDetails() {
             {/* Split Screen Active View Section block */}
             {activeTab === "split" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-6 select-none opacity-80 pointer-events-none">
-                <span className="text-xs text-slate-400 block -mb-2 col-span-2 font-bold tracking-wider">SPLIT SCREEN ACTIVE: RENDERING PREVIEW BELOW:</span>
+                <span className="text-xs text-slate-400 block -mb-2 col-span-2 font-bold tracking-wider">{t("SPLIT SCREEN ACTIVE: RENDERING PREVIEW BELOW:")}</span>
               </div>
             )}
 
@@ -992,25 +994,25 @@ export default function AdminBlogPostDetails() {
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">
                       {formData.category_id 
-                        ? categories.find(c => c.id === formData.category_id)?.name || "Live Theme"
-                        : "Uncategorized"}
+                        ? categories.find(c => c.id === formData.category_id)?.name || t("Live Theme")
+                        : t("Uncategorized")}
                     </span>
                     <span className="text-slate-500 text-xs">•</span>
-                    <span className="text-xs text-slate-400 font-medium">{readingTime} min read</span>
+                    <span className="text-xs text-slate-400 font-medium">{n(readingTime)} {t("min read")}</span>
                     <span className="text-slate-500 text-xs">•</span>
-                    <span className="text-xs text-slate-400 font-medium">Author Code: Admin</span>
+                    <span className="text-xs text-slate-400 font-medium">{t("Author Code: Admin")}</span>
                     {formData.is_pinned && (
                       <>
                         <span className="text-slate-500 text-xs">•</span>
                         <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 uppercase font-black tracking-wide px-1.5 py-0.5 rounded">
-                          Pinned
+                          {t("Pinned")}
                         </span>
                       </>
                     )}
                   </div>
 
                   <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                    {formData.title || "Headline preview is empty"}
+                    {formData.title || t("Headline preview is empty")}
                   </h1>
 
                   {formData.excerpt && (
@@ -1025,7 +1027,7 @@ export default function AdminBlogPostDetails() {
                   <div className="relative rounded-xl overflow-hidden group shadow-xl border border-white/5 max-h-[420px] aspect-video">
                     <img
                       src={formData.featured_image}
-                      alt={featuredImageAlt || "Banner preview"}
+                      alt={featuredImageAlt || t("Banner preview")}
                       style={{
                         objectPosition: `${focalPoint.x}% ${focalPoint.y}%`
                       }}
@@ -1034,18 +1036,18 @@ export default function AdminBlogPostDetails() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-between p-4">
                       {featuredImageAlt && (
                         <span className="text-[10px] text-white/80 bg-zinc-950/70 p-1.5 px-3 rounded backdrop-blur-md">
-                          Alt tag applied: "{featuredImageAlt}"
+                          {t('Alt tag applied: "{{alt}}"', { alt: featuredImageAlt })}
                         </span>
                       )}
                       <span className="text-[10px] text-zinc-400 font-mono">
-                        Focal coordinates: {focalPoint.x}% {focalPoint.y}%
+                        {t("Focal coordinates:")} {n(focalPoint.x)}% {n(focalPoint.y)}%
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div className="border border-dashed border-white/5 bg-[#02050c]/40 rounded-xl py-12 text-center text-slate-500 flex flex-col items-center justify-center space-y-2">
                     <ImageIcon className="h-8 w-8 text-slate-650" />
-                    <span className="text-xs font-black tracking-wider">ARTICLE IS MISSING A FEATURED IMAGE</span>
+                    <span className="text-xs font-black tracking-wider">{t("ARTICLE IS MISSING A FEATURED IMAGE")}</span>
                   </div>
                 )}
 
@@ -1056,7 +1058,7 @@ export default function AdminBlogPostDetails() {
                     <div className="md:col-span-1 space-y-4 border-r border-white/5 pr-4 hidden md:block">
                       <h4 className="text-[11px] font-black uppercase text-emerald-400 tracking-wider flex items-center gap-1">
                         <FileText className="h-3.5 w-3.5" />
-                        <span>Outline</span>
+                        <span>{t("Outline")}</span>
                       </h4>
                       <ul className="space-y-2.5 text-xs font-semibold">
                         {headingList.map((head, i) => (
@@ -1081,7 +1083,7 @@ export default function AdminBlogPostDetails() {
                   {/* Markdown post text wrapper (3 columns) */}
                   <div className={`${headingList.length > 0 ? "md:col-span-3" : "md:col-span-4"} prose prose-invert max-w-none prose-sm sm:prose-base leading-relaxed`}>
                      <div className="text-slate-200 select-all font-sans space-y-4">
-                       <Markdown rehypePlugins={[rehypeRaw]}>{formData.content || "*There's no text in the dashboard content editor body yet. Please write some words.*"}</Markdown>
+                       <Markdown rehypePlugins={[rehypeRaw]}>{formData.content || t("*There's no text in the dashboard content editor body yet. Please write some words.*")}</Markdown>
                      </div>
                   </div>
                 </div>
@@ -1104,20 +1106,20 @@ export default function AdminBlogPostDetails() {
               <div className="p-4 bg-[#050b12] rounded-xl border border-white/5 shadow-2xl">
                 <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 mb-3.5">
                   <History className="h-4 w-4" />
-                  <span>Revision History Drafts ({revisions.length})</span>
+                  <span>{t("Revision History Drafts ({{count}})", { count: n(revisions.length) })}</span>
                 </h3>
                 <div className="divide-y divide-white/5">
                   {revisions.map((rev, index) => (
                     <div key={index} className="py-2.5 flex justify-between items-center text-xs first:pt-0 last:pb-0">
                       <div>
-                        <span className="font-bold text-white block">Saved Draft {rev.time}</span>
-                        <span className="text-[10px] text-slate-550 font-mono">Size matches: {rev.content.length} characters</span>
+                        <span className="font-bold text-white block">{t("Saved Draft {{time}}", { time: rev.time })}</span>
+                        <span className="text-[10px] text-slate-555 font-mono">{t("Size matches: {{size}} characters", { size: n(rev.content.length) })}</span>
                       </div>
                       <button
                         onClick={() => handleRestoreRevision(rev.content, rev.title)}
                         className="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded font-bold transition-all"
                       >
-                        Restore Draft
+                        {t("Restore Draft")}
                       </button>
                     </div>
                   ))}
@@ -1134,24 +1136,24 @@ export default function AdminBlogPostDetails() {
             <div className="bg-[#050b12] rounded-xl border border-white/5 shadow-xl p-5 space-y-4">
               <h3 className="text-xs font-black text-[#a3b3cc] uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2.5">
                 <Settings className="h-4 w-4 text-slate-400" />
-                <span>Publish Settings</span>
+                <span>{t("Publish Settings")}</span>
               </h3>
 
               {/* Status Selector */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                  Publishing Status
+                  {t("Publishing Status")}
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => updateField("status", e.target.value)}
                   className="w-full border border-white/5 bg-[#02050c] text-white rounded-lg p-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 >
-                  <option value="Draft" className="bg-[#02050c]">Draft (Auto-saving)</option>
-                  <option value="Published" className="bg-[#02050c]">Published (Go Live)</option>
-                  <option value="Scheduled" className="bg-[#02050c]">Scheduled (Timed Publish)</option>
-                  <option value="Unpublished" className="bg-[#02050c]">Unpublished</option>
-                  <option value="Archived" className="bg-[#02050c]">Archived</option>
+                  <option value="Draft" className="bg-[#02050c]">{t("Draft (Auto-saving)")}</option>
+                  <option value="Published" className="bg-[#02050c]">{t("Published (Go Live)")}</option>
+                  <option value="Scheduled" className="bg-[#02050c]">{t("Scheduled (Timed Publish)")}</option>
+                  <option value="Unpublished" className="bg-[#02050c]">{t("Unpublished")}</option>
+                  <option value="Archived" className="bg-[#02050c]">{t("Archived")}</option>
                 </select>
               </div>
 
@@ -1160,7 +1162,7 @@ export default function AdminBlogPostDetails() {
                 <div className="space-y-2 p-3 bg-[#02050c]/60 rounded-lg border border-white/5 animate-fade-in">
                   <label className="text-[9px] font-black text-amber-400 uppercase tracking-widest block flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span>Set Publish Date & Time</span>
+                    <span>{t("Set Publish Date & Time")}</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -1173,7 +1175,7 @@ export default function AdminBlogPostDetails() {
                   />
                   {scheduledDate && (
                     <span className="text-[9px] font-medium text-slate-500 block">
-                      Will publish at: <strong className="text-slate-450">{new Date(scheduledDate).toLocaleString()}</strong>
+                      {t("Will publish at:")} <strong className="text-slate-450">{new Date(scheduledDate).toLocaleString()}</strong>
                     </span>
                   )}
                 </div>
@@ -1189,21 +1191,21 @@ export default function AdminBlogPostDetails() {
                   className="h-4 w-4 rounded border-white/5 text-emerald-600 focus:ring-emerald-500/25 bg-[#02050c]/50 cursor-pointer"
                 />
                 <label htmlFor="is_pinned" className="text-xs font-bold text-slate-350 cursor-pointer select-none">
-                  Pin to top of blog list
+                  {t("Pin to top of blog list")}
                 </label>
               </div>
 
               {/* Tags Comma separated */}
               <div className="space-y-1.5 pt-2">
                 <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase block">
-                  Tags (Comma Separated)
+                  {t("Tags (Comma Separated)")}
                 </label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => updateField("tags", e.target.value)}
                   className="w-full border border-white/5 bg-[#02050c] text-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-sans"
-                  placeholder="safety, scam alert, facebook page"
+                  placeholder={t("safety, scam alert, facebook page")}
                 />
               </div>
 
@@ -1214,7 +1216,7 @@ export default function AdminBlogPostDetails() {
                   disabled={saving}
                   className="w-full bg-slate-800 hover:bg-slate-750 text-[#cbd5e1] font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow"
                 >
-                  Save Draft
+                  {t("Save Draft")}
                 </button>
                 <button
                   onClick={() => handleSave(formData.status === "Draft" ? "Published" : formData.status)}
@@ -1222,7 +1224,7 @@ export default function AdminBlogPostDetails() {
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-950/20"
                 >
                   <Globe className="h-3 w-3" />
-                  {formData.status === "Draft" ? "Publish Post" : "Save Changes"}
+                  {formData.status === "Draft" ? t("Publish Post") : t("Save Changes")}
                 </button>
               </div>
 
@@ -1231,7 +1233,7 @@ export default function AdminBlogPostDetails() {
                 className="w-full text-rose-450 hover:text-rose-400 font-bold py-2 hover:bg-rose-500/10 border border-rose-500/5 hover:border-rose-500/10 text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>Delete Post</span>
+                <span>{t("Delete Post")}</span>
               </button>
             </div>
 
@@ -1240,9 +1242,9 @@ export default function AdminBlogPostDetails() {
               <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
                 <h3 className="text-xs font-black text-[#a3b3cc] uppercase tracking-widest flex items-center gap-2">
                   <ImageIcon className="h-4 w-4 text-slate-400" />
-                  <span>Featured Image</span>
+                  <span>{t("Featured Image")}</span>
                 </h3>
-                <span className="text-[10px] text-slate-500">Blog thumbnail</span>
+                <span className="text-[10px] text-slate-500">{t("Blog thumbnail")}</span>
               </div>
 
               {/* Thumbnail Display with Focal selector Coordinates overlay */}
@@ -1250,7 +1252,7 @@ export default function AdminBlogPostDetails() {
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <span className="text-[9px] font-black text-amber-500 tracking-wider uppercase block">
-                      Click image below to set Focal Point:
+                      {t("Click image below to set Focal Point:")}
                     </span>
                     <div 
                       className="relative rounded-lg overflow-hidden border border-white/5 aspect-video bg-[#02050c] cursor-crosshair group group-sizing select-none"
@@ -1258,7 +1260,7 @@ export default function AdminBlogPostDetails() {
                     >
                       <img
                         src={formData.featured_image}
-                        alt="Crop thumbnail grid editor"
+                        alt={t("Crop thumbnail grid editor")}
                         className="w-full h-full object-cover select-none pointer-events-none"
                       />
                       {/* Target Locator bubble */}
@@ -1270,12 +1272,12 @@ export default function AdminBlogPostDetails() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-[10px] text-slate-500">
-                      <span>Coordinates: X: {focalPoint.x}% Y: {focalPoint.y}%</span>
+                      <span>{t("Coordinates:")} X: {n(focalPoint.x)}% Y: {n(focalPoint.y)}%</span>
                       <button
                         onClick={() => { setFocalPoint({ x: 50, y: 50 }); setHasUnsavedChanges(true); }}
                         className="text-emerald-450 hover:underline"
                       >
-                        Reset Center
+                        {t("Reset Center")}
                       </button>
                     </div>
                   </div>
@@ -1283,7 +1285,7 @@ export default function AdminBlogPostDetails() {
                   {/* Alt Text Thumbnail input */}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                      Thumbnail Alt Text *
+                      {t("Thumbnail Alt Text *")}
                     </label>
                     <input
                       type="text"
@@ -1306,7 +1308,7 @@ export default function AdminBlogPostDetails() {
                       }}
                       className="flex-1 bg-rose-550/10 hover:bg-rose-550/20 text-rose-450 border border-rose-550/10 py-1.5 rounded text-[10px] font-bold text-center transition-all"
                     >
-                      Remove Thumbnail
+                      {t("Remove Thumbnail")}
                     </button>
                     <button
                       type="button"
@@ -1316,7 +1318,7 @@ export default function AdminBlogPostDetails() {
                       }}
                       className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-200 py-1.5 rounded text-[10px] font-bold text-center transition-all"
                     >
-                      Choose Upload
+                      {t("Choose Upload")}
                     </button>
                   </div>
                 </div>
@@ -1326,8 +1328,8 @@ export default function AdminBlogPostDetails() {
                     <Upload className="h-6 w-6" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-slate-300">Set Thumbnail Image</p>
-                    <p className="text-[10px] text-slate-550">JPG, PNG, WEBP files are accepted.</p>
+                    <p className="text-xs font-bold text-slate-300">{t("Set Thumbnail Image")}</p>
+                    <p className="text-[10px] text-slate-550">{t("JPG, PNG, WEBP files are accepted.")}</p>
                   </div>
 
                   <div className="flex flex-col gap-2 pt-2">
@@ -1339,7 +1341,7 @@ export default function AdminBlogPostDetails() {
                       }}
                       className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black py-2 rounded-lg transition-all cursor-pointer"
                     >
-                      Choose From Reusable Assets
+                      {t("Choose From Reusable Assets")}
                     </button>
 
                     <input
@@ -1354,7 +1356,7 @@ export default function AdminBlogPostDetails() {
                       onClick={() => featuredFileInputRef.current?.click()}
                       className="bg-white/[0.02] hover:bg-white/[0.05] text-slate-300 border border-white/5 text-xs font-bold py-2 rounded-lg transition-all"
                     >
-                      Upload New File
+                      {t("Upload New File")}
                     </button>
                   </div>
                 </div>
@@ -1363,7 +1365,7 @@ export default function AdminBlogPostDetails() {
               {/* Quick URL Input for featured image */}
               <div className="space-y-1 border-t border-white/5 pt-3">
                 <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase block">
-                  Featured URL Link Input
+                  {t("Featured URL Link Input")}
                 </label>
                 <input
                   type="text"
@@ -1381,16 +1383,16 @@ export default function AdminBlogPostDetails() {
               <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
                 <h3 className="text-xs font-black text-[#a3b3cc] uppercase tracking-widest flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-slate-400" />
-                  <span>SEO Optimizer</span>
+                  <span>{t("SEO Optimizer")}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={handleAutoRecommendSEO}
                   className="text-[10px] text-emerald-400 font-bold hover:underline flex items-center gap-0.5"
-                  title="Copy titles and excerpts to SEO metadata fields instantly"
+                  title={t("Copy titles and excerpts to SEO metadata fields instantly")}
                 >
                   <RefreshCw className="h-2.5 w-2.5 animate-spin-hover" />
-                  <span>Auto Fill</span>
+                  <span>{t("Auto Fill")}</span>
                 </button>
               </div>
 
@@ -1398,11 +1400,11 @@ export default function AdminBlogPostDetails() {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                    Focus Keyword
+                    {t("Focus Keyword")}
                   </label>
                   {formData.focus_keyword && (
                     <span className="text-[9px] bg-slate-500/10 border border-[#475569]/30 text-slate-400 px-1.5 rounded font-mono">
-                      Targeted
+                      {t("Targeted")}
                     </span>
                   )}
                 </div>
@@ -1410,7 +1412,7 @@ export default function AdminBlogPostDetails() {
                   type="text"
                   value={formData.focus_keyword}
                   onChange={(e) => updateField("focus_keyword", e.target.value)}
-                  placeholder="e.g. facebook reviews scam"
+                  placeholder={t("e.g. facebook reviews scam")}
                   className="w-full border border-white/5 bg-[#02050c] text-white rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
@@ -1419,14 +1421,14 @@ export default function AdminBlogPostDetails() {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                    SEO Meta Title
+                    {t("SEO Meta Title")}
                   </label>
                   <span className={`text-[10px] font-mono font-bold ${
                     formData.seo_title.length >= 50 && formData.seo_title.length <= 60 
                       ? "text-emerald-400" 
                       : "text-slate-500"
                   }`}>
-                    {formData.seo_title.length} chars (Goal: 50-60)
+                    {n(formData.seo_title.length)} {t("chars (Goal: 50-60)")}
                   </span>
                 </div>
                 <input
@@ -1434,7 +1436,7 @@ export default function AdminBlogPostDetails() {
                   value={formData.seo_title}
                   onChange={(e) => updateField("seo_title", e.target.value)}
                   className="w-full border border-white/5 bg-[#02050c] text-white rounded-lg p-2.5 text-xs focus:outline-none"
-                  placeholder="Title tag displayed in Google..."
+                  placeholder={t("Title tag displayed in Google...")}
                 />
               </div>
 
@@ -1442,14 +1444,14 @@ export default function AdminBlogPostDetails() {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black tracking-widest text-[#a3b3cc] uppercase">
-                    SEO Meta Description
+                    {t("SEO Meta Description")}
                   </label>
                   <span className={`text-[10px] font-mono font-bold ${
                     formData.seo_description.length >= 120 && formData.seo_description.length <= 160
                       ? "text-emerald-400"
                       : "text-slate-500"
                   }`}>
-                    {formData.seo_description.length} chars (Goal: 120-160)
+                    {n(formData.seo_description.length)} {t("chars (Goal: 120-160)")}
                   </span>
                 </div>
                 <textarea
@@ -1457,41 +1459,41 @@ export default function AdminBlogPostDetails() {
                   value={formData.seo_description}
                   onChange={(e) => updateField("seo_description", e.target.value)}
                   className="w-full border border-white/5 bg-[#02050c] text-slate-300 rounded-lg p-2.5 text-xs leading-relaxed focus:outline-none"
-                  placeholder="Summarize article and include keywords..."
+                  placeholder={t("Summarize article and include keywords...")}
                 />
               </div>
 
               {/* OG Social section */}
               <div className="space-y-3 border-t border-white/5 pt-3">
                 <span className="text-[10px] font-black text-rose-450 tracking-wider uppercase block">
-                  Open Graph (Social Sharing)
+                  {t("Open Graph (Social Sharing)")}
                 </span>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Share Title</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase">{t("Share Title")}</label>
                   <input
                     type="text"
                     value={formData.og_title}
                     onChange={(e) => updateField("og_title", e.target.value)}
                     className="w-full border border-white/5 bg-[#02050c] text-white p-1.5 text-xs rounded focus:outline-none"
-                    placeholder="Same as SEO Title"
+                    placeholder={t("Same as SEO Title")}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Share Description</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase">{t("Share Description")}</label>
                   <textarea
                     rows={1.5}
                     value={formData.og_description}
                     onChange={(e) => updateField("og_description", e.target.value)}
                     className="w-full border border-white/5 bg-[#02050c] text-slate-300 p-1.5 text-xs rounded focus:outline-none"
-                    placeholder="Same as SEO Description"
+                    placeholder={t("Same as SEO Description")}
                   />
                 </div>
 
                 {/* Open Graph share image */}
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase block">Share Banner Image</label>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase block">{t("Share Banner Image")}</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1512,15 +1514,15 @@ export default function AdminBlogPostDetails() {
                       type="button"
                       onClick={() => ogFileInputRef.current?.click()}
                       className="p-1 px-2.5 rounded bg-slate-800 hover:bg-slate-750 text-white font-bold text-xs"
-                      title="Upload custom graphic for OG sharing"
+                      title={t("Upload custom graphic for OG sharing")}
                     >
-                      Upload
+                      {t("Upload")}
                     </button>
                   </div>
                   {formData.og_image && (
                     <img 
                       src={formData.og_image} 
-                      alt="Open graph sharing layout" 
+                      alt={t("Open graph sharing layout")} 
                       className="mt-1.5 rounded border border-white/5 h-12 w-full object-cover"
                     />
                   )}
@@ -1544,9 +1546,9 @@ export default function AdminBlogPostDetails() {
               <div>
                 <h3 className="font-extrabold text-white text-sm flex items-center gap-1.5">
                   <ImageIcon className="h-4.5 w-4.5 text-emerald-400" />
-                  <span>WordPress-Style Post Media Room</span>
+                  <span>{t("WordPress-Style Post Media Room")}</span>
                 </h3>
-                <p className="text-[10px] text-slate-500 mt-0.5">Choose previously loaded files, delete unused media, or configure sizing properties.</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{t("Choose previously loaded files, delete unused media, or configure sizing properties.")}</p>
               </div>
               <button
                 onClick={() => setMediaLibraryOpen(false)}
@@ -1568,7 +1570,7 @@ export default function AdminBlogPostDetails() {
                     <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-550" />
                     <input
                       type="text"
-                      placeholder="Search image records by file name..."
+                      placeholder={t("Search image records by file name...")}
                       value={mediaSearch}
                       onChange={(e) => setMediaSearch(e.target.value)}
                       className="bg-[#02050c] text-white border border-white/5 rounded-lg pl-8 p-1.5 text-xs w-full focus:outline-none"
@@ -1590,7 +1592,7 @@ export default function AdminBlogPostDetails() {
                     className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <Upload className="h-3 w-3" />
-                    <span>Upload New Media File</span>
+                    <span>{t("Upload New Media File")}</span>
                   </button>
                 </div>
 
@@ -1603,8 +1605,8 @@ export default function AdminBlogPostDetails() {
                   ) : filteredMedia.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-500 py-12 space-y-2">
                       <ImageIcon className="h-10 w-10 text-slate-700" />
-                      <p className="text-xs font-black">No images uploaded to server directory yet</p>
-                      <p className="text-[10px] text-slate-600">Select file above to add elements to the reusable grid.</p>
+                      <p className="text-xs font-black">{t("No images uploaded to server directory yet")}</p>
+                      <p className="text-[10px] text-slate-600">{t("Select file above to add elements to the reusable grid.")}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1631,7 +1633,7 @@ export default function AdminBlogPostDetails() {
                             />
                             
                             <span className="text-[9px] font-mono leading-tight font-black font-semibold truncate text-slate-400 mt-1.5 w-full select-none">
-                              {item.filename || "No title name"}
+                              {item.filename || t("No title name")}
                             </span>
 
                             {/* Badge indicator on items choice */}
@@ -1645,7 +1647,7 @@ export default function AdminBlogPostDetails() {
                             <button
                               onClick={(e) => handleDeleteMediaItem(e, item.id)}
                               className="absolute bottom-6 right-2 p-1 rounded bg-zinc-950/90 text-rose-450 hover:text-rose-400 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete permanently"
+                              title={t("Delete permanently")}
                             >
                               <Trash className="h-3 w-3" />
                             </button>
@@ -1662,14 +1664,14 @@ export default function AdminBlogPostDetails() {
               <div className="md:col-span-4 p-4 bg-zinc-950/20 flex flex-col justify-between overflow-y-auto">
                 <div className="space-y-4">
                   <h4 className="text-[11px] font-black uppercase text-emerald-400 tracking-wider border-b border-white/5 pb-2">
-                    {mediaPurpose === "inline" ? "Inline Image Configurator" : "Selected Graphic Review"}
+                    {mediaPurpose === "inline" ? t("Inline Image Configurator") : t("Selected Graphic Review")}
                   </h4>
 
                   {inlineImageConfig.src ? (
                     <div className="space-y-4 animate-fade-in text-xs font-semibold">
                       
                       <div className="space-y-1 bg-[#02050c] p-2 rounded border border-white/5">
-                        <span className="text-[10px] text-slate-500 block">Active URL:</span>
+                        <span className="text-[10px] text-slate-500 block">{t("Active URL:")}</span>
                         <span className="font-mono text-[9px] text-[#55f2a1] break-all">{inlineImageConfig.src}</span>
                       </div>
 
@@ -1677,7 +1679,7 @@ export default function AdminBlogPostDetails() {
                         <>
                           {/* Image Sizing settings */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">Layout Sizing</label>
+                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">{t("Layout Sizing")}</label>
                             <div className="grid grid-cols-3 gap-1">
                               {["normal", "half", "full"].map((size) => (
                                 <button
@@ -1690,7 +1692,7 @@ export default function AdminBlogPostDetails() {
                                       : "bg-transparent border-white/5 text-slate-400 hover:text-white"
                                   }`}
                                 >
-                                  {size} Width
+                                  {t(size)} {t("Width")}
                                 </button>
                               ))}
                             </div>
@@ -1698,7 +1700,7 @@ export default function AdminBlogPostDetails() {
 
                           {/* Align options */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">Align alignment</label>
+                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">{t("Align alignment")}</label>
                             <div className="grid grid-cols-3 gap-1">
                               {["left", "center", "right"].map((align) => (
                                 <button
@@ -1711,7 +1713,7 @@ export default function AdminBlogPostDetails() {
                                       : "bg-transparent border-white/5 text-slate-400 hover:text-white"
                                   }`}
                                 >
-                                  {align}
+                                  {t(align)}
                                 </button>
                               ))}
                             </div>
@@ -1719,37 +1721,37 @@ export default function AdminBlogPostDetails() {
 
                           {/* Caption */}
                           <div className="space-y-1 border-t border-[#121e33] pt-2">
-                            <label className="text-[10px] tracking-widest text-[#cbd5e1] uppercase font-black block">Image Caption Text</label>
+                            <label className="text-[10px] tracking-widest text-[#cbd5e1] uppercase font-black block">{t("Image Caption Text")}</label>
                             <input
                               type="text"
                               value={inlineImageConfig.caption}
                               onChange={(e) => setInlineImageConfig((prev) => ({ ...prev, caption: e.target.value }))}
-                              placeholder="e.g. Scammers usually request advanced payment..."
+                              placeholder={t("e.g. Scammers usually request advanced payment...")}
                               className="w-full bg-[#02050c] text-white p-2 text-xs rounded border border-white/5 focus:outline-none"
                             />
-                            <span className="text-[9px] text-slate-500">Caption will show styled italic centered underneath image.</span>
+                            <span className="text-[9px] text-slate-500">{t("Caption will show styled italic centered underneath image.")}</span>
                           </div>
 
                           {/* Alt text */}
                           <div className="space-y-1">
-                            <label className="text-[10px] tracking-widest text-[#cbd5e1] uppercase font-black block">Alt Description Tag (SEO)</label>
+                            <label className="text-[10px] tracking-widest text-[#cbd5e1] uppercase font-black block">{t("Alt Description Tag (SEO)")}</label>
                             <input
                               type="text"
                               value={inlineImageConfig.alt}
                               onChange={(e) => setInlineImageConfig((prev) => ({ ...prev, alt: e.target.value }))}
-                              placeholder="e.g. detailed review of page transaction evidence"
+                              placeholder={t("e.g. detailed review of page transaction evidence")}
                               className="w-full bg-[#02050c] text-white p-2 text-xs rounded border border-white/5 focus:outline-none"
                             />
                           </div>
 
                           {/* Hover Title */}
                           <div className="space-y-1">
-                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">Tooltip hover Title *</label>
+                            <label className="text-[10px] tracking-widest text-slate-400 uppercase font-black block">{t("Tooltip hover Title *")}</label>
                             <input
                               type="text"
                               value={inlineImageConfig.title}
                               onChange={(e) => setInlineImageConfig((prev) => ({ ...prev, title: e.target.value }))}
-                              placeholder="Image hover text title"
+                              placeholder={t("Image hover text title")}
                               className="w-full bg-[#02050c] text-white p-2 text-xs rounded border border-white/5 focus:outline-none"
                             />
                           </div>
@@ -1758,13 +1760,13 @@ export default function AdminBlogPostDetails() {
 
                       {/* Manual insert custom link url overlay */}
                       <div className="pt-2 border-t border-white/5">
-                        <span className="text-[10px] text-zinc-500">Selected. Ready to insert.</span>
+                        <span className="text-[10px] text-zinc-500">{t("Selected. Ready to insert.")}</span>
                       </div>
                     </div>
                   ) : (
                     <div className="py-20 text-center text-slate-500 font-bold text-xs space-y-1">
-                      <p>Select any image from left grid</p>
-                      <p className="text-[10px] text-slate-600 font-normal">to configure insertion properties.</p>
+                      <p>{t("Select any image from left grid")}</p>
+                      <p className="text-[10px] text-slate-600 font-normal">{t("to configure insertion properties.")}</p>
                     </div>
                   )}
                 </div>
@@ -1778,7 +1780,7 @@ export default function AdminBlogPostDetails() {
                       disabled={!inlineImageConfig.src}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-lg text-xs transition-colors disabled:opacity-30 cursor-pointer shadow-lg"
                     >
-                      Insert Code Block at Cursor
+                      {t("Insert Code Block at Cursor")}
                     </button>
                   ) : (
                     <button
@@ -1786,7 +1788,7 @@ export default function AdminBlogPostDetails() {
                       onClick={() => setMediaLibraryOpen(false)}
                       className="w-full bg-slate-800 hover:bg-slate-750 text-slate-200 font-bold py-2.5 rounded-lg text-xs transition-colors cursor-pointer text-center"
                     >
-                      Apply To Featured Selection
+                      {t("Apply To Featured Selection")}
                     </button>
                   )}
                 </div>
@@ -1807,10 +1809,10 @@ export default function AdminBlogPostDetails() {
               <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">Delete Blog Post</h3>
+              <h3 className="font-extrabold text-base text-white tracking-tight">{t("Delete Blog Post")}</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
-              Are you sure you want to permanently delete this blog post? All written text, configs, and status records will be discarded. This action is irreversible.
+              {t("Are you sure you want to permanently delete this blog post? All written text, configs, and status records will be discarded. This action is irreversible.")}
             </p>
             <div className="pt-2 flex justify-end gap-2.5">
               <button
@@ -1818,14 +1820,14 @@ export default function AdminBlogPostDetails() {
                 onClick={() => setShowDetailDeleteConfirm(false)}
                 className="px-4 py-2 bg-white/[0.02] border border-white/5 hover:bg-white/[0.06] text-slate-300 font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDetailsDelete}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-lg shadow-rose-950/20"
               >
-                Confirm Delete
+                {t("Confirm Delete")}
               </button>
             </div>
           </div>
@@ -1840,10 +1842,10 @@ export default function AdminBlogPostDetails() {
               <div className="p-2.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                 <Plus className="h-5 w-5" />
               </div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">Duplicate Post</h3>
+              <h3 className="font-extrabold text-base text-white tracking-tight">{t("Duplicate Post")}</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
-              Would you like to duplicate this blog post as a fresh Draft copy with pre-filled content?
+              {t("Would you like to duplicate this blog post as a fresh Draft copy with pre-filled content?")}
             </p>
             <div className="pt-2 flex justify-end gap-2.5">
               <button
@@ -1851,14 +1853,14 @@ export default function AdminBlogPostDetails() {
                 onClick={() => setShowDetailDuplicateConfirm(false)}
                 className="px-4 py-2 bg-white/[0.02] border border-white/5 hover:bg-white/[0.06] text-slate-300 font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDuplicate}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-lg shadow-emerald-950/20"
               >
-                Confirm Duplicate
+                {t("Confirm Duplicate")}
               </button>
             </div>
           </div>
@@ -1873,10 +1875,10 @@ export default function AdminBlogPostDetails() {
               <div className="p-2.5 bg-amber-500/10 rounded-full border border-amber-500/20">
                 <Plus className="h-5 w-5" />
               </div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">Restore Revision</h3>
+              <h3 className="font-extrabold text-base text-white tracking-tight">{t("Restore Revision")}</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
-              Are you sure you want to restore the text content of this post to the older saved revision draft? Any unsaved edits will be replaced.
+              {t("Are you sure you want to restore the text content of this post to the older saved revision draft? Any unsaved edits will be replaced.")}
             </p>
             <div className="pt-2 flex justify-end gap-2.5">
               <button
@@ -1884,14 +1886,14 @@ export default function AdminBlogPostDetails() {
                 onClick={() => setPendingRevisionRestore(null)}
                 className="px-4 py-2 bg-white/[0.02] border border-white/5 hover:bg-white/[0.06] text-slate-300 font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRestoreRevision}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-lg shadow-amber-950/20"
               >
-                Confirm Restore
+                {t("Confirm Restore")}
               </button>
             </div>
           </div>
@@ -1906,10 +1908,10 @@ export default function AdminBlogPostDetails() {
               <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">Delete Image</h3>
+              <h3 className="font-extrabold text-base text-white tracking-tight">{t("Delete Image")}</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
-              Are you sure you want to delete this image? This will remove files from the server permanently and clear references.
+              {t("Are you sure you want to delete this image? This will remove files from the server permanently and clear references.")}
             </p>
             <div className="pt-2 flex justify-end gap-2.5">
               <button
@@ -1917,14 +1919,14 @@ export default function AdminBlogPostDetails() {
                 onClick={() => setPendingMediaDeleteId(null)}
                 className="px-4 py-2 bg-white/[0.02] border border-white/5 hover:bg-white/[0.06] text-slate-300 font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmMediaDelete}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-lg"
               >
-                Confirm Delete
+                {t("Confirm Delete")}
               </button>
             </div>
           </div>

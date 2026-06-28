@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, Filter, Edit, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, Plus } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminUsers() {
+  const { t, n } = useLanguage();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -159,7 +161,7 @@ export default function AdminUsers() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    if (!window.confirm(t("Are you sure you want to delete this user?"))) return;
     try {
       const res = await fetch(`/api/admin/users/${id}`, {
         method: 'DELETE',
@@ -182,35 +184,35 @@ export default function AdminUsers() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Users
+            {t("Users")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage user accounts and roles.
+            {t("Manage user accounts and roles.")}
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <button onClick={openAddModal} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto">
-            <Plus className="h-4 w-4" /> Add User
+            <Plus className="h-4 w-4" /> {t("Add User")}
           </button>
           <button onClick={handleExportCSV} className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto">
-            <FileDown className="h-4 w-4" /> Export CSV
+            <FileDown className="h-4 w-4" /> {t("Export CSV")}
           </button>
           <div className="flex items-center gap-2 w-full sm:w-auto">
              <select
-                 value={roleFilter}
-                 onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-                 className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                 <option value="all" className="bg-[#091124]">All Roles</option>
-                 {uniqueRoles.map(r => <option key={r as string} value={r as string} className="bg-[#091124]">{r as string}</option>)}
-              </select>
+                  value={roleFilter}
+                  onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+               >
+                  <option value="all" className="bg-[#091124]">{t("All Roles")}</option>
+                  {uniqueRoles.map(r => <option key={r as string} value={r as string} className="bg-[#091124]">{t(r as string)}</option>)}
+               </select>
           </div>
           <div className="relative flex-1 w-full sm:w-64">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder={t("Search users...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -224,21 +226,21 @@ export default function AdminUsers() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('full_name')}>
-                  <div className="flex items-center gap-1">User <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("User")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('email')}>
-                  <div className="flex items-center gap-1">Email <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Email")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('role')}>
-                  <div className="flex items-center gap-1">Role <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Role")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('created_at')}>
-                  <div className="flex items-center gap-1">Joined <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Joined")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -252,14 +254,14 @@ export default function AdminUsers() {
               ) : paginatedUsers.length === 0 ? (
                 <tr>
                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">
-                    No users found.
+                    {t("No users found.")}
                   </td>
                 </tr>
               ) : (
                 paginatedUsers.map((user, index) => {
                   return (
                     <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 text-slate-400 font-medium">{startIndex + index + 1}</td>
+                      <td className="px-6 py-4 text-slate-400 font-medium">{n(startIndex + index + 1)}</td>
                       <td className="px-6 py-4">
                         <p className="font-bold text-white">{user.full_name}</p>
                         <p className="text-xs text-slate-400 mt-0.5">@{user.username}</p>
@@ -267,7 +269,7 @@ export default function AdminUsers() {
                       <td className="px-6 py-4 text-slate-300 font-medium">{user.email}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${(user.role === "admin" || user.role === "Super Admin" || user.role === "Admin") ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : (user.role === "Moderator" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-slate-500/10 text-slate-400 border border-[#475569]/30")}`}>
-                          {user.role}
+                          {t(user.role)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-400">
@@ -275,10 +277,10 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => openEditModal(user)} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline px-2 py-1">
-                          Edit
+                          {t("Edit")}
                         </button>
                         <button onClick={() => handleDelete(user.id)} className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:underline px-2 py-1 ml-2">
-                          Delete
+                          {t("Delete")}
                         </button>
                       </td>
                     </tr>
@@ -291,23 +293,27 @@ export default function AdminUsers() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-medium font-semibold">
-              Showing {totalCount === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} entries
+              {t("Showing {{start}} to {{end}} of {{total}} entries", {
+                start: n(totalCount === 0 ? 0 : startIndex + 1),
+                end: n(Math.min(startIndex + itemsPerPage, totalCount)),
+                total: n(totalCount)
+              })}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200">
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
                  <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} className="p-1 rounded border border-white/5 bg-[#091124] text-slate-400 hover:bg-white/5 disabled:opacity-30">
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} className="p-1 rounded border border-white/5 bg-[#091124] text-slate-400 hover:bg-white/5 disabled:opacity-30">
                     <ChevronRight className="h-4 w-4" />
                  </button>
@@ -320,7 +326,7 @@ export default function AdminUsers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050b18]/60 backdrop-blur-sm animate-fade-in animate-duration-150">
           <div className="bg-[#091124] border border-white/5 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#050b18]/40">
-              <h2 className="text-lg font-black text-white">{isEditing ? 'Edit User' : 'Add New User'}</h2>
+              <h2 className="text-lg font-black text-white">{isEditing ? t('Edit User') : t('Add New User')}</h2>
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-white transition-colors font-bold text-xl leading-none"
@@ -332,13 +338,13 @@ export default function AdminUsers() {
             <form onSubmit={handleSubmit} className="p-6">
               {modalError && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg font-medium">
-                  {modalError}
+                  {t(modalError)}
                 </div>
               )}
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">Full Name</label>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">{t("Full Name")}</label>
                   <input 
                     type="text" 
                     required
@@ -350,7 +356,7 @@ export default function AdminUsers() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">Email</label>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">{t("Email")}</label>
                   <input 
                     type="email" 
                     required
@@ -364,9 +370,9 @@ export default function AdminUsers() {
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-1">
                     {isEditing ? (
-                      <>New Password <span className="text-slate-500 font-semibold text-xs">(leave blank to keep current)</span></>
+                      <>{t("New Password")} <span className="text-slate-500 font-semibold text-xs">({t("leave blank to keep current")})</span></>
                     ) : (
-                      'Password'
+                      t('Password')
                     )}
                   </label>
                   <input 
@@ -380,17 +386,17 @@ export default function AdminUsers() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">Role</label>
+                  <label className="block text-sm font-bold text-slate-300 mb-1">{t("Role")}</label>
                   <select 
                     value={formData.role}
                     onChange={e => setFormData({...formData, role: e.target.value})}
                     className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
                   >
-                    <option value="User" className="bg-[#091124]">User</option>
-                    <option value="Business Owner" className="bg-[#091124]">Business Owner</option>
-                    <option value="Moderator" className="bg-[#091124]">Moderator</option>
-                    <option value="Admin" className="bg-[#091124]">Admin</option>
-                    <option value="Super Admin" className="bg-[#091124]">Super Admin</option>
+                    <option value="User" className="bg-[#091124]">{t("User")}</option>
+                    <option value="Business Owner" className="bg-[#091124]">{t("Business Owner")}</option>
+                    <option value="Moderator" className="bg-[#091124]">{t("Moderator")}</option>
+                    <option value="Admin" className="bg-[#091124]">{t("Admin")}</option>
+                    <option value="Super Admin" className="bg-[#091124]">{t("Super Admin")}</option>
                   </select>
                 </div>
               </div>
@@ -401,14 +407,14 @@ export default function AdminUsers() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-sm font-bold text-slate-300 hover:text-white transition-colors"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button 
                   type="submit"
                   disabled={modalLoading}
                   className="bg-[#10b981] hover:bg-[#10b981]/90 text-slate-950 px-6 py-2 rounded-lg text-sm font-black transition-colors disabled:opacity-50"
                 >
-                  {modalLoading ? 'Saving...' : 'Save'}
+                  {modalLoading ? t('Saving...') : t('Save')}
                 </button>
               </div>
             </form>

@@ -11,6 +11,7 @@ import {
   Plus,
   AlertTriangle
 } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface MediaItem {
   id: string;
@@ -20,6 +21,7 @@ interface MediaItem {
 }
 
 export default function AdminMediaLibrary() {
+  const { t, n } = useLanguage();
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,11 +94,11 @@ export default function AdminMediaLibrary() {
         setMediaList((prev) => [newItem, ...prev]);
       } else {
         const errData = await res.json();
-        alert(errData.error || "Failed to upload image. Please try again.");
+        alert(t(errData.error || "Failed to upload image. Please try again."));
       }
     } catch (e) {
       console.error(e);
-      alert("Error occurred during code file uploads.");
+      alert(t("Error occurred during code file uploads."));
     } finally {
       setUploading(false);
     }
@@ -112,7 +114,7 @@ export default function AdminMediaLibrary() {
       if (file.type.startsWith("image/")) {
         uploadFile(file);
       } else {
-        alert("Please upload image files only.");
+        alert(t("Please upload image files only."));
       }
     }
   };
@@ -134,11 +136,11 @@ export default function AdminMediaLibrary() {
         setMediaList((prev) => prev.filter((item) => item.id !== id));
       } else {
         const errData = await res.json();
-        alert(errData.error || "Failed to delete file.");
+        alert(t(errData.error || "Failed to delete file."));
       }
     } catch (e) {
       console.error(e);
-      alert("Error deleting media file.");
+      alert(t("Error deleting media file."));
     }
   };
 
@@ -177,10 +179,10 @@ export default function AdminMediaLibrary() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <ImageIcon className="h-6 w-6 text-emerald-500" /> Media Library
+            <ImageIcon className="h-6 w-6 text-emerald-500" /> {t("Media Library")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Upload, manage images, and fetch shortcodes or markdown tags to use across the site.
+            {t("Upload, manage images, and fetch shortcodes or markdown tags to use across the site.")}
           </p>
         </div>
       </div>
@@ -195,10 +197,10 @@ export default function AdminMediaLibrary() {
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-200 uppercase tracking-wider">
-                Upload Assets
+                {t("Upload Assets")}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed max-w-xl">
-                Drag and drop your images anywhere inside the zone, or click to browse. Images are automatically resized and converted to high-performance WebP formats for swift loading.
+                {t("Drag and drop your images anywhere inside the zone, or click to browse. Images are automatically resized and converted to high-performance WebP formats for swift loading.")}
               </p>
             </div>
           </div>
@@ -228,21 +230,21 @@ export default function AdminMediaLibrary() {
               <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent"></div>
                 <span className="text-xs font-black uppercase text-emerald-400 tracking-widest animate-pulse">
-                  Uploading Asset...
+                  {t("Uploading Asset...")}
                 </span>
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full justify-center">
                 <div className="text-left hidden sm:block">
                   <p className="text-xs font-bold text-slate-200">
-                    Drag & Drop image here
+                    {t("Drag & Drop image here")}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    or click to browse local folders
+                    {t("or click to browse local folders")}
                   </p>
                 </div>
                 <span className="text-[10px] uppercase font-black tracking-widest bg-white/5 hover:bg-white/10 text-slate-300 px-3.5 py-2 rounded-lg border border-white/5 transition-all select-none">
-                  Choose WebP / PNG / JPG
+                  {t("Choose WebP / PNG / JPG")}
                 </span>
               </div>
             )}
@@ -259,7 +261,7 @@ export default function AdminMediaLibrary() {
           {/* Copy Code Format Selector */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-              Copy Format:
+              {t("Copy Format:")}
             </span>
             <div className="flex rounded-lg bg-[#050b18] border border-white/5 p-1 text-xs shrink-0 font-extrabold select-none">
               {(["url", "markdown", "html", "shortcode"] as const).map((fmt) => (
@@ -272,7 +274,7 @@ export default function AdminMediaLibrary() {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  {fmt}
+                  {t(fmt)}
                 </button>
               ))}
             </div>
@@ -283,7 +285,7 @@ export default function AdminMediaLibrary() {
             <Search className="h-4 w-4 text-slate-500 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search file name..."
+              placeholder={t("Search file name...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg pl-9 pr-3 py-2 text-xs placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -296,18 +298,18 @@ export default function AdminMediaLibrary() {
           <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent"></div>
             <span className="font-bold text-xs uppercase tracking-wider text-slate-400 animate-pulse">
-              Querying Media Library...
+              {t("Querying Media Library...")}
             </span>
           </div>
         ) : filteredMedia.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 text-center text-slate-500 italic">
             {searchQuery ? (
-              <p>No uploaded assets found matching "{searchQuery}"</p>
+              <p>{t("No uploaded assets found matching \"{{query}}\"", { query: searchQuery })}</p>
             ) : (
               <div>
                 <ImageIcon className="h-10 w-10 text-slate-700 mx-auto mb-2.5" />
-                <p className="font-semibold text-slate-400 not-italic">Media Library is Empty</p>
-                <p className="text-xs text-slate-500 mt-1 not-italic">Drag & Drop pictures or click browse to populate files.</p>
+                <p className="font-semibold text-slate-400 not-italic">{t("Media Library is Empty")}</p>
+                <p className="text-xs text-slate-500 mt-1 not-italic">{t("Drag & Drop pictures or click browse to populate files.")}</p>
               </div>
             )}
           </div>
@@ -343,7 +345,7 @@ export default function AdminMediaLibrary() {
                           target="_blank"
                           rel="noreferrer"
                           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all shadow"
-                          title="Open direct image link"
+                          title={t("Open direct image link")}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -354,7 +356,7 @@ export default function AdminMediaLibrary() {
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                               className="p-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white border border-rose-500/20 transition-all shadow"
-                              title="Confirm delete"
+                              title={t("Confirm delete")}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -362,7 +364,7 @@ export default function AdminMediaLibrary() {
                             <button
                               onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(item.id); }}
                               className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-600/20 hover:text-rose-400 text-slate-400 border border-white/5 transition-all shadow"
-                              title="Delete asset"
+                              title={t("Delete asset")}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -380,13 +382,13 @@ export default function AdminMediaLibrary() {
                           {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                         </div>
                         <span className="text-[9px] font-black uppercase tracking-wider text-slate-300 text-center">
-                          {isCopied ? "Copied!" : `Copy ${copyFormat}`}
+                          {isCopied ? t("Copied!") : t("Copy {{format}}", { format: copyFormat })}
                         </span>
                       </div>
 
                       {/* Bottom alignment indicator */}
                       <div className="text-[8px] text-center text-slate-500 font-mono truncate">
-                        Format: {copyFormat.toUpperCase()}
+                        {t("Format: {{format}}", { format: copyFormat.toUpperCase() })}
                       </div>
                     </div>
 
@@ -396,12 +398,12 @@ export default function AdminMediaLibrary() {
                         className="absolute inset-x-0 bottom-0 bg-rose-950/90 backdrop-blur-xs border-t border-rose-500/20 p-1.5 flex items-center justify-center gap-2 select-none animate-slide-up z-10"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="text-[9px] font-extrabold text-rose-300 uppercase tracking-wide">Delete?</span>
+                        <span className="text-[9px] font-extrabold text-rose-300 uppercase tracking-wide">{t("Delete?")}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }}
                           className="text-[9px] font-bold text-slate-300 hover:text-white px-1.5 py-0.5 rounded bg-white/5 border border-white/5"
                         >
-                          No
+                          {t("No")}
                         </button>
                       </div>
                     )}

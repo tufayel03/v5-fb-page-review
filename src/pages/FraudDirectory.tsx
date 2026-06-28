@@ -14,8 +14,10 @@ import {
   ShieldAlert,
   Sliders,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function FraudDirectory() {
+  const { t, n } = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -152,7 +154,7 @@ export default function FraudDirectory() {
               {/* Header inside Filters box */}
               <div className="flex items-center justify-between pb-4 border-b border-slate-150 mb-5">
                 <h2 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
-                  Filters
+                  {t("Filters")}
                 </h2>
                 <SlidersHorizontal className="w-4 h-4 text-slate-400" />
               </div>
@@ -162,12 +164,12 @@ export default function FraudDirectory() {
                 {/* Search input field */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-600">
-                    Search Page
+                    {t("Search Page")}
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Search page name"
+                      placeholder={t("Search page name")}
                       value={search}
                       onChange={(e) => {
                         setSearch(e.target.value);
@@ -184,7 +186,7 @@ export default function FraudDirectory() {
                 {/* Select Listed Date field with Calendar icon inside select block */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-600">
-                    Listed Date
+                    {t("Listed Date")}
                   </label>
                   <div className="relative">
                     <select
@@ -195,10 +197,10 @@ export default function FraudDirectory() {
                       }}
                       className="w-full bg-white border border-slate-200 hover:border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500/15 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer appearance-none"
                     >
-                      <option value="all">All Dates</option>
-                      <option value="today">Today Only</option>
-                      <option value="this_week">This Week</option>
-                      <option value="this_month">This Month</option>
+                      <option value="all">{t("All Dates")}</option>
+                      <option value="today">{t("Today Only")}</option>
+                      <option value="this_week">{t("This Week")}</option>
+                      <option value="this_month">{t("This Month")}</option>
                     </select>
                     <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
                   </div>
@@ -207,7 +209,7 @@ export default function FraudDirectory() {
                 {/* Page Size limit chooser fields */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-600">
-                    Page Size
+                    {t("Page Size")}
                   </label>
                   <select
                     value={limit}
@@ -217,10 +219,10 @@ export default function FraudDirectory() {
                     }}
                     className="w-full bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500/15 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer"
                   >
-                    <option value={10}>10 per page</option>
-                    <option value={20}>20 per page</option>
-                    <option value={50}>50 per page</option>
-                    <option value={100}>100 per page</option>
+                    <option value={10}>{t("10 per page")}</option>
+                    <option value={20}>{t("20 per page")}</option>
+                    <option value={50}>{t("50 per page")}</option>
+                    <option value={100}>{t("100 per page")}</option>
                   </select>
                 </div>
 
@@ -240,7 +242,7 @@ export default function FraudDirectory() {
                     htmlFor="billing-contacts-filter"
                     className="text-xs text-slate-500 font-medium select-none cursor-pointer leading-tight"
                   >
-                    Only verified billing numbers (bKash/Nagad/Phone)
+                    {t("Only verified billing numbers (bKash/Nagad/Phone)")}
                   </label>
                 </div>
 
@@ -251,7 +253,7 @@ export default function FraudDirectory() {
                     className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-[#059669] hover:bg-emerald-50 bg-white border border-[#10b981] rounded-xl cursor-pointer transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Reset Filters
+                    {t("Reset Filters")}
                   </button>
                 </div>
               </div>
@@ -264,21 +266,20 @@ export default function FraudDirectory() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  Detected Fraud Pages
+                  {t("Detected Fraud Pages")}
                 </h1>
                 <p className="mt-1 text-[11px] sm:text-sm text-slate-500 font-medium max-w-xl leading-relaxed">
-                  Review and monitor Facebook pages that have been flagged for
-                  fraudulent activity.
+                  {t("Review and monitor Facebook pages that have been flagged for fraudulent activity.")}
                 </p>
               </div>
 
               {/* Total Flagged Count Badge matching mockup exactly */}
               <div className="bg-[#fafafb] border border-[#e2e8f0] rounded-xl px-3 py-1.5 sm:px-5 sm:py-2.5 text-center shrink-0 min-w-[95px] sm:min-w-[130px] shadow-2xs">
                 <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Total Flagged
+                  {t("Total Flagged")}
                 </span>
                 <span className="text-base sm:text-2xl font-black text-[#10b981] leading-tight block mt-0.5">
-                  {total.toLocaleString()}
+                  {n(total.toLocaleString())}
                 </span>
               </div>
             </div>
@@ -289,7 +290,7 @@ export default function FraudDirectory() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search page name"
+                  placeholder={t("Search page name")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -312,7 +313,7 @@ export default function FraudDirectory() {
                   }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
-                  Filters
+                  {t("Filters")}
                 </button>
 
                 {/* Sort Option dropdown selection */}
@@ -325,10 +326,10 @@ export default function FraudDirectory() {
                     }}
                     className="w-full h-full bg-white border border-slate-200 text-slate-700 text-[11px] sm:text-xs font-bold rounded-xl px-2 py-2 hover:bg-slate-50 transition-colors cursor-pointer appearance-none text-center"
                   >
-                    <option value="recently_listed">Sort: Newest</option>
-                    <option value="oldest_listed">Sort: Oldest</option>
-                    <option value="report_count">Sort: Reports</option>
-                    <option value="name_asc">Sort: A-Z</option>
+                    <option value="recently_listed">{t("Sort: Newest")}</option>
+                    <option value="oldest_listed">{t("Sort: Oldest")}</option>
+                    <option value="report_count">{t("Sort: Reports")}</option>
+                    <option value="name_asc">{t("Sort: A-Z")}</option>
                   </select>
                 </div>
               </div>
@@ -338,13 +339,13 @@ export default function FraudDirectory() {
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm animate-fadeIn">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">
-                      Filter Options
+                      {t("Filter Options")}
                     </span>
                     <button
                       onClick={() => setMobileFiltersOpen(false)}
                       className="text-xs text-slate-400 hover:text-slate-600 font-bold"
                     >
-                      Close
+                      {t("Close")}
                     </button>
                   </div>
 
@@ -353,7 +354,7 @@ export default function FraudDirectory() {
                   {/* Listed Date Filter */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-600">
-                      Listed Date
+                      {t("Listed Date")}
                     </label>
                     <select
                       value={dateListed}
@@ -363,17 +364,17 @@ export default function FraudDirectory() {
                       }}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none font-medium text-slate-700 cursor-pointer"
                     >
-                      <option value="all">All Dates</option>
-                      <option value="today">Today Only</option>
-                      <option value="this_week">This Week</option>
-                      <option value="this_month">This Month</option>
+                      <option value="all">{t("All Dates")}</option>
+                      <option value="today">{t("Today Only")}</option>
+                      <option value="this_week">{t("This Week")}</option>
+                      <option value="this_month">{t("This Month")}</option>
                     </select>
                   </div>
 
                   {/* Limit filter option */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-600">
-                      Page Size
+                      {t("Page Size")}
                     </label>
                     <select
                       value={limit}
@@ -383,10 +384,10 @@ export default function FraudDirectory() {
                       }}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none font-medium text-slate-700 cursor-pointer"
                     >
-                      <option value={10}>10 per page</option>
-                      <option value={20}>20 per page</option>
-                      <option value={50}>50 per page</option>
-                      <option value={100}>100 per page</option>
+                      <option value={10}>{t("10 per page")}</option>
+                      <option value={20}>{t("20 per page")}</option>
+                      <option value={50}>{t("50 per page")}</option>
+                      <option value={100}>{t("100 per page")}</option>
                     </select>
                   </div>
 
@@ -406,7 +407,7 @@ export default function FraudDirectory() {
                       htmlFor="mobile-extra-billing-filter"
                       className="text-xs text-slate-500 font-medium leading-tight cursor-pointer selection:bg-transparent select-none"
                     >
-                      Only verified billing numbers (bKash/Nagad/Phone)
+                      {t("Only verified billing numbers (bKash/Nagad/Phone)")}
                     </label>
                   </div>
 
@@ -416,7 +417,7 @@ export default function FraudDirectory() {
                       onClick={handleResetFilters}
                       className="w-full py-2 bg-white border border-rose-500 hover:bg-rose-50 text-xs font-bold text-rose-600 rounded-xl cursor-pointer transition-colors"
                     >
-                      Reset All Options
+                      {t("Reset All Options")}
                     </button>
                   </div>
                 </div>
@@ -431,20 +432,19 @@ export default function FraudDirectory() {
                   <ShieldAlert className="w-5 h-5 text-emerald-600 absolute animate-pulse" />
                 </div>
                 <p className="text-xs text-slate-400 font-bold mt-4">
-                  Retrieving blacklisted page directory...
+                  {t("Retrieving blacklisted page directory...")}
                 </p>
               </div>
             ) : items.length === 0 ? (
               <div className="text-center py-20 bg-white border border-slate-200/80 rounded-2xl shadow-xs px-6">
                 <div className="w-14 h-14 bg-slate-50 border border-slate-150 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Sliders className="w-6 h-6 text-slate-350" />
+                  <Sliders className="w-6 h-6 text-slate-355" />
                 </div>
                 <h3 className="text-sm font-extrabold text-slate-800">
-                  No records found
+                  {t("No records found")}
                 </h3>
                 <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1 leading-relaxed">
-                  No fraud profiles matched your current search and select
-                  inputs. Try clicking Reset Filters above.
+                  {t("No fraud profiles matched your current search and select inputs. Try clicking Reset Filters above.")}
                 </p>
               </div>
             ) : (
@@ -452,22 +452,22 @@ export default function FraudDirectory() {
                 {/* Desktop Results Header & Sort Control */}
                 <div className="hidden md:flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl px-5 py-3.5 shadow-3xs">
                   <span className="text-xs font-semibold text-slate-500">
-                    Showing <strong className="text-slate-800 font-extrabold">{showingStart} - {showingEnd}</strong> of <strong className="text-slate-800 font-extrabold">{total.toLocaleString()}</strong> blacklisted pages
+                    {t("Showing")} <strong className="text-slate-800 font-extrabold">{n(showingStart)} - {n(showingEnd)}</strong> {t("of")} <strong className="text-slate-800 font-extrabold">{n(total.toLocaleString())}</strong> {t("blacklisted pages")}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500">Sort By:</span>
+                    <span className="text-xs font-bold text-slate-500">{t("Sort By:")}</span>
                     <select
                       value={sort}
                       onChange={(e) => {
                         setSort(e.target.value);
                         setPage(1);
                       }}
-                      className="bg-slate-50 border border-slate-250 hover:border-slate-350 text-slate-700 text-xs font-extrabold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors"
+                      className="bg-slate-50 border border-slate-250 hover:border-slate-355 text-slate-700 text-xs font-extrabold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors"
                     >
-                      <option value="recently_listed">Newest Listed</option>
-                      <option value="oldest_listed">Oldest Listed</option>
-                      <option value="report_count">Most Reports</option>
-                      <option value="name_asc">A-Z Alphabetical</option>
+                      <option value="recently_listed">{t("Newest Listed")}</option>
+                      <option value="oldest_listed">{t("Oldest Listed")}</option>
+                      <option value="report_count">{t("Most Reports")}</option>
+                      <option value="name_asc">{t("A-Z Alphabetical")}</option>
                     </select>
                   </div>
                 </div>
@@ -478,27 +478,25 @@ export default function FraudDirectory() {
                   <table className="w-full text-left border-collapse table-auto">
                     <thead>
                       <tr className="bg-[#f8fafc] text-slate-500 font-bold text-xs border-b border-[#e2e8f0] uppercase tracking-wider">
-                        <th className="py-3.5 px-4 text-center w-16">SL</th>
-                        <th className="py-3.5 px-4">Page</th>
-                        <th className="py-3.5 px-4 w-44">Listed Date</th>
-                        {/* NOTE: Temporarily commented out to prevent competitor data scraping
-                        <th className="py-3.5 px-4 text-right w-32">Action</th>
-                        */}
+                        <th className="py-3.5 px-4 text-center w-16">{t("SL")}</th>
+                        <th className="py-3.5 px-4">{t("Page")}</th>
+                        <th className="py-3.5 px-4 w-44">{t("Listed Date")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#e2e8f0] text-sm text-slate-800">
                       {items.map((item, index) => {
                         const serialNumber = (page - 1) * limit + index + 1;
+                        const dateLocale = language === 'bn' ? 'bn-BD' : 'en-US';
                         const listedDateStr = item.fraud_listed_at
                           ? new Date(item.fraud_listed_at).toLocaleDateString(
-                              "en-US",
+                              dateLocale,
                               {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
                               },
                             )
-                          : "N/A";
+                          : t("N/A");
 
                         return (
                           <tr
@@ -507,7 +505,7 @@ export default function FraudDirectory() {
                           >
                             {/* SL (Centered column) */}
                             <td className="py-3.5 px-4 text-center text-slate-500 font-mono font-medium">
-                              {serialNumber}
+                              {n(serialNumber)}
                             </td>
 
                             {/* Page avatar & title & FB External Link icon */}
@@ -530,19 +528,6 @@ export default function FraudDirectory() {
                                   <span className="font-semibold text-slate-800 truncate block">
                                     {item.current_name}
                                   </span>
-
-                                  {/* NOTE: Temporarily commented out to prevent competitor data scraping
-                                  <a
-                                    href={item.facebook_url}
-                                    target="_blank"
-                                    referrerPolicy="no-referrer"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-500 hover:text-blue-600 transition-colors shrink-0 inline-flex"
-                                    title="Go to Facebook Profile"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                  */}
                                 </div>
                               </div>
                             </td>
@@ -553,18 +538,6 @@ export default function FraudDirectory() {
                             <td className="py-3.5 px-4 text-slate-500 font-medium">
                               {listedDateStr}
                             </td>
-
-                            {/* NOTE: Temporarily commented out to prevent competitor data scraping
-                            <td className="py-3.5 px-4 text-right">
-                              <Link
-                                to={`/page/${item.id}`}
-                                className="inline-flex items-center gap-1 text-[#10b981] hover:bg-emerald-50 bg-white border border-[#10b981] rounded-lg py-1 px-3 text-xs font-bold transition-all shadow-xs"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#10b981]" />
-                                View
-                              </Link>
-                            </td>
-                            */}
                           </tr>
                         );
                       })}
@@ -576,12 +549,13 @@ export default function FraudDirectory() {
                 <div className="block md:hidden space-y-3">
                   {items.map((item, index) => {
                     const serialNumber = (page - 1) * limit + index + 1;
+                    const dateLocale = language === 'bn' ? 'bn-BD' : 'en-US';
                     const listedDateStr = item.fraud_listed_at
                       ? new Date(item.fraud_listed_at).toLocaleDateString(
-                          "en-US",
+                          dateLocale,
                           { month: "short", day: "numeric", year: "numeric" },
                         )
-                      : "N/A";
+                      : t("N/A");
 
                     return (
                       <div
@@ -592,7 +566,7 @@ export default function FraudDirectory() {
                         <div className="flex items-center gap-3 min-w-0">
                           {/* SL */}
                           <span className="text-sm font-semibold font-mono text-slate-400 w-5 shrink-0 text-center select-none">
-                            {serialNumber}
+                            {n(serialNumber)}
                           </span>
 
                           {/* Avatar */}
@@ -615,34 +589,12 @@ export default function FraudDirectory() {
                               <span className="font-extrabold text-[#0f172a] text-[13.5px] truncate block leading-tight">
                                 {item.current_name}
                               </span>
-                              {/* NOTE: Temporarily commented out to prevent competitor data scraping
-                              <a
-                                href={item.facebook_url}
-                                target="_blank"
-                                referrerPolicy="no-referrer"
-                                rel="noopener noreferrer"
-                                className="text-slate-400 hover:text-blue-500 transition-colors shrink-0 inline-flex mt-0.5"
-                                title="Go to Facebook Profile"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                              */}
                             </div>
                             <div className="text-[11px] text-slate-400 font-semibold mt-0.5 truncate flex items-center gap-1.5 leading-none">
                               <span>{listedDateStr}</span>
                             </div>
                           </div>
                         </div>
-
-                        {/* NOTE: Temporarily commented out to prevent competitor data scraping
-                        <Link
-                          to={`/page/${item.id}`}
-                          className="inline-flex items-center gap-1 text-[#10b981] hover:bg-emerald-50 bg-white border border-[#10b981] rounded-lg py-1.5 px-3.5 text-xs font-bold transition-all shadow-3xs shrink-0 select-none"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-[#10b981]" />
-                          View
-                        </Link>
-                        */}
                       </div>
                     );
                   })}
@@ -652,8 +604,8 @@ export default function FraudDirectory() {
                 <div className="hidden md:flex bg-[#f8fafc] border-t border-[#e2e8f0] py-4 px-5 flex-row items-center justify-between gap-4">
                   {/* Results Text */}
                   <span className="text-xs font-semibold text-slate-500">
-                    Showing {showingStart} to {showingEnd} of{" "}
-                    {total.toLocaleString()} entries
+                    {t("Showing")} {n(showingStart)} {t("to")} {n(showingEnd)} {t("of")}{" "}
+                    {n(total.toLocaleString())} {t("entries")}
                   </span>
 
                   {/* High Quality Pagination Control matching mockup layout directly */}
@@ -663,7 +615,7 @@ export default function FraudDirectory() {
                       disabled={page === 1}
                       onClick={() => setPage(1)}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 select-none text-slate-600 transition-colors cursor-pointer"
-                      title="First Page"
+                      title={t("First Page")}
                     >
                       <ChevronsLeft className="w-3.5 h-3.5" />
                     </button>
@@ -673,7 +625,7 @@ export default function FraudDirectory() {
                       disabled={page === 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 select-none text-slate-600 transition-colors cursor-pointer"
-                      title="Previous Page"
+                      title={t("Previous Page")}
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
@@ -701,7 +653,7 @@ export default function FraudDirectory() {
                               : "border border-slate-250 hover:bg-slate-50 text-slate-600 bg-white"
                           }`}
                         >
-                          {num}
+                          {n(num)}
                         </button>
                       );
                     })}
@@ -713,7 +665,7 @@ export default function FraudDirectory() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 select-none text-slate-600 transition-colors cursor-pointer"
-                      title="Next Page"
+                      title={t("Next Page")}
                     >
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -723,7 +675,7 @@ export default function FraudDirectory() {
                       disabled={page === totalPages}
                       onClick={() => setPage(totalPages)}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 select-none text-slate-600 transition-colors cursor-pointer"
-                      title="Last Page"
+                      title={t("Last Page")}
                     >
                       <ChevronsRight className="w-3.5 h-3.5" />
                     </button>
@@ -774,7 +726,7 @@ export default function FraudDirectory() {
                               : "border border-slate-200 hover:bg-slate-50 text-slate-600 bg-white"
                           }`}
                         >
-                          {num}
+                          {n(num)}
                         </button>
                       );
                     })}
@@ -803,8 +755,8 @@ export default function FraudDirectory() {
                   {/* Centered Results Text */}
                   <div className="text-center pb-2">
                     <span className="text-[12px] font-semibold text-slate-400">
-                      Showing {showingStart} to {showingEnd} of{" "}
-                      {total.toLocaleString()} entries
+                      {t("Showing")} {n(showingStart)} {t("to")} {n(showingEnd)} {t("of")}{" "}
+                      {n(total.toLocaleString())} {t("entries")}
                     </span>
                   </div>
                 </div>

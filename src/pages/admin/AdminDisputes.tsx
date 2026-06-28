@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, Filter, MessageSquareWarning, ArrowUpDown, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Search, MessageSquareWarning, ArrowUpDown, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Link } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminDisputes() {
+  const { t, n } = useLanguage();
   const [disputes, setDisputes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +77,7 @@ export default function AdminDisputes() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this dispute?')) return;
+    if (!confirm(t('Are you sure you want to delete this dispute?'))) return;
     try {
       const res = await fetch(`/api/admin/disputes/${id}`, {
         method: "DELETE",
@@ -84,10 +86,10 @@ export default function AdminDisputes() {
       if (res.ok) {
         fetchDisputes();
       } else {
-        alert("Failed to delete dispute");
+        alert(t("Failed to delete dispute"));
       }
     } catch (e) {
-      alert("Error deleting dispute");
+      alert(t("Error deleting dispute"));
     }
   };
 
@@ -104,16 +106,15 @@ export default function AdminDisputes() {
   const uniqueStatuses = ["Open", "Under Review", "Resolved", "Rejected"];
   const uniqueReasons = ["Incorrect Rating", "False Allegation", "Spam / Abuse", "Resolved with Customer", "Other"];
 
-  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight font-sans">
-            Review Disputes
+            {t("Review Disputes")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage disputes submitted by page owners.
+            {t("Manage disputes submitted by page owners.")}
           </p>
         </div>
         
@@ -124,56 +125,54 @@ export default function AdminDisputes() {
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Statuses</option>
-                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{s as string}</option>)}
+                 <option value="all" className="bg-[#091124]">{t("All Statuses")}</option>
+                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{t(s as string)}</option>)}
               </select>
               <select
                  value={reasonFilter}
                  onChange={(e) => { setReasonFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Reasons</option>
-                 {uniqueReasons.map(r => <option key={r as string} value={r as string} className="bg-[#091124]">{r as string}</option>)}
+                 <option value="all" className="bg-[#091124]">{t("All Reasons")}</option>
+                 {uniqueReasons.map(r => <option key={r as string} value={r as string} className="bg-[#091124]">{t(r as string)}</option>)}
               </select>
           </div>
           <div className="relative flex-1 w-full sm:w-64">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search disputes..."
+              placeholder={t("Search disputes...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
         </div>
-
       </div>
 
       <div className="bg-[#091124] border border-white/5 rounded-xl shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-300">
-            
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16 font-mono">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16 font-mono">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('current_name')}>
-                  <div className="flex items-center gap-1">Page <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Page")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('reason')}>
-                  <div className="flex items-center gap-1">Reason <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Reason")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('submitted_by')}>
-                  <div className="flex items-center gap-1">Submitted By <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Submitted By")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('status')}>
-                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Status")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('created_at')}>
-                  <div className="flex items-center gap-1">Date <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Date")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -191,7 +190,7 @@ export default function AdminDisputes() {
                     colSpan={7}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No open disputes found.
+                    {t("No open disputes found.")}
                   </td>
                 </tr>
               ) : (
@@ -202,7 +201,7 @@ export default function AdminDisputes() {
                       className="hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium font-mono">
-                        {startIndex + index + 1}
+                        {n(startIndex + index + 1)}
                       </td>
                       <td className="px-6 py-4 max-w-[220px]">
                         <p
@@ -215,13 +214,13 @@ export default function AdminDisputes() {
                           className="text-xs text-slate-400 truncate mt-0.5"
                           title={dispute.review_title}
                         >
-                          Review: {dispute.review_title}
+                          {t("Review:")} {dispute.review_title}
                         </p>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 font-bold text-slate-300 border border-white/5 bg-[#050b18] rounded px-2.5 py-1 w-max text-xs">
                           <MessageSquareWarning className="h-3.5 w-3.5 text-amber-500" />
-                          {dispute.reason}
+                          {t(dispute.reason)}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-slate-300 font-medium">
@@ -239,7 +238,7 @@ export default function AdminDisputes() {
                             }
                           `}
                         >
-                          {dispute.status}
+                          {t(dispute.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-400 font-medium">
@@ -251,12 +250,12 @@ export default function AdminDisputes() {
                             to={`/tufayel/disputes/${dispute.id}`}
                             className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline px-2 py-1"
                           >
-                            Review
+                            {t("Review")}
                           </Link>
                           <button
                             onClick={() => handleDelete(dispute.id)}
                             className="text-rose-500 hover:text-rose-400 p-1 rounded-md hover:bg-rose-500/10 transition-colors"
-                            title="Delete dispute"
+                            title={t("Delete dispute")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -272,20 +271,20 @@ export default function AdminDisputes() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-medium font-semibold">
-              Showing {totalCount === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} entries
+              {t("Showing")} {totalCount === 0 ? n(0) : n(startIndex + 1)} {t("to")} {n(Math.min(startIndex + itemsPerPage, totalCount))} {t("of")} {n(totalCount)} {t("entries")}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -296,7 +295,7 @@ export default function AdminDisputes() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

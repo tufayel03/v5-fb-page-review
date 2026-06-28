@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { motion, AnimatePresence } from "motion/react";
 
 const renderClickableText = (text: string) => {
@@ -120,6 +121,7 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
 }
 
 export default function PageProfile() {
+  const { t, n, language } = useLanguage();
   const { id } = useParams();
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
@@ -816,48 +818,48 @@ export default function PageProfile() {
                   {(!page.status_badge || !page.status_badge.includes("Reported as Fraud")) && (
                     page.claim_status === "Claimed" ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Claimed Business
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {t("Claimed Business")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
-                        Unclaimed Profile
+                        {t("Unclaimed Profile")}
                       </span>
                     )
                   )}
 
                   {page.status_badge && page.status_badge.includes("Reported as Fraud") && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      <ShieldAlert className="h-3.5 w-3.5 text-white" /> Fraud
+                      <ShieldAlert className="h-3.5 w-3.5 text-white" /> {t("Fraud")}
                     </span>
                   )}
 
                   {page.status_badge && page.status_badge.startsWith("Old/Dead Page") && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-500 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      💀 Old/Dead Page
+                      💀 {t("Old/Dead Page")}
                     </span>
                   )}
 
                   {page.status_badge === "Verified Marketplace Seller" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      ⭐ Verified Seller
+                      ⭐ {t("Verified Seller")}
                     </span>
                   )}
 
                   {page.status_badge === "Under Review" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#205cd4] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      🔍 Under Review
+                      🔍 {t("Under Review")}
                     </span>
                   )}
 
                   {page.status_badge === "Suspicious" && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#d97706] text-white rounded-md text-[11px] font-bold uppercase tracking-wider">
-                      ⚠️ Suspicious
+                      ⚠️ {t("Suspicious")}
                     </span>
                   )}
 
                   {page.status_badge === "Gold Seller" && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-white rounded-md text-[11px] font-black uppercase tracking-wider shadow-lg shadow-amber-500/25 border border-amber-300/30">
-                      🏆 Gold Seller
+                      🏆 {t("Gold Seller")}
                     </span>
                   )}
                 </div>
@@ -869,13 +871,13 @@ export default function PageProfile() {
                 {/* Score & Stars aggregate */}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
                   <div className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded text-sm font-bold text-slate-800">
-                    <span>{reviewsData.total}</span>
-                    <span className="text-slate-500 font-semibold text-xs ml-1">reviews</span>
+                    <span>{n(reviewsData.total)}</span>
+                    <span className="text-slate-500 font-semibold text-xs ml-1">{t("reviews")}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <TrustpilotStars rating={avgRatingNum} size="md" />
                     <span className="text-slate-950 font-black text-base ml-1">
-                      {avgRatingNum > 0 ? avgRating : "-"}
+                      {avgRatingNum > 0 ? n(avgRating) : "-"}
                     </span>
                   </div>
                 </div>
@@ -884,7 +886,7 @@ export default function PageProfile() {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-semibold text-slate-500">
                   {fraudCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-100 font-bold">
-                      <ShieldAlert className="h-3.5 w-3.5 text-rose-500" /> {fraudCount} Fraud Report{fraudCount > 1 ? "s" : ""}
+                      <ShieldAlert className="h-3.5 w-3.5 text-rose-500" /> {n(fraudCount)} {t(fraudCount > 1 ? "Fraud Reports" : "Fraud Report")}
                     </span>
                   )}
                 </div>
@@ -902,8 +904,8 @@ export default function PageProfile() {
                 >
                   <Star className="h-4 w-4 sm:h-4.5 sm:w-4.5 fill-current text-white shrink-0" />
                   {user && reviews.some((r: any) => r.user_id === user.id)
-                    ? "Edit Review"
-                    : "Write Review"}
+                    ? t("Edit Review")
+                    : t("Write Review")}
                 </Link>
 
                 <Link
@@ -911,7 +913,7 @@ export default function PageProfile() {
                   className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg font-bold transition-all text-[13px] sm:text-sm cursor-pointer whitespace-nowrap"
                 >
                   <AlertTriangle className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-rose-500 shrink-0" />
-                  Report Fraud
+                  {t("Report Fraud")}
                 </Link>
 
                 {(page.facebook_url || page.current_username) && (
@@ -924,7 +926,7 @@ export default function PageProfile() {
                     rel="noreferrer"
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 hover:text-slate-950 rounded-lg font-bold hover:bg-slate-50 transition-colors text-sm whitespace-nowrap"
                   >
-                    <span>Visit Facebook Page</span>
+                    <span>{t("Visit Facebook Page")}</span>
                     <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
                   </a>
                 )}
@@ -942,10 +944,10 @@ export default function PageProfile() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-rose-900 uppercase tracking-wider">
-                      Warning: Reported as Fraud
+                      {t("Warning: Reported as Fraud")}
                     </h4>
                     <p className="text-xs text-rose-700 leading-relaxed mt-1 font-semibold">
-                      This page has been reported as fraud. Do not send any money, advanced payments, or personal details to this seller.
+                      {t("This page has been reported as fraud. Do not send any money, advanced payments, or personal details to this seller.")}
                     </p>
                   </div>
                 </div>
@@ -956,10 +958,10 @@ export default function PageProfile() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-amber-900 uppercase tracking-wider">
-                      Warning: Active Disputes
+                      {t("Warning: Active Disputes")}
                     </h4>
                     <p className="text-xs text-amber-850 leading-relaxed mt-1 font-semibold">
-                      Users have reported fraud complaints against this page. Please scroll down to check all evidence and reviews before making any purchases.
+                      {t("Users have reported fraud complaints against this page. Please scroll down to check all evidence and reviews before making any purchases.")}
                     </p>
                   </div>
                 </div>
@@ -981,7 +983,7 @@ export default function PageProfile() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Summary
+            {t("Summary")}
           </button>
           <button
             onClick={() => setMobileTab("about")}
@@ -991,7 +993,7 @@ export default function PageProfile() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            About Pages
+            {t("About Pages")}
           </button>
           <button
             onClick={() => setMobileTab("reviews")}
@@ -1001,7 +1003,7 @@ export default function PageProfile() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Reviews ({reviewsData.total})
+            {t("Reviews")} ({n(reviewsData.total)})
           </button>
         </div>
       </div>
@@ -1015,7 +1017,7 @@ export default function PageProfile() {
             <div className="hidden lg:block lg:col-span-2 space-y-4">
               <div className="sticky top-24">
                 <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 text-center">
-                  Sponsored
+                  {t("Sponsored")}
                 </div>
                 <div className="flex justify-center border border-slate-100 bg-slate-50/50 p-2 rounded-xl">
                   <AdBanner htmlCode={publicSettings.profile_sidebar_adsterra_code} />
@@ -1032,14 +1034,14 @@ export default function PageProfile() {
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
                   <div className="text-[44px] font-black text-slate-900 leading-none">
-                    {avgRatingNum > 0 ? avgRating : "-"}
+                    {avgRatingNum > 0 ? n(avgRating) : "-"}
                   </div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">out of 5.0</div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("out of 5.0")}</div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <TrustpilotStars rating={avgRatingNum} size="md" />
-                  <span className="text-slate-800 font-extrabold text-sm">{ratingText}</span>
+                  <span className="text-slate-800 font-extrabold text-sm">{t(ratingText)}</span>
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -1057,7 +1059,7 @@ export default function PageProfile() {
                         }}
                         className={`flex items-center gap-3 text-xs font-bold leading-none p-1.5 cursor-pointer rounded-lg hover:bg-slate-50 ${appliedRatings.includes(star) ? "bg-slate-50" : ""}`}
                       >
-                        <div className="w-10 text-slate-600">{star}-star</div>
+                        <div className="w-10 text-slate-600">{n(star)}-{t("star")}</div>
                         <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
@@ -1070,7 +1072,7 @@ export default function PageProfile() {
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <div className="w-8 text-right font-black text-slate-800">{percent}%</div>
+                        <div className="w-8 text-right font-black text-slate-800">{n(percent)}%</div>
                       </div>
                     );
                   })}
@@ -1083,22 +1085,21 @@ export default function PageProfile() {
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-slate-800" />
                 <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase">
-                  Facebook Page Details
+                  {t("Facebook Page Details")}
                 </h2>
               </div>
 
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
                 {page.page_details ? renderClickableText(page.page_details) : (
                   <span className="italic text-slate-400 font-medium">
-                    No specific page description provided by the business yet. 
-                    This shop has not customized their public registration info.
+                    {t("No specific page description provided by the business yet. This shop has not customized their public registration info.")}
                   </span>
                 )}
               </p>
 
               <div className="pt-2">
                 <h3 className="font-extrabold text-[10px] text-slate-400 uppercase tracking-widest mb-4">
-                  Verified Contact Directory
+                  {t("Verified Contact Directory")}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -1107,7 +1108,7 @@ export default function PageProfile() {
                     <div className="flex items-start gap-3 bg-white border border-slate-200 p-4 rounded-lg">
                       <Phone className="h-4 w-4 text-slate-400 shrink-0 mt-1" />
                       <div className="flex flex-col gap-1.5 col-span-1">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Mobile Contact</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{t("Mobile Contact")}</span>
                         <div className="flex flex-col">
                           {page.contact_number &&
                             page.contact_number
@@ -1162,14 +1163,14 @@ export default function PageProfile() {
                     <div className="flex items-start gap-3 bg-white border border-slate-200 p-4 rounded-lg">
                       <Facebook className="h-4 w-4 text-[#1877f2] shrink-0 mt-1" />
                       <div className="flex flex-col gap-1 min-w-0">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">External Link</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{t("External Link")}</span>
                         <a
                           href={page.facebook_url}
                           target="_blank"
                           rel="noreferrer"
                           className="font-bold text-[#0fbc6f] hover:underline break-all"
                         >
-                          Facebook Page
+                          {t("Facebook Page")}
                         </a>
                       </div>
                     </div>
@@ -1180,7 +1181,7 @@ export default function PageProfile() {
                     <div className="flex items-start gap-3 bg-white border border-slate-200 p-4 rounded-lg sm:col-span-2">
                       <DollarSign className="h-4 w-4 text-slate-400 shrink-0 mt-1" />
                       <div className="flex flex-col gap-2">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Supported Payment Modes</span>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{t("Supported Payment Modes")}</span>
                         <div className="flex flex-wrap gap-2 items-center">
                           {parsedPaymentMethods.map((m: string, idx: number) => (
                             <span
@@ -1200,10 +1201,10 @@ export default function PageProfile() {
                     <div className="p-4 bg-amber-50/40 border border-amber-200/50 rounded-lg sm:col-span-2">
                       <h4 className="font-bold text-xs text-amber-900 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
                         <ShieldAlert className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                        payment accounts flagged in reviews
+                        {t("payment accounts flagged in reviews")}
                       </h4>
                       <p className="text-xs text-slate-500 mb-3 font-medium">
-                        Other consumers noted these money transfers or wallet accounts in active scam reports:
+                        {t("Other consumers noted these money transfers or wallet accounts in active scam reports:")}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {paymentNumbers.map((num: any, idx: number) => (
@@ -1229,10 +1230,10 @@ export default function PageProfile() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
                     <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                      Merchant Reviews
+                      {t("Merchant Reviews")}
                     </h2>
                     <p className="text-xs font-semibold text-slate-400 mt-1">
-                      {reviewsData.total} reviews verified, filtered results are listed below
+                      {n(reviewsData.total)} {t("reviews verified, filtered results are listed below")}
                     </p>
                   </div>
 
@@ -1244,7 +1245,7 @@ export default function PageProfile() {
                       to={`/write-review?pageId=${page.id}`}
                       className="text-xs font-black text-[#0fbc6f] hover:underline uppercase tracking-wider bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg select-none transition-all"
                     >
-                      Write a review
+                      {t("Write a review")}
                     </Link>
                   )}
                 </div>
@@ -1258,7 +1259,7 @@ export default function PageProfile() {
                       type="text"
                       value={searchKeyword}
                       onChange={(e) => setSearchKeyword(e.target.value)}
-                      placeholder="Search reviews by keyword..."
+                      placeholder={t("Search reviews by keyword...")}
                       className="h-10.5 w-full pl-10 pr-9 border border-slate-200 rounded-lg text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all font-medium"
                     />
                     {searchKeyword && (
@@ -1282,10 +1283,10 @@ export default function PageProfile() {
                         appliedReplies ||
                         appliedDateRange !== "all"
                           ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                          : "border-slate-200 bg-white text-slate-705"
+                          : "border-slate-200 bg-white text-slate-750"
                       }`}
                     >
-                      <Filter className="h-4 w-4" /> Filter
+                      <Filter className="h-4 w-4" /> {t("Filter")}
                       {(appliedRatings.length > 0 ||
                         appliedVerified ||
                         appliedReplies ||
@@ -1306,8 +1307,8 @@ export default function PageProfile() {
                           backgroundSize: "13px",
                         }}
                       >
-                        <option value="Recent">Most Recent</option>
-                        <option value="Oldest">Oldest</option>
+                        <option value="Recent">{t("Most Recent")}</option>
+                        <option value="Oldest">{t("Oldest")}</option>
                       </select>
                     </div>
 
@@ -1330,7 +1331,7 @@ export default function PageProfile() {
                         }}
                         className="h-10.5 px-3 bg-slate-105 hover:bg-slate-200 text-slate-700 rounded-lg text-[13px] font-bold transition-colors whitespace-nowrap cursor-pointer"
                       >
-                        Reset ×
+                        {t("Reset")} ×
                       </button>
                     )}
                   </div>
@@ -1357,8 +1358,8 @@ export default function PageProfile() {
                   ) : paginatedReviews.length === 0 ? (
                     <div className="py-16 text-center text-slate-400 flex flex-col items-center justify-center">
                       <MessageSquare className="w-10 h-10 text-slate-300 mb-2" />
-                      <span className="font-extrabold text-[15px] text-slate-700">No matching reviews found</span>
-                      <p className="text-slate-400 text-xs mt-0.5">Try adjusting your filters, searching another keyword, or resetting results.</p>
+                      <span className="font-extrabold text-[15px] text-slate-700">{t("No matching reviews found")}</span>
+                      <p className="text-slate-400 text-xs mt-0.5">{t("Try adjusting your filters, searching another keyword, or resetting results.")}</p>
                     </div>
                   ) : (
                     paginatedReviews.map((review: any) => (
@@ -1380,13 +1381,13 @@ export default function PageProfile() {
                               <div className="font-black text-[14px] text-slate-900 leading-tight">
                                 {review.current_name ||
                                   (review.user_id === "anonymous"
-                                    ? "Anonymous User"
-                                    : "Registered Buyer")}
+                                    ? t("Anonymous User")
+                                    : t("Registered Buyer"))}
                               </div>
                               <div className="text-[11px] font-bold text-slate-405 uppercase tracking-wider mt-[2.5px]">
                                 {review.user_id !== "anonymous"
-                                  ? "1 review"
-                                  : "Verified Guest"}
+                                  ? t("1 review")
+                                  : t("Verified Guest")}
                               </div>
                             </div>
                           </div>
@@ -1410,7 +1411,7 @@ export default function PageProfile() {
                           
                           {review.status === "Verified" && (
                             <div className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 bg-emerald-[#e6f7ef] px-2 py-0.5 rounded-md border border-emerald-100/50">
-                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Verified Buyer
+                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {t("Verified Buyer")}
                             </div>
                           )}
 
@@ -1420,7 +1421,7 @@ export default function PageProfile() {
                               target="_blank"
                               rel="noreferrer"
                               className="text-[#1877f2] hover:text-[#145dbf] p-0.5 hover:scale-110 transition-transform shrink-0"
-                              title="View Facebook Evidence Post"
+                              title={t("View Facebook Evidence Post")}
                             >
                               <Facebook className="h-4.5 w-4.5 fill-current" />
                             </a>
@@ -1447,7 +1448,7 @@ export default function PageProfile() {
                                 }
                               }}
                               className="text-purple-600 hover:text-purple-700 p-0.5 hover:scale-110 transition-all shrink-0 cursor-pointer"
-                              title="View Proof Image Gallery"
+                              title={t("View Proof Image Gallery")}
                             >
                               <ImageIcon className="h-4.5 w-4.5" />
                             </button>
@@ -1473,7 +1474,7 @@ export default function PageProfile() {
                                     onClick={() => setExpandedReviews(prev => ({ ...prev, [review.id]: !isExpanded }))}
                                     className="text-[#1877f2] hover:text-[#145dbf] font-extrabold text-xs ml-1 inline-block align-baseline transition-colors select-none cursor-pointer"
                                   >
-                                    {isExpanded ? "See Less" : "See More"}
+                                    {isExpanded ? t("See Less") : t("See More")}
                                   </button>
                                 )}
                               </>
@@ -1497,9 +1498,9 @@ export default function PageProfile() {
                               }`}
                               strokeWidth={2.5}
                             />
-                            Useful{" "}
+                            {t("Useful")}{" "}
                             <span className="font-bold text-[11px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full text-slate-600 dark:text-slate-300 shrink-0">
-                              {review.useful_count ?? 0}
+                              {n(review.useful_count ?? 0)}
                             </span>
                           </button>
                           
@@ -1516,11 +1517,11 @@ export default function PageProfile() {
                               }`}
                             >
                               <Share2 className="h-[15px] w-[15px] group-hover:scale-110 transition-transform" strokeWidth={2.5} />
-                              {copiedReviewId === review.id ? "Copied!" : "Share"}
+                              {copiedReviewId === review.id ? t("Copied!") : t("Share")}
                             </button>
                             {copiedReviewId === review.id && (
                               <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-1 rounded shadow-md z-10 animate-fade-in whitespace-nowrap">
-                                Link Copied!
+                                {t("Link Copied!")}
                               </span>
                             )}
                           </div>
@@ -1533,7 +1534,7 @@ export default function PageProfile() {
                                 to={`/write-review?pageId=${review.page_id}&reviewId=${review.id}`}
                                 className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                               >
-                                <Pencil className="h-[14px] w-[14px]" /> Edit
+                                <Pencil className="h-[14px] w-[14px]" /> {t("Edit")}
                               </Link>
 
                               {deleteConfirmId === review.id ? (
@@ -1541,14 +1542,14 @@ export default function PageProfile() {
                                   onClick={() => handleDeleteReview(review.id)}
                                   className="text-[10px] text-white bg-rose-600 px-3 py-1 rounded-md hover:bg-rose-700 transition-colors tracking-wide animate-pulse"
                                 >
-                                  CONFIRM DELETE
+                                  {t("CONFIRM DELETE")}
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => setDeleteConfirmId(review.id)}
                                   className="flex items-center gap-1.5 text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
                                 >
-                                  <Trash2 className="h-[15px] w-[15px]" /> Delete
+                                  <Trash2 className="h-[15px] w-[15px]" /> {t("Delete")}
                                 </button>
                               )}
                             </div>
@@ -1563,7 +1564,7 @@ export default function PageProfile() {
                               className="flex items-center gap-1.5 hover:text-red-600 transition-colors ml-auto text-slate-400 cursor-pointer"
                             >
                               <Flag className="h-[15px] w-[15px]" strokeWidth={2.5} />
-                              Report Review
+                              {t("Report Review")}
                             </button>
                           )}
                         </div>
@@ -1572,10 +1573,10 @@ export default function PageProfile() {
                         {isOwner && disputingReviewId === review.id && (
                           <div className="mt-5 p-5 bg-slate-50 border border-slate-200 rounded-xl border-l-4 border-l-rose-500">
                             <h4 className="font-extrabold text-[14px] text-rose-700 mb-1 flex items-center gap-1.5">
-                              <ShieldAlert className="h-4 w-4" /> Dispute Rating
+                              <ShieldAlert className="h-4 w-4" /> {t("Dispute Rating")}
                             </h4>
                             <p className="text-xs text-slate-500 mb-4 font-medium">
-                              File an official merchant dispute. Admins will review the dispute reasons and page verification credentials.
+                              {t("File an official merchant dispute. Admins will review the dispute reasons and page verification credentials.")}
                             </p>
                             
                             <div className="space-y-3">
@@ -1584,15 +1585,15 @@ export default function PageProfile() {
                                 onChange={(e) => setDisputeReason(e.target.value)}
                                 className="w-full text-xs font-bold p-2.5 border border-slate-200 bg-white rounded-lg outline-none focus:border-rose-300"
                               >
-                                <option value="Spam or fake">Spam or Fake</option>
-                                <option value="Hate speech">Hate Speech</option>
-                                <option value="Harassment">Harassment</option>
-                                <option value="Profanity">Profanity</option>
-                                <option value="Not a real customer">Not a real customer</option>
+                                <option value="Spam or fake">{t("Spam or Fake")}</option>
+                                <option value="Hate speech">{t("Hate Speech")}</option>
+                                <option value="Harassment">{t("Harassment")}</option>
+                                <option value="Profanity">{t("Profanity")}</option>
+                                <option value="Not a real customer">{t("Not a real customer")}</option>
                               </select>
 
                               <textarea
-                                placeholder="State your detailed argument or provide transaction evidence link..."
+                                placeholder={t("State your detailed argument or provide transaction evidence link...")}
                                 value={disputeDescription}
                                 onChange={(e) => setDisputeDescription(e.target.value)}
                                 className="w-full text-sm font-medium p-3.5 border border-slate-200 rounded-lg focus:border-rose-400 outline-none resize-none min-h-[80px]"
@@ -1604,14 +1605,14 @@ export default function PageProfile() {
                                   onClick={() => setDisputingReviewId(null)}
                                   className="text-xs font-bold text-slate-500 hover:text-slate-800 px-4 py-2"
                                 >
-                                  Cancel
+                                  {t("Cancel")}
                                 </button>
                                 <button
                                   onClick={() => submitDispute(review.id)}
                                   disabled={submittingDispute}
                                   className="text-xs font-black uppercase text-white bg-rose-500 hover:bg-rose-600 px-5 py-2.5 rounded-lg transition-colors shadow-2xs disabled:opacity-50"
                                 >
-                                  {submittingDispute ? "Submitting..." : "Submit Dispute"}
+                                  {submittingDispute ? t("Submitting...") : t("Submit Dispute")}
                                 </button>
                               </div>
                             </div>
@@ -1624,7 +1625,7 @@ export default function PageProfile() {
                             <div className="flex justify-between items-center mb-1.5">
                               <div className="font-bold text-[13px] text-slate-900 flex items-center gap-1">
                                 <Reply className="h-3.5 w-3.5 text-[#0fbc6f] rotate-180" />
-                                Response from {page.current_name}
+                                {t("Response from")} {page.current_name}
                               </div>
                               <span className="text-[11px] font-semibold text-slate-400">
                                 {format(new Date(review.owner_reply_created_at), "MMM d, yyyy")}
@@ -1646,7 +1647,7 @@ export default function PageProfile() {
                               }}
                               className="text-xs font-black uppercase text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/50 border border-emerald-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                             >
-                              <Reply className="h-3.5 w-3.5" /> Reply as Owner
+                              <Reply className="h-3.5 w-3.5" /> {t("Reply as Owner")}
                             </button>
                           </div>
                         )}
@@ -1654,9 +1655,9 @@ export default function PageProfile() {
                         {/* Owner Reply Input Form */}
                         {isOwner && replyingTo === review.id && (
                           <div className="mt-4 bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-3 font-sans">
-                            <span className="text-xs font-black uppercase text-slate-500 tracking-wide">Publish Shop response</span>
+                            <span className="text-xs font-black uppercase text-slate-500 tracking-wide">{t("Publish Shop response")}</span>
                             <textarea
-                              placeholder="Write a polite and professional response..."
+                              placeholder={t("Write a polite and professional response...")}
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               className="w-full text-sm font-medium p-3.5 border border-slate-200 rounded-lg focus:border-slate-400 outline-none bg-white resize-none"
@@ -1667,14 +1668,14 @@ export default function PageProfile() {
                                 onClick={() => setReplyingTo(null)}
                                 className="text-xs font-bold text-slate-500 hover:text-slate-800 px-4 py-2"
                               >
-                                Cancel
+                                {t("Cancel")}
                               </button>
                               <button
                                 onClick={() => submitReply(review.id)}
                                 disabled={submittingReply || !replyText.trim()}
                                 className="text-xs font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 px-5 py-2.5 rounded-lg transition-colors shadow-2xs cursor-pointer"
                               >
-                                {submittingReply ? "Posting..." : "Post Reply"}
+                                {submittingReply ? t("Posting...") : t("Post Reply")}
                               </button>
                             </div>
                           </div>
@@ -1693,30 +1694,29 @@ export default function PageProfile() {
           </div>
 
           {/* RIGHT SIDEBAR COLUMN (4 Columns on desktop) - Separated naturally by thin crisp lines */}
-          {/* RIGHT SIDEBAR COLUMN - Separated naturally by thin crisp lines */}
           <div className={`md:col-span-4 ${publicSettings.profile_sidebar_adsterra_code ? 'lg:col-span-3' : 'lg:col-span-4'} pl-0 md:pl-8 border-t md:border-t-0 md:border-l border-slate-200 space-y-8 hidden md:block`}>
             <div className="sticky top-24 space-y-8">
               
               {/* Rating Summary Breakdown Panel */}
               <div className="space-y-4 font-sans">
                 <h3 className="font-extrabold text-[12px] text-slate-400 uppercase tracking-widest">
-                  Merchant Summary
+                  {t("Merchant Summary")}
                 </h3>
 
                 <div className="flex items-baseline gap-2">
                   <div className="text-[48px] font-black text-slate-900 leading-none">
-                    {avgRatingNum > 0 ? avgRating : "-"}
+                    {avgRatingNum > 0 ? n(avgRating) : "-"}
                   </div>
                   <div className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">/ 5.0</div>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="text-slate-900 font-extrabold text-sm uppercase tracking-wide">
-                    {ratingText}
+                    {t(ratingText)}
                   </div>
                   <TrustpilotStars rating={avgRatingNum} size="md" />
-                  <div className="text-xs text-slate-500 font-semibold pt-1">
-                    Based on {reviewsData.total} ratings
+                  <div className="text-xs text-slate-550 font-semibold pt-1">
+                    {t("Based on")} {n(reviewsData.total)} {t("ratings")}
                   </div>
                 </div>
 
@@ -1737,7 +1737,7 @@ export default function PageProfile() {
                           appliedRatings.includes(star) ? "bg-emerald-50/50 font-bold" : ""
                         }`}
                       >
-                        <div className="w-10 text-slate-600 hover:underline">{star}-star</div>
+                        <div className="w-10 text-slate-600 hover:underline">{n(star)}-{t("star")}</div>
                         <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
@@ -1750,7 +1750,7 @@ export default function PageProfile() {
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <div className="w-8 text-right font-black text-slate-805">{percent}%</div>
+                        <div className="w-8 text-right font-black text-slate-805">{n(percent)}%</div>
                       </div>
                     );
                   })}
@@ -1787,7 +1787,7 @@ export default function PageProfile() {
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0 select-none">
                 <span className="text-lg font-black text-slate-900 tracking-tight">
-                  Refine Reviews
+                  {t("Refine Reviews")}
                 </span>
                 <button
                   type="button"
@@ -1803,7 +1803,7 @@ export default function PageProfile() {
                 {/* 1. Rating buttons block */}
                 <div className="pt-0">
                   <h4 className="font-extrabold text-slate-900 text-[14px] uppercase tracking-wider mb-3">
-                    Filter by Rating
+                    {t("Filter by Rating")}
                   </h4>
                   <div className="flex items-center justify-between gap-1 bg-slate-50 border border-slate-200/60 p-1.5 rounded-xl">
                     {[5, 4, 3, 2, 1].map((star) => {
@@ -1826,7 +1826,7 @@ export default function PageProfile() {
                           }`}
                         >
                           <span className="text-amber-500 font-bold">★</span>
-                          <span>{star}</span>
+                          <span>{n(star)}</span>
                         </button>
                       );
                     })}
@@ -1836,7 +1836,7 @@ export default function PageProfile() {
                 {/* 2. Checkboxes filter options */}
                 <div className="pt-6">
                   <h4 className="font-extrabold text-slate-900 text-[14px] uppercase tracking-wider mb-4">
-                    Assurance Metrics
+                    {t("Assurance Metrics")}
                   </h4>
                   <div className="space-y-4">
                     {/* Verified checkbox badge */}
@@ -1849,10 +1849,10 @@ export default function PageProfile() {
                       />
                       <div className="flex-1">
                         <span className="font-black text-[14px] text-slate-800 group-hover:text-slate-950">
-                          Verified Buyer Review
+                          {t("Verified Buyer Review")}
                         </span>
                         <p className="text-[12px] text-slate-500 mt-0.5 leading-normal">
-                          Only lists reviews with verified purchase confirmation.
+                          {t("Only lists reviews with verified purchase confirmation.")}
                         </p>
                       </div>
                     </label>
@@ -1867,10 +1867,10 @@ export default function PageProfile() {
                       />
                       <div className="flex-1">
                         <span className="font-black text-[14px] text-slate-800 group-hover:text-slate-950">
-                          Contains Shop Replies
+                          {t("Contains Shop Replies")}
                         </span>
                         <p className="text-[12px] text-slate-500 mt-0.5 leading-normal">
-                          Only displays reviews with answers from the seller profile.
+                          {t("Only displays reviews with answers from the seller profile.")}
                         </p>
                       </div>
                     </label>
@@ -1880,7 +1880,7 @@ export default function PageProfile() {
                 {/* 3. Range dates posted */}
                 <div className="pt-6">
                   <h4 className="font-extrabold text-slate-900 text-[14px] uppercase tracking-wider mb-4">
-                    Date of Submission
+                    {t("Date of Submission")}
                   </h4>
                   <div className="space-y-3">
                     {[
@@ -1909,7 +1909,7 @@ export default function PageProfile() {
                         </div>
                         {opt.isDefault && (
                           <span className="text-[9px] font-black text-slate-450 bg-slate-100 rounded px-1.5 py-0.5 uppercase tracking-wider">
-                            default
+                            {t("default")}
                           </span>
                         )}
                       </label>
@@ -1925,7 +1925,7 @@ export default function PageProfile() {
                   onClick={resetFiltersInDrawer}
                   className="text-xs font-black uppercase text-slate-500 hover:text-slate-800 py-3 px-4 transition-colors select-none cursor-pointer"
                 >
-                  Reset All
+                  {t("Reset All")}
                 </button>
                 <button
                   type="button"
@@ -1934,9 +1934,9 @@ export default function PageProfile() {
                   className="flex-1 text-xs font-black uppercase text-white bg-slate-900 rounded-xl py-3.5 px-6 transition-all hover:bg-slate-800 text-center shadow-md select-none flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {previewLoading ? (
-                    <span>Updating list...</span>
+                    <span>{t("Updating list...")}</span>
                   ) : (
-                    <span>Display ({previewCount.toLocaleString()}) Results</span>
+                    <span>{t("Display")} ({n(previewCount.toLocaleString())}) {t("Results")}</span>
                   )}
                 </button>
               </div>
@@ -1995,7 +1995,7 @@ export default function PageProfile() {
               
               {/* Image counter indicator */}
               <div className="mt-4 text-white/70 font-semibold text-sm bg-white/10 px-3 py-1 rounded-full">
-                {galleryIndex + 1} / {galleryImages.length}
+                {n(galleryIndex + 1)} / {n(galleryImages.length)}
               </div>
             </div>
 
@@ -2015,7 +2015,7 @@ export default function PageProfile() {
 
             {/* Tap or Swipe instruction for mobile */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-xs font-semibold select-none pointer-events-none text-center">
-              {galleryImages.length > 1 ? "Tap arrows or swipe to navigate" : "Click anywhere outside to close"}
+              {galleryImages.length > 1 ? t("Tap arrows or swipe to navigate") : t("Click anywhere outside to close")}
             </div>
           </div>
         )}

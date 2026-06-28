@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 function AdBanner({ htmlCode }: { htmlCode: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,7 @@ interface AnimatedCounterProps {
 }
 
 function AnimatedCounter({ value, duration = 1200 }: AnimatedCounterProps) {
+  const { n } = useLanguage();
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -79,10 +81,11 @@ function AnimatedCounter({ value, duration = 1200 }: AnimatedCounterProps) {
     };
   }, [value, duration]);
 
-  return <>{count.toLocaleString()}</>;
+  return <>{n(count.toLocaleString())}</>;
 }
 
 export default function Home() {
+  const { t, n } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -342,18 +345,17 @@ export default function Home() {
           <div className="flex justify-center mb-5 select-none">
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#e6f7ef] text-[#0fbc6f] text-xs font-black tracking-wider uppercase rounded-full border border-[#0fbc6f]/10 shadow-3xs">
               <ShieldCheck className="w-3.5 h-3.5 text-[#0fbc6f]" />
-              SHOP SMART, STAY SAFE
+              {t("SHOP SMART, STAY SAFE")}
             </span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-[54px] font-black tracking-tight text-slate-900 mb-5 leading-[1.1] select-none">
-            Check Facebook Pages <br />
-            <span className="text-[#0fbc6f]">Before You Pay</span>
+            {t("Check Facebook Pages")} <br />
+            <span className="text-[#0fbc6f]">{t("Before You Pay")}</span>
           </h1>
 
           <p className="text-[14px] sm:text-[15px] md:text-[17px] text-slate-500 font-semibold max-w-2xl mx-auto mb-8 leading-relaxed">
-            Search sellers, usernames, and bKash numbers to avoid fraud and shop
-            with confidence.
+            {t("Search sellers, usernames, and bKash numbers to avoid fraud and shop with confidence.")}
           </p>
 
           {/* Search container */}
@@ -382,7 +384,7 @@ export default function Home() {
                       if (e.target.value.trim().length >= 2)
                         setShowDropdown(true);
                     }}
-                    placeholder="Search page name, page URL, bKash / Nagad number..."
+                    placeholder={t("Search page name, page URL, bKash / Nagad number...")}
                     className="w-full h-full bg-transparent border-none outline-none text-slate-900 text-[15px] font-medium"
                   />
                 </form>
@@ -419,7 +421,7 @@ export default function Home() {
                   }
                   if (searchResults.length > 0) setShowDropdown(true);
                 }}
-                placeholder="Search page name, page URL, bKash / Nagad number..."
+                placeholder={t("Search page name, page URL, bKash / Nagad number...")}
                 className={`w-full py-4 md:py-5 pl-12 md:pl-16 pr-16 md:pr-20 bg-white text-base md:text-lg font-medium outline-none text-slate-900 placeholder-slate-400 transition-all duration-150 ${
                   isDesktopDropdownOpen
                     ? "rounded-t-[28px] rounded-b-none border-t border-x border-b border-slate-200 shadow-xl"
@@ -495,39 +497,39 @@ export default function Home() {
                               </h4>
                               {page.status_badge === 'Verified Marketplace Seller' && (
                                 <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  <ShieldCheck className="w-3 h-3" /> Verified Seller
+                                  <ShieldCheck className="w-3 h-3" /> {t("Verified Seller")}
                                 </span>
                               )}
                               {page.status_badge === 'Gold Seller' && (
                                 <span className="shrink-0 bg-amber-50 text-amber-700 border border-amber-300/60 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  <Trophy className="w-3 h-3 text-amber-500 fill-amber-500" /> Gold Seller
+                                  <Trophy className="w-3 h-3 text-amber-500 fill-amber-500" /> {t("Gold Seller")}
                                 </span>
                               )}
                               {page.status_badge === 'Suspicious' && (
                                 <span className="shrink-0 bg-amber-50 text-amber-600 border border-amber-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  ⚠️ Suspicious
+                                  ⚠️ {t("Suspicious")}
                                 </span>
                               )}
                               {page.status_badge === 'Under Review' && (
                                 <span className="shrink-0 bg-blue-50 text-[#205cd4] border border-blue-200 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  🔍 Under Review
+                                  🔍 {t("Under Review")}
                                 </span>
                               )}
                               {page.status_badge && page.status_badge.includes('Reported as Fraud') && (
                                 <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-250 text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  <ShieldAlert className="h-3 w-3" /> Fraud
+                                  <ShieldAlert className="h-3 w-3" /> {t("Fraud")}
                                 </span>
                               )}
                             </div>
                             <p className="text-[13px] text-slate-500 truncate">
                               {page.is_contact_only ? (
-                                <>{page.category || "Contact Number"} • {page.review_count || 0} reports</>
+                                <>{t(page.category || "Contact Number")} • {n(page.review_count || 0)} {t("reports")}</>
                               ) : (
                                 <>
                                   {page.current_username
                                     ? `@${page.current_username}`
-                                    : "Facebook Page"}{" "}
-                                  • {page.review_count || 0} reviews
+                                    : t("Facebook Page")}{" "}
+                                  • {n(page.review_count || 0)} {t("reviews")}
                                 </>
                               )}
                             </p>
@@ -541,7 +543,7 @@ export default function Home() {
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     className="inline-flex items-center text-blue-600 hover:text-blue-800 p-0.5 shrink-0 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-                                    title="View Link"
+                                    title={t("Page Details")}
                                   >
                                     <Facebook className="h-3 w-3 fill-current" />
                                   </a>
@@ -552,12 +554,12 @@ export default function Home() {
                           <div className="shrink-0 flex items-center gap-2">
                             {(page.fraud_report_count || 0) > 0 && !page.is_contact_only && (
                               <div
-                                title="Risk Reports"
+                                title={t("Risk Reports")}
                                 className="flex items-center bg-rose-50 border border-rose-100 px-2 py-1 rounded"
                               >
                                 <ShieldAlert className="h-3 w-3 mr-1 text-rose-500 shrink-0" />
                                 <span className="text-xs font-bold text-rose-700">
-                                  {page.fraud_report_count}
+                                  {n(page.fraud_report_count)}
                                 </span>
                               </div>
                             )}
@@ -567,7 +569,7 @@ export default function Home() {
                                   className={`h-3 w-3 mr-1 ${rating > 0 ? "text-emerald-500 fill-emerald-500" : "text-slate-400 fill-slate-400"}`}
                                 />
                                 <span className="text-sm font-bold text-emerald-700">
-                                  {rating > 0 ? rating.toFixed(1) : "0.0"}
+                                  {rating > 0 ? n(rating.toFixed(1)) : n("0.0")}
                                 </span>
                               </div>
                             )}
@@ -575,7 +577,7 @@ export default function Home() {
                               <div className="flex items-center bg-rose-50 px-2 py-1 rounded border border-rose-100">
                                 <AlertTriangle className="h-3 w-3 mr-1 text-rose-500" />
                                 <span className="text-xs font-bold text-rose-700">
-                                  {page.status_badge === 'Reported as Fraud' ? 'Reported' : page.status_badge || 'Suspicious'}
+                                  {page.status_badge === 'Reported as Fraud' ? t("Reported") : t(page.status_badge || 'Suspicious')}
                                 </span>
                               </div>
                             )}
@@ -585,8 +587,7 @@ export default function Home() {
                     })
                   ) : (
                     <div className="px-4 py-8 text-center text-slate-500 italic text-sm">
-                      No exact matches found. Search for close matches or create
-                      a new page.
+                      {t("No exact matches found.")} {t("Search for close matches or create a new page.")}
                     </div>
                   )}
                 </div>
@@ -599,7 +600,7 @@ export default function Home() {
                     }}
                     className="w-full p-4 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-bold flex items-center justify-center gap-2 transition-colors mt-2 cursor-pointer"
                   >
-                    Show all results <ChevronRight className="h-4 w-4" />
+                    {t("Show all results")} <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -610,7 +611,7 @@ export default function Home() {
               popularSearches.length > 0 && (
                 <div className="md:hidden flex-1 overflow-y-auto bg-white p-4 text-left">
                   <div className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
-                    Popular Searches
+                    {t("Popular Searches")}
                   </div>
                   <div className="flex flex-col gap-3">
                     {popularSearches.map((term) => (
@@ -635,7 +636,7 @@ export default function Home() {
 
           {/* Interactive Suggestions under search */}
           <div className="text-[12px] md:text-sm text-slate-400 font-bold mb-6 px-4 leading-normal select-none">
-            Examples:{" "}
+            {t("Examples")}:{" "}
             <span
               className="text-[#0fbc6f] hover:text-[#0da662] cursor-pointer hover:underline underline-offset-2 duration-150"
               onClick={() => {
@@ -671,14 +672,14 @@ export default function Home() {
               className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 bg-rose-50 border border-rose-200 text-rose-700 hover:text-rose-800 rounded-2xl font-bold text-sm sm:text-base hover:bg-rose-100 active:scale-98 transition-all shadow-3xs"
             >
               <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 shrink-0" />
-              Report a Fraud
+              {t("Report a Fraud")}
             </Link>
             <Link
               to="/write-review"
               className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:text-emerald-800 rounded-2xl font-bold text-sm sm:text-base hover:bg-emerald-100 active:scale-98 transition-all shadow-3xs"
             >
               <SquarePen className="h-4 w-4 sm:h-5 sm:w-5 text-[#0fbc6f] shrink-0" />
-              Write a Review
+              {t("Write a Review")}
             </Link>
           </div>
 
@@ -696,7 +697,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalPagesScanned || 0} />
                 </span>
                 <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
-                  Pages Scanned
+                  {t("Pages Scanned")}
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-0.5">
@@ -705,7 +706,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalFraudPages || 0} />
                 </span>
                 <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
-                  Fraud Pages
+                  {t("Fraud Pages")}
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-0.5">
@@ -714,7 +715,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
                 </span>
                 <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
-                  Scam Numbers
+                  {t("Scam Numbers")}
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-center px-0.5">
@@ -723,7 +724,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
                 </span>
                 <span className="text-[10px] text-slate-500 font-black mt-1 leading-tight tracking-tight">
-                  Scams Today
+                  {t("New Scams Today")}
                 </span>
               </div>
             </div>
@@ -739,7 +740,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalPagesScanned || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Total Pages Scanned
+                  {t("Total Pages Scanned")}
                 </span>
               </div>
 
@@ -752,7 +753,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalFraudPages || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Fraud Pages
+                  {t("Fraud Pages")}
                 </span>
               </div>
 
@@ -765,7 +766,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.totalFraudNumbers || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  Scam Numbers
+                  {t("Scam Numbers")}
                 </span>
               </div>
 
@@ -778,7 +779,7 @@ export default function Home() {
                   <AnimatedCounter value={stats?.todaysDetectedFraudPages || 0} />
                 </span>
                 <span className="text-[12px] text-slate-500 font-extrabold mt-1.5 leading-tight">
-                  New Scams Today
+                  {t("New Scams Today")}
                 </span>
               </div>
             </div>
@@ -794,14 +795,14 @@ export default function Home() {
             <div className="flex items-center gap-2.5">
               <ShieldAlert className="w-[21px] h-[21px] text-[#f43f5e] shrink-0" />
               <h2 className="text-[16px] sm:text-[18px] lg:text-[21px] font-black tracking-tight text-slate-900 leading-none">
-                Recently Detected Fraud Pages
+                {t("Recently Detected Fraud Pages")}
               </h2>
             </div>
             <Link
               to="/fraud-pages"
               className="text-xs font-black text-[#0fbc6f] hover:text-[#0da662] hover:underline flex items-center gap-1 select-none"
             >
-              View All <ChevronRight className="w-3.5 h-3.5" />
+              {t("View All")} <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
@@ -824,7 +825,7 @@ export default function Home() {
             </div>
           ) : recentPages.length === 0 ? (
             <div className="bg-white p-6 rounded-2xl border border-slate-150 text-center text-slate-500 italic text-sm">
-              Currently no threat entries indexed.
+              {t("Currently no threat entries indexed.")}
             </div>
           ) : (
             /* Auto-scrollable horizontal carousel controlled by touch/swipe */
@@ -881,7 +882,7 @@ export default function Home() {
                               {listedDate}
                             </span>
                             <span className="shrink-0 bg-rose-50 text-[#f43f5e] border border-rose-100/85 text-[8px] md:text-[9px] font-black uppercase tracking-widest px-1 py-0.5 md:px-1.5 rounded-md">
-                              Fraud
+                              {t("Fraud")}
                             </span>
                           </div>
                         </div>
@@ -900,7 +901,7 @@ export default function Home() {
             <div className="flex items-center gap-2.5">
               <MessageSquare className="w-[19px] h-[19px] text-[#0fbc6f] shrink-0" />
               <h2 className="text-[16px] sm:text-[18px] lg:text-[21px] font-black tracking-tight text-slate-900 leading-none">
-                Recent Reviews
+                {t("Recent Reviews")}
               </h2>
             </div>
           </div>
@@ -933,7 +934,7 @@ export default function Home() {
             </div>
           ) : recentReviews.length === 0 ? (
             <div className="bg-white p-6 rounded-2xl border border-slate-150 text-center text-slate-400 italic text-sm">
-              Currently no public reviews registered.
+              {t("Currently no public reviews registered.")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -951,8 +952,8 @@ export default function Home() {
                       : "U";
                 const reviewerName =
                   review.user_id === "anonymous"
-                    ? "Anonymous User"
-                    : review.reviewer_name || "Verified User";
+                    ? t("Anonymous User")
+                    : review.reviewer_name || t("Verified User");
 
                 return (
                   <Link
@@ -981,7 +982,7 @@ export default function Home() {
                                   new Date(review.created_at),
                                   "MMM dd, yyyy",
                                 )
-                              : "Recently"}
+                              : t("Recently")}
                           </p>
                         </div>
                       </div>
@@ -1029,7 +1030,7 @@ export default function Home() {
                         </div>
                       )}
                       <span className="font-extrabold text-[12.5px] text-slate-800 truncate group-hover:text-[#0fbc6f] transition-colors leading-none">
-                        {review.current_name || "Facebook Page"}
+                        {review.current_name || t("Facebook Page")}
                       </span>
                     </div>
                   </Link>
@@ -1049,11 +1050,10 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-[16px] sm:text-[18px] font-black text-slate-900 leading-tight">
-                Together, we can make Facebook a safer place to buy and sell.
+                {t("Together, we can make Facebook a safer place to buy and sell.")}
               </h3>
               <p className="text-slate-500 text-xs sm:text-[13px] font-bold mt-1 max-w-xl">
-                Your reviews help protect others. Share your experiences with
-                other online buyers.
+                {t("Your reviews help protect others. Share your experiences with other online buyers.")}
               </p>
             </div>
           </div>
@@ -1063,7 +1063,7 @@ export default function Home() {
             className="shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-[#0fbc6f] hover:text-[#0da662] border border-emerald-200/70 rounded-xl font-extrabold text-[13px] tracking-tight shadow-3xs transition-all cursor-pointer outline-none"
           >
             <SquarePen className="w-4.5 h-4.5" />
-            <span>Write a Review</span>
+            <span>{t("Write a Review")}</span>
           </Link>
         </section>
 
@@ -1071,18 +1071,17 @@ export default function Home() {
         <section className="flex flex-col items-center select-none text-center pt-8">
           {/* Badge */}
           <span className="inline-flex items-center px-4 py-1.5 border border-[#0fbc6f]/15 bg-emerald-50/20 text-[#0fbc6f] text-[11px] font-black tracking-widest uppercase rounded-full">
-            HOW IT WORKS
+            {t("HOW IT WORKS")}
           </span>
 
           {/* Secondary Display Heading */}
           <h2 className="text-2xl sm:text-3.5xl font-black text-slate-900 tracking-tight mt-4">
-            4 simple steps to shop with confidence
+            {t("4 simple steps to shop with confidence")}
           </h2>
 
           {/* Subheading text */}
           <p className="text-[13px] md:text-[14px] text-slate-500 font-semibold max-w-xl mx-auto mt-3 leading-relaxed">
-            FB Page Review helps you research any Facebook page or seller using
-            real community feedback and trust signals.
+            {t("FB Page Review helps you research any Facebook page or seller using real community feedback and trust signals.")}
           </p>
 
           {/* Connected Grid Cards and Wave Layout */}
@@ -1151,11 +1150,10 @@ export default function Home() {
                     <Search className="w-5.5 h-5.5 md:w-6 md:h-6" />
                   </div>
                   <h3 className="font-extrabold text-slate-900 text-[14px] md:text-[15px] mb-1 md:mb-2">
-                    Search seller/page
+                    {t("Search seller/page")}
                   </h3>
                   <p className="text-slate-400 text-[10.5px] md:text-[11.5px] font-bold leading-relaxed">
-                    Look up a Facebook page or bKash number to pull up reports
-                    and ratings.
+                    {t("Look up a Facebook page or bKash number to pull up reports and ratings.")}
                   </p>
                 </div>
               </div>
@@ -1195,11 +1193,10 @@ export default function Home() {
                     <MessageSquare className="w-5.5 h-5.5 md:w-6 md:h-6" />
                   </div>
                   <h3 className="font-extrabold text-slate-900 text-[14px] md:text-[15px] mb-1 md:mb-2">
-                    Review community feedback
+                    {t("Review community feedback")}
                   </h3>
                   <p className="text-slate-400 text-[10.5px] md:text-[11.5px] font-bold leading-relaxed">
-                    Read reviews, verified transaction dates, scam tags, and
-                    buyer experiences.
+                    {t("Read reviews, verified transaction dates, scam tags, and buyer experiences.")}
                   </p>
                 </div>
               </div>
@@ -1239,11 +1236,10 @@ export default function Home() {
                     <ShieldCheck className="w-5.5 h-5.5 md:w-6 md:h-6" />
                   </div>
                   <h3 className="font-extrabold text-slate-900 text-[14px] md:text-[15px] mb-1 md:mb-2">
-                    Check seller ratings and fraud warnings
+                    {t("Check seller ratings and fraud warnings")}
                   </h3>
                   <p className="text-slate-400 text-[10.5px] md:text-[11.5px] font-bold leading-relaxed">
-                    See customer reviews, verification badges, and automated risk
-                    alerts.
+                    {t("See customer reviews, verification badges, and automated risk alerts.")}
                   </p>
                 </div>
               </div>
@@ -1266,11 +1262,10 @@ export default function Home() {
                     <Lock className="w-5.5 h-5.5 md:w-6 md:h-6" />
                   </div>
                   <h3 className="font-extrabold text-slate-900 text-[14px] md:text-[15px] mb-1 md:mb-2">
-                    Act safely
+                    {t("Act safely")}
                   </h3>
                   <p className="text-slate-400 text-[10.5px] md:text-[11.5px] font-bold leading-relaxed">
-                    Make informed decisions, avoid risky pages, and shop with
-                    peace of mind.
+                    {t("Make informed decisions, avoid risky pages, and shop with peace of mind.")}
                   </p>
                 </div>
               </div>
@@ -1285,11 +1280,10 @@ export default function Home() {
               </div>
               <div>
                 <h4 className="font-extrabold text-slate-900 text-[14.5px] leading-tight">
-                  Stronger together, safer marketplace.
+                  {t("Stronger together, safer marketplace.")}
                 </h4>
                 <p className="text-slate-500 text-[12px] font-bold mt-0.5 leading-normal max-w-xl">
-                  Real reviews from real buyers help everyone make smarter,
-                  safer choices.
+                  {t("Real reviews from real buyers help everyone make smarter, safer choices.")}
                 </p>
               </div>
             </div>
@@ -1297,17 +1291,17 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-5 sm:gap-6 w-full xl:w-auto xl:justify-end border-t border-emerald-100/30 pt-5 xl:pt-0 xl:border-t-0">
               <div className="flex items-center gap-3 font-extrabold text-slate-800 text-[13px] shrink-0">
                 <Users className="w-5 h-5 text-[#0fbc6f]" />
-                <span>Community Powered</span>
+                <span>{t("Community Powered")}</span>
               </div>
               <div className="h-6 w-px bg-slate-200 hidden sm:block shrink-0" />
               <div className="flex items-center gap-3 font-extrabold text-slate-800 text-[13px] shrink-0">
                 <ShieldCheck className="w-5 h-5 text-[#0fbc6f]" />
-                <span>Transparent & Reliable</span>
+                <span>{t("Transparent & Reliable")}</span>
               </div>
               <div className="h-6 w-px bg-slate-200 hidden sm:block shrink-0" />
               <div className="flex items-center gap-3 font-extrabold text-slate-800 text-[13px] shrink-0">
                 <Lock className="w-5 h-5 text-[#0fbc6f]" />
-                <span>Privacy Focused</span>
+                <span>{t("Privacy Focused")}</span>
               </div>
             </div>
           </div>

@@ -1,15 +1,17 @@
 import React from 'react';
 import { Search, PenBox, ShieldCheck, Flag, BarChart } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function HowReviewsWork() {
+  const { t } = useLanguage();
   return (
     <div className="bg-slate-50 min-h-screen py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 md:p-12">
           
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-6 tracking-tight text-center">How Reviews Work</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-6 tracking-tight text-center">{t("How Reviews Work")}</h1>
           <p className="text-lg text-slate-600 text-center max-w-2xl mx-auto mb-16">
-            We've built a transparent, step-by-step system to help users research, report, and review Facebook pages safely.
+            {t("We've built a transparent, step-by-step system to help users research, report, and review Facebook pages safely.")}
           </p>
 
           <div className="space-y-12 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
@@ -21,10 +23,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">1. Users Submit Reviews</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">{t("1. Users Submit Reviews")}</h3>
                 </div>
                 <div className="text-slate-600">
-                  Users sign up and submit reviews or fraud reports. They provide the FB page link, payment numbers, and upload evidence like screenshots.
+                  {t("Users sign up and submit reviews or fraud reports. They provide the FB page link, payment numbers, and upload evidence like screenshots.")}
                 </div>
               </div>
             </div>
@@ -36,10 +38,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">2. System Generates Safety Badges</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">{t("2. System Generates Safety Badges")}</h3>
                 </div>
                 <div className="text-slate-600">
-                  Our system generates safety badges and flags based on the ratio of positive reviews to fraud reports, and displays evidence uploaded by users.
+                  {t("Our system generates safety badges and flags based on the ratio of positive reviews to fraud reports, and displays evidence uploaded by users.")}
                 </div>
               </div>
             </div>
@@ -51,10 +53,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">3. Buyers Search Before Buying</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">{t("3. Buyers Search Before Buying")}</h3>
                 </div>
                 <div className="text-slate-600">
-                  Before sending money, buyers can search for the seller's page link or bKash number on our platform to see safety badges and read past reviews.
+                  {t("Before sending money, buyers can search for the seller's page link or bKash number on our platform to see safety badges and read past reviews.")}
                 </div>
               </div>
             </div>
@@ -66,10 +68,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">4. Businesses Claim & Reply</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">{t("4. Businesses Claim & Reply")}</h3>
                 </div>
                 <div className="text-slate-600">
-                  Page owners can claim their profile on FB Page Review. Once verified, they can reply to user reviews and submit disputes for incorrect info.
+                  {t("Page owners can claim their profile on FB Page Review. Once verified, they can reply to user reviews and submit disputes for incorrect info.")}
                 </div>
               </div>
             </div>
@@ -81,10 +83,10 @@ export default function HowReviewsWork() {
               </div>
               <div className="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] p-4 rounded border border-slate-100 bg-white shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-slate-800 text-lg">5. Admin Moderation</h3>
+                  <h3 className="font-bold text-slate-800 text-lg">{t("5. Admin Moderation")}</h3>
                 </div>
                 <div className="text-slate-600">
-                  Our admin team reviews disputes, removes spam or abusive content, and ensures the platform remains a reliable tool for everyone.
+                  {t("Our admin team reviews disputes, removes spam or abusive content, and ensures the platform remains a reliable tool for everyone.")}
                 </div>
               </div>
             </div>

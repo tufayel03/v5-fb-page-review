@@ -3,8 +3,10 @@ import { useParams, Link, useNavigate } from "react-router";
 import { ChevronLeft, Calendar, User } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function BlogPost() {
+  const { t, language } = useLanguage();
   const { slug } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState<any>(null);
@@ -18,12 +20,12 @@ export default function BlogPost() {
           if (res.status === 404) {
             navigate("/blog", { replace: true });
           }
-          throw new Error("Failed to load");
+          throw new Error(t("Failed to load"));
         }
         const data = await res.json();
         setPost(data);
         if (data?.title) {
-          document.title = `${data.title} | FB Page Review Blog`;
+          document.title = `${data.title} | ${t("FB Page Review Blog")}`;
         }
       } catch (err) {
         console.error(err);
@@ -32,7 +34,7 @@ export default function BlogPost() {
       }
     };
     fetchPost();
-  }, [slug, navigate]);
+  }, [slug, navigate, t]);
 
   if (loading) {
     return (
@@ -55,14 +57,15 @@ export default function BlogPost() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' });
+    const dateLocale = language === 'bn' ? 'bn-BD' : 'en-US';
+    return date.toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
     <article className="max-w-4xl mx-auto px-4 py-16">
       <Link to="/blog" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-emerald-600 mb-8 transition-colors">
         <ChevronLeft className="h-4 w-4 mr-1" />
-        Back to Blog
+        {t("Back to Blog")}
       </Link>
 
       <div className="mb-12">

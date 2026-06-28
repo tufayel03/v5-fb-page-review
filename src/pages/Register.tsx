@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, MessageSquare, BarChart3, User, Mail, Lock, Users, ChevronRight, Eye, EyeOff, Star } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Register() {
+  const { t, n } = useLanguage();
   const [formData, setFormData] = useState({ full_name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,9 +70,9 @@ export default function Register() {
             {/* LEFT COLUMN: Features List */}
             <div className="lg:col-span-6 p-8 sm:p-12 bg-white flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-100">
               <div>
-                <h1 className="text-[32px] font-black text-[#0f172a] tracking-tight leading-tight">Create a Business Account</h1>
+                <h1 className="text-[32px] font-black text-[#0f172a] tracking-tight leading-tight">{t("Create a Business Account")}</h1>
                 <p className="text-slate-500 text-[14.5px] leading-relaxed mt-3.5 font-medium max-w-md">
-                  Claim and manage your Facebook pages. Reach millions of customers and build trust.
+                  {t("Claim and manage your Facebook pages. Reach millions of customers and build trust.")}
                 </p>
                 
                 {/* Visual Accent Green Bar */}
@@ -84,9 +86,9 @@ export default function Register() {
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Claimed Page Management</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Claimed Page Management")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Manage and verify your claimed pages with ease.
+                        {t("Manage and verify your claimed pages with ease.")}
                       </p>
                     </div>
                   </div>
@@ -97,9 +99,9 @@ export default function Register() {
                       <MessageSquare className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Reply to Reviews</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Reply to Reviews")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Engage with customers by replying to reviews directly.
+                        {t("Engage with customers by replying to reviews directly.")}
                       </p>
                     </div>
                   </div>
@@ -110,9 +112,9 @@ export default function Register() {
                       <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15.5px] font-bold text-slate-900">Business Dashboard</h3>
+                      <h3 className="text-[15.5px] font-bold text-slate-900">{t("Business Dashboard")}</h3>
                       <p className="text-slate-500 text-[13.5px] leading-relaxed mt-1 font-medium">
-                        Track performance, insights, and activity in one place.
+                        {t("Track performance, insights, and activity in one place.")}
                       </p>
                     </div>
                   </div>
@@ -123,9 +125,9 @@ export default function Register() {
             {/* RIGHT COLUMN: Business Register Form */}
             <div className="lg:col-span-6 p-8 sm:p-12 flex flex-col justify-center">
               <div className="lg:hidden mb-6">
-                <h1 className="text-2xl font-black text-slate-900">Create a Business Account</h1>
+                <h1 className="text-2xl font-black text-slate-900">{t("Create a Business Account")}</h1>
                 <p className="text-slate-500 text-sm font-medium mt-1">
-                  Claim and manage your Facebook pages. Reach millions of customers and build trust.
+                  {t("Claim and manage your Facebook pages. Reach millions of customers and build trust.")}
                 </p>
                 
                 {/* Visual Accent Green Bar */}
@@ -134,19 +136,19 @@ export default function Register() {
 
               {error && (
                 <div className="bg-rose-50 text-rose-600 text-[13.5px] font-bold p-3.5 rounded-xl mb-6 border border-rose-100">
-                  {error}
+                  {t(error)}
                 </div>
               )}
 
               <form onSubmit={handleRegister} className="space-y-4.5 text-left">
                 {/* Full Name input */}
                 <div>
-                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">Full Name</label>
+                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">{t("Full Name")}</label>
                   <div className="relative">
                     <input 
                       required
                       type="text" 
-                      placeholder="Enter your full name"
+                      placeholder={t("Enter your full name")}
                       value={formData.full_name}
                       onChange={e => setFormData({...formData, full_name: e.target.value})}
                       className="w-full border border-slate-200 rounded-xl pl-4 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/50 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -159,12 +161,12 @@ export default function Register() {
 
                 {/* Email input */}
                 <div>
-                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">Email</label>
+                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">{t("Email")}</label>
                   <div className="relative">
                     <input 
                       required
                       type="email" 
-                      placeholder="Enter email address"
+                      placeholder={t("Enter email address")}
                       value={formData.email}
                       onChange={e => setFormData({...formData, email: e.target.value})}
                       className="w-full border border-slate-200 rounded-xl pl-4 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/50 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -177,12 +179,12 @@ export default function Register() {
 
                 {/* Password input */}
                 <div>
-                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">Password</label>
+                  <label className="block text-[13px] font-extrabold text-slate-800 mb-1.5">{t("Password")}</label>
                   <div className="relative">
                     <input 
                       required
                       type="password" 
-                      placeholder="Create a strong password"
+                      placeholder={t("Create a strong password")}
                       value={formData.password}
                       onChange={e => setFormData({...formData, password: e.target.value})}
                       className="w-full border border-slate-200 rounded-xl pl-4 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/15 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/50 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -200,22 +202,22 @@ export default function Register() {
                   className="w-full bg-[#0b1329] hover:bg-slate-900 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer mt-3"
                 >
                   <ShieldCheck className="w-4.5 h-4.5 text-emerald-400" />
-                  <span>{loading ? 'Creating...' : 'Sign Up'}</span>
+                  <span>{loading ? t('Creating...') : t('Sign Up')}</span>
                 </button>
               </form>
 
               {/* Or divider */}
               <div className="flex items-center my-6">
                 <div className="flex-1 border-t border-slate-200" />
-                <span className="px-3 text-slate-400 font-extrabold text-[12px] uppercase tracking-wider">or</span>
+                <span className="px-3 text-slate-400 font-extrabold text-[12px] uppercase tracking-wider">{t("or")}</span>
                 <div className="flex-1 border-t border-[#e2e8f0]" />
               </div>
 
               {/* Login Link */}
               <p className="text-center text-[13.5px] text-slate-500 font-bold">
-                Already have an account?{' '}
+                {t("Already have an account?")}{' '}
                 <Link to={loginLink} className="text-[#10b981] font-extrabold hover:underline">
-                  Log In
+                  {t("Log In")}
                 </Link>
               </p>
 
@@ -229,8 +231,8 @@ export default function Register() {
                     <Users className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[#064e3b] font-bold text-[12.5px] leading-tight">Not a business owner?</p>
-                    <p className="text-[#059669] font-extrabold text-[13px] hover:underline mt-0.5">Sign up as a regular user</p>
+                    <p className="text-[#064e3b] font-bold text-[12.5px] leading-tight">{t("Not a business owner?")}</p>
+                    <p className="text-[#059669] font-extrabold text-[13px] hover:underline mt-0.5">{t("Sign up as a regular user")}</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-[#10b981] group-hover:translate-x-1 transition-transform" />
@@ -242,7 +244,7 @@ export default function Register() {
         {/* Mobile Features List Container */}
         <div className="w-full mt-6 bg-white border border-[#e2e8f0] rounded-3xl p-6 shadow-3xs space-y-4 lg:hidden">
           <div className="border-b border-slate-100 pb-3 mb-2">
-            <h3 className="font-extrabold text-slate-900 text-sm">Why FB Page Review for Business?</h3>
+            <h3 className="font-extrabold text-slate-900 text-sm">{t("Why FB Page Review for Business?")}</h3>
           </div>
           
           <div className="space-y-4">
@@ -252,8 +254,8 @@ export default function Register() {
                   <ShieldCheck className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Claimed Page Management</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Manage and verify your claimed pages with ease.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Claimed Page Management")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Manage and verify your claimed pages with ease.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -265,8 +267,8 @@ export default function Register() {
                   <MessageSquare className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Reply to Reviews</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Engage with customers by replying to reviews directly.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Reply to Reviews")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Engage with customers by replying to reviews directly.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -278,8 +280,8 @@ export default function Register() {
                   <BarChart3 className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[13.5px] font-bold text-slate-900">Business Dashboard</h4>
-                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">Track performance, insights, and activity in one place.</p>
+                  <h4 className="text-[13.5px] font-bold text-slate-900">{t("Business Dashboard")}</h4>
+                  <p className="text-slate-500 text-[11.5px] font-medium leading-normal mt-0.5">{t("Track performance, insights, and activity in one place.")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -304,11 +306,11 @@ export default function Register() {
         <div className="lg:col-span-6 space-y-8 text-left hidden lg:block">
           <div>
             <h1 className="text-4xl lg:text-5.5.xl font-black text-slate-900 tracking-tight leading-none">
-              Join the community <br />
-              <span className="text-[#10b981]">that shops smarter.</span>
+              {t("Join the community")}<br />
+              <span className="text-[#10b981]">{t("that shops smarter.")}</span>
             </h1>
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed mt-4 max-w-lg font-medium">
-              FB Page Review helps you check Facebook pages, share real experiences, and protect others from scams.
+              {t("FB Page Review helps you check Facebook pages, share real experiences, and protect others from scams.")}
             </p>
           </div>
 
@@ -319,7 +321,7 @@ export default function Register() {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Detect</strong> risky Facebook pages
+                <strong className="text-slate-900 font-bold">{t("Detect")}</strong> {t("risky Facebook pages")}
               </span>
             </div>
 
@@ -328,7 +330,7 @@ export default function Register() {
                 <Users className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Real reviews</strong> from verified users
+                <strong className="text-slate-900 font-bold">{t("Real reviews")}</strong> {t("from verified users")}
               </span>
             </div>
 
@@ -337,7 +339,7 @@ export default function Register() {
                 <MessageSquare className="w-4 h-4" />
               </div>
               <span className="text-xs text-slate-600 font-medium">
-                <strong className="text-slate-900 font-bold">Help build</strong> a safer community
+                <strong className="text-slate-900 font-bold">{t("Help build")}</strong> {t("a safer community")}
               </span>
             </div>
           </div>
@@ -347,7 +349,7 @@ export default function Register() {
             {/* Card 1 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-emerald-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 rounded-full">Trusted</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 rounded-full">{t("Trusted")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-slate-950 flex items-center justify-center text-white font-black text-[11px] shrink-0">LW</div>
@@ -358,15 +360,15 @@ export default function Register() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>4.8</span>
-                <span className="text-slate-400 font-normal">(256)</span>
+                <span>{n(4.8)}</span>
+                <span className="text-slate-400 font-normal">({n(256)})</span>
               </div>
             </div>
 
             {/* Card 2 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-amber-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/10 text-amber-600 rounded-full">Caution</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-500/10 text-amber-600 rounded-full">{t("Caution")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 font-black text-[11px] shrink-0">GH</div>
@@ -377,15 +379,15 @@ export default function Register() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>3.1</span>
-                <span className="text-slate-400 font-normal">(42)</span>
+                <span>{n(3.1)}</span>
+                <span className="text-slate-400 font-normal">({n(42)})</span>
               </div>
             </div>
 
             {/* Card 3 */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:border-rose-500/20 transition-all">
               <div className="flex justify-between items-start mb-2.5">
-                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-rose-500/10 text-rose-600 rounded-full">High Risk</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold bg-rose-500/10 text-rose-600 rounded-full">{t("High Risk")}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-black text-[11px] shrink-0">MD</div>
@@ -396,8 +398,8 @@ export default function Register() {
               </div>
               <div className="flex items-center gap-1 mt-3 pt-2 border-t border-slate-50 text-[10px] font-bold text-slate-600">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                <span>1.2</span>
-                <span className="text-slate-400 font-normal">(18)</span>
+                <span>{n(1.2)}</span>
+                <span className="text-slate-400 font-normal">({n(18)})</span>
               </div>
             </div>
           </div>
@@ -406,14 +408,14 @@ export default function Register() {
           <div className="bg-[#f0fdf4]/65 border border-emerald-500/15 rounded-2xl p-5 sm:p-6 shadow-3xs">
             <div className="text-[#10b981] font-black text-4xl leading-none font-serif select-none mb-2">“</div>
             <p className="text-slate-700 font-semibold text-[14.5px] leading-relaxed">
-              FB Page Review saved me from a scam. Now I always check before I buy!
+              {t("FB Page Review saved me from a scam. Now I always check before I buy!")}
             </p>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-[#10b981]/15 text-[#10b981] font-black flex items-center justify-center text-xs shrink-0">JD</div>
                 <div>
-                  <h5 className="font-bold text-slate-900 text-xs">Jane D.</h5>
-                  <span className="text-[#10b981] font-extrabold text-[9px] tracking-wider uppercase block mt-0.5">Verified Reviewer</span>
+                  <h5 className="font-bold text-slate-900 text-xs">{t("Jane D.")}</h5>
+                  <span className="text-[#10b981] font-extrabold text-[9px] tracking-wider uppercase block mt-0.5">{t("Verified Reviewer")}</span>
                 </div>
               </div>
               <div className="flex gap-0.5 text-amber-400">
@@ -428,26 +430,26 @@ export default function Register() {
         {/* RIGHT COLUMN: Signup Card */}
         <div className="lg:col-span-6 flex flex-col justify-center items-center w-full">
           <div className="bg-white border border-slate-100 rounded-[32px] p-6 sm:p-10 shadow-xl w-full max-w-[480px]">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">Create Your Account</h2>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">{t("Create Your Account")}</h2>
             <p className="text-slate-450 text-sm font-medium mt-1 text-center sm:text-left">
-              It only takes a minute.
+              {t("It only takes a minute.")}
             </p>
 
             {error && (
               <div className="bg-rose-50 text-rose-600 text-xs font-bold p-3.5 rounded-xl mt-4 border border-rose-100 text-left">
-                {error}
+                {t(error)}
               </div>
             )}
 
             <form onSubmit={handleRegister} className="space-y-4.5 text-left mt-6">
               {/* Full Name */}
               <div>
-                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Full Name</label>
+                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Full Name")}</label>
                 <div className="relative">
                   <input 
                     required
                     type="text" 
-                    placeholder="Enter your full name"
+                    placeholder={t("Enter your full name")}
                     value={formData.full_name}
                     onChange={e => setFormData({...formData, full_name: e.target.value})}
                     className="w-full border border-slate-200/90 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -460,12 +462,12 @@ export default function Register() {
 
               {/* Email */}
               <div>
-                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Email</label>
+                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Email")}</label>
                 <div className="relative">
                   <input 
                     required
                     type="email" 
-                    placeholder="Enter email address"
+                    placeholder={t("Enter email address")}
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
                     className="w-full border border-slate-200/90 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -478,12 +480,12 @@ export default function Register() {
 
               {/* Password */}
               <div>
-                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">Password</label>
+                <label className="block text-[13px] font-extrabold text-[#0f172a] mb-1.5">{t("Password")}</label>
                 <div className="relative">
                   <input 
                     required
                     type={showPassword ? "text" : "password"} 
-                    placeholder="Create a strong password"
+                    placeholder={t("Create a strong password")}
                     value={formData.password}
                     onChange={e => setFormData({...formData, password: e.target.value})}
                     className="w-full border border-slate-200/90 rounded-xl pl-11 pr-11 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10b981] font-medium text-slate-900 bg-slate-50/40 text-[13.5px] transition-all placeholder:text-slate-400" 
@@ -507,16 +509,16 @@ export default function Register() {
                 type="submit" 
                 className="w-full bg-[#0b1329] hover:bg-slate-900 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-between px-6 text-sm shadow-sm cursor-pointer mt-5 group"
               >
-                <span className="flex-1 text-center">{loading ? 'Creating...' : 'Create Account'}</span>
+                <span className="flex-1 text-center">{loading ? t('Creating...') : t('Create Account')}</span>
                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform shrink-0" />
               </button>
             </form>
 
             {/* Login Link */}
             <p className="text-center text-[13.5px] text-slate-500 font-bold mt-6">
-              Already have an account?{' '}
+              {t("Already have an account?")}{' '}
               <Link to={loginLink} className="text-[#10b981] font-extrabold hover:underline">
-                Log In
+                {t("Log In")}
               </Link>
             </p>
 
@@ -530,8 +532,8 @@ export default function Register() {
                   <Users className="w-4.5 h-4.5" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[#064e3b] font-bold text-[12px] leading-tight font-sans">Are you a business owner?</p>
-                  <p className="text-[#059669] font-extrabold text-[12px] hover:underline mt-0.5 font-sans">Register as a business owner</p>
+                  <p className="text-[#064e3b] font-bold text-[12px] leading-tight font-sans">{t("Are you a business owner?")}</p>
+                  <p className="text-[#059669] font-extrabold text-[12px] hover:underline mt-0.5 font-sans">{t("Register as a business owner")}</p>
                 </div>
               </div>
               <ChevronRight className="w-4.5 h-4.5 text-[#10b981] group-hover:translate-x-1 transition-transform" />
@@ -546,9 +548,9 @@ export default function Register() {
                 <ShieldCheck className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Detect <span className="text-[10px] text-slate-500 font-medium">risky</span>
+                {t("Detect")} <span className="text-[10px] text-slate-500 font-medium">{t("risky")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">Facebook pages</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("Facebook pages")}</p>
             </div>
 
             {/* Column 2 */}
@@ -557,9 +559,9 @@ export default function Register() {
                 <Users className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Real reviews <span className="text-[10px] text-slate-500 font-medium">from</span>
+                {t("Real reviews")} <span className="text-[10px] text-slate-500 font-medium">{t("from")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">verified users</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("verified users")}</p>
             </div>
 
             {/* Column 3 */}
@@ -568,9 +570,9 @@ export default function Register() {
                 <Lock className="w-4.5 h-4.5" />
               </div>
               <h4 className="text-[10.5px] font-extrabold text-slate-900 leading-tight">
-                Help <span className="text-[10px] text-slate-500 font-medium">build a safer</span>
+                {t("Help")} <span className="text-[10px] text-slate-500 font-medium">{t("build a safer")}</span>
               </h4>
-              <p className="text-slate-500 text-[10px] font-medium leading-tight">shopping community</p>
+              <p className="text-slate-555 text-[10px] font-medium leading-tight">{t("shopping community")}</p>
             </div>
           </div>
         </div>

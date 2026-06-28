@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate, useLocation } from 'react-router';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ResetPassword() {
+  const { t, n } = useLanguage();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [newPassword, setNewPassword] = useState('');
@@ -21,7 +23,7 @@ export default function ResetPassword() {
     setMessage('');
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('Passwords do not match'));
       setLoading(false);
       return;
     }
@@ -33,7 +35,7 @@ export default function ResetPassword() {
         body: JSON.stringify({ token, newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Server error');
+      if (!res.ok) throw new Error(data.error || t('Server error'));
       setMessage(data.message);
       setTimeout(() => navigate(loginLink), 3000);
     } catch (err: any) {
@@ -46,9 +48,9 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-black mb-2 text-rose-600">Invalid Link</h1>
-        <p className="text-slate-500 mb-6 font-medium">This password reset link is invalid or has expired.</p>
-        <Link to={isBusiness ? "/business/forgot-password" : "/forgot-password"} className="text-emerald-600 font-bold hover:underline">Request a new link</Link>
+        <h1 className="text-2xl font-black mb-2 text-rose-600">{t("Invalid Link")}</h1>
+        <p className="text-slate-500 mb-6 font-medium">{t("This password reset link is invalid or has expired.")}</p>
+        <Link to={isBusiness ? "/business/forgot-password" : "/forgot-password"} className="text-emerald-600 font-bold hover:underline">{t("Request a new link")}</Link>
       </div>
     );
   }
@@ -56,7 +58,7 @@ export default function ResetPassword() {
   return (
     <div className="max-w-md mx-auto px-4 py-20">
       <div className="bg-white p-8 border border-slate-200 rounded-3xl shadow-sm text-center">
-        <h1 className="text-2xl font-black mb-2 text-slate-800">Set New Password</h1>
+        <h1 className="text-2xl font-black mb-2 text-slate-800">{t("Set New Password")}</h1>
         
         {error && <div className="bg-rose-50 text-rose-600 text-sm font-bold p-3 rounded-lg mb-4">{error}</div>}
         {message && <div className="bg-emerald-50 text-emerald-600 text-sm font-bold p-3 rounded-lg mb-4">{message}</div>}
@@ -64,7 +66,7 @@ export default function ResetPassword() {
         {!message && (
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             <div>
-              <label className="block text-sm font-bold mb-1 text-slate-700">New Password</label>
+              <label className="block text-sm font-bold mb-1 text-slate-700">{t("New Password")}</label>
               <input 
                 required
                 type="password" 
@@ -74,7 +76,7 @@ export default function ResetPassword() {
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1 text-slate-700">Confirm New Password</label>
+              <label className="block text-sm font-bold mb-1 text-slate-700">{t("Confirm New Password")}</label>
               <input 
                 required
                 type="password" 
@@ -84,7 +86,7 @@ export default function ResetPassword() {
               />
             </div>
             <button disabled={loading} type="submit" className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors">
-              {loading ? 'Saving...' : 'Reset Password'}
+              {loading ? t('Saving...') : t('Reset Password')}
             </button>
           </form>
         )}

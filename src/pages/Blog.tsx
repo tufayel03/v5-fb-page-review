@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Search, ChevronLeft, ChevronRight, Calendar, ArrowRight, Pin } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Blog() {
+  const { t, n, language } = useLanguage();
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -55,15 +57,16 @@ export default function Blog() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' });
+    const dateLocale = language === 'bn' ? 'bn-BD' : 'en-US';
+    return date.toLocaleDateString(dateLocale, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-20">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Safety Blog</h1>
+        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">{t("Safety Blog")}</h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Insights, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions.
+          {t("Insights, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions.")}
         </p>
       </div>
 
@@ -71,7 +74,7 @@ export default function Blog() {
         <form onSubmit={handleSearch} className="relative w-full md:w-96">
           <input
             type="text"
-            placeholder="Search articles..."
+            placeholder={t("Search articles...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
@@ -80,14 +83,14 @@ export default function Blog() {
         </form>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Sort by:</label>
+          <label className="text-sm font-medium text-slate-700 whitespace-nowrap">{t("Sort by:")}</label>
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value); setPage(1); }}
             className="w-full md:w-auto bg-white border border-slate-200 text-slate-700 py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
           >
-            <option value="recent">Most Recent</option>
-            <option value="oldest">Oldest</option>
+            <option value="recent">{t("Most Recent")}</option>
+            <option value="oldest">{t("Oldest")}</option>
           </select>
         </div>
       </div>
@@ -107,8 +110,8 @@ export default function Blog() {
         </div>
       ) : blogs.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">No articles found</h2>
-          <p className="text-slate-500">We couldn't find any articles matching your criteria.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">{t("No articles found")}</h2>
+          <p className="text-slate-500">{t("We couldn't find any articles matching your criteria.")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -124,7 +127,7 @@ export default function Blog() {
                 )}
                 {!!post.is_pinned && (
                   <div className="absolute top-3 right-3 bg-emerald-600 text-white text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                    <Pin className="w-3 h-3" /> Pinned
+                    <Pin className="w-3 h-3" /> {t("Pinned")}
                   </div>
                 )}
               </div>
@@ -140,7 +143,7 @@ export default function Blog() {
                   {post.excerpt}
                 </p>
                 <div className="mt-auto flex items-center text-emerald-600 font-bold text-sm">
-                  Read Article <ArrowRight className="h-4 w-4 ml-1.5 transition-transform group-hover:translate-x-1" />
+                  {t("Read Article")} <ArrowRight className="h-4 w-4 ml-1.5 transition-transform group-hover:translate-x-1" />
                 </div>
               </div>
             </Link>
@@ -165,7 +168,7 @@ export default function Blog() {
                 onClick={() => setPage(i + 1)}
                 className={`w-10 h-10 rounded-lg text-sm font-bold transition-colors ${page === i + 1 ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
               >
-                {i + 1}
+                {n(i + 1)}
               </button>
             ))}
           </div>

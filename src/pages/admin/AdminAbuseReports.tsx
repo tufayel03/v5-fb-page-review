@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, Filter, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminAbuseReports() {
+  const { t, n } = useLanguage();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,7 +24,6 @@ export default function AdminAbuseReports() {
       });
   }, []);
 
-  
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -71,10 +72,10 @@ export default function AdminAbuseReports() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <AlertTriangle className="h-6 w-6 text-amber-500" /> Abuse Reports
+            <AlertTriangle className="h-6 w-6 text-amber-500" /> {t("Abuse Reports")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage user reports of spam, fake reviews, and abuse.
+            {t("Manage user reports of spam, fake reviews, and abuse.")}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -84,15 +85,15 @@ export default function AdminAbuseReports() {
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Statuses</option>
-                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{s as string}</option>)}
+                 <option value="all" className="bg-[#091124]">{t("All Statuses")}</option>
+                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{t(s as string)}</option>)}
               </select>
           </div>
           <div className="relative flex-1 w-full sm:w-64">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search reports..."
+              placeholder={t("Search reports...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-[#10b981]/20 font-medium"
@@ -106,21 +107,21 @@ export default function AdminAbuseReports() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("id")}>
-                  <div className="flex items-center gap-1">Report ID <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Report ID")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("target_type")}>
-                  <div className="flex items-center gap-1">Target <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Target")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("report_type")}>
-                  <div className="flex items-center gap-1">Type <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Type")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("status")}>
-                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Status")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -137,7 +138,7 @@ export default function AdminAbuseReports() {
                     colSpan={6}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No abuse reports found.
+                    {t("No abuse reports found.")}
                   </td>
                 </tr>
               ) : (
@@ -148,7 +149,7 @@ export default function AdminAbuseReports() {
                       className="hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium font-mono">
-                        {startIndex + index + 1}
+                        {n(startIndex + index + 1)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-mono text-xs text-slate-400">
@@ -159,10 +160,10 @@ export default function AdminAbuseReports() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-300 capitalize">
-                        {report.target_type}
+                        {t(report.target_type)}
                       </td>
                       <td className="px-6 py-4 font-bold text-amber-500">
-                        {report.report_type}
+                        {t(report.report_type)}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -178,7 +179,7 @@ export default function AdminAbuseReports() {
                             }
                           `}
                         >
-                          {report.status}
+                          {t(report.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -186,7 +187,7 @@ export default function AdminAbuseReports() {
                           to={`/tufayel/reports-abuse/${report.id}`}
                           className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline px-2 py-1"
                         >
-                          Review
+                          {t("Review")}
                         </Link>
                       </td>
                     </tr>
@@ -199,20 +200,20 @@ export default function AdminAbuseReports() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-medium">
-              Showing {filteredAndSortedReports.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredAndSortedReports.length)} of {filteredAndSortedReports.length} entries
+              {t("Showing")} {filteredAndSortedReports.length === 0 ? n(0) : n(startIndex + 1)} {t("to")} {n(Math.min(startIndex + itemsPerPage, filteredAndSortedReports.length))} {t("of")} {n(filteredAndSortedReports.length)} {t("entries")}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -223,7 +224,7 @@ export default function AdminAbuseReports() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

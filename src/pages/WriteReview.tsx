@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function WriteReview() {
   const [searchParams] = useSearchParams();
@@ -30,6 +31,7 @@ export default function WriteReview() {
 
   const navigate = useNavigate();
   const { user, login } = useAuth();
+  const { t, n } = useLanguage();
   const isAdmin = user && [
     "admin",
     "Admin",
@@ -150,17 +152,17 @@ export default function WriteReview() {
   const steps = React.useMemo(() => {
     const s = [];
     if (!pageId) {
-      s.push({ id: "page", label: "Page Details", n: 1 });
+      s.push({ id: "page", label: t("Page Details"), n: 1 });
     }
-    s.push({ id: "review", label: "Experience Review", n: !pageId ? 2 : 1 });
+    s.push({ id: "review", label: t("Experience Review"), n: !pageId ? 2 : 1 });
     if (reviewType === "Fraud Report") {
-      s.push({ id: "evidence", label: "Evidence Details", n: !pageId ? 3 : 2 });
+      s.push({ id: "evidence", label: t("Evidence Details"), n: !pageId ? 3 : 2 });
     }
     if (!user) {
-      s.push({ id: "account", label: "Account", n: s.length + 1 });
+      s.push({ id: "account", label: t("Account"), n: s.length + 1 });
     }
     return s;
-  }, [pageId, reviewType, user]);
+  }, [pageId, reviewType, user, t]);
 
   const totalSteps = steps.length;
   // Determine if our currentStep index is valid, else clamp it.
@@ -556,15 +558,14 @@ export default function WriteReview() {
             <div className="flex justify-center mb-5 select-none">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#e6f7ef] text-[#0fbc6f] text-xs font-black tracking-wider uppercase rounded-full border border-[#0fbc6f]/10 shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                SHARE YOUR EXPERIENCE
+                {t("SHARE YOUR EXPERIENCE")}
               </span>
             </div>
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-[1.1]">
-              Review a <span className="text-[#0fbc6f]">Facebook Page</span>
+              {t("Review a")} <span className="text-[#0fbc6f]">{t("Facebook Page")}</span>
             </h1>
             <p className="text-[15px] md:text-[17px] text-slate-500 font-semibold mb-10 max-w-2xl mx-auto leading-relaxed">
-              Search by name, URL, phone number, or bKash account to share your
-              experience and help others avoid fraud.
+              {t("Search by name, URL, phone number, or bKash account to share your experience and help others avoid fraud.")}
             </p>
 
             <div className="relative max-w-2xl mx-auto">
@@ -576,7 +577,7 @@ export default function WriteReview() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search page name, URL, or contact number..."
+                placeholder={t("Search page name, URL, or contact number...")}
                 className="w-full h-14 md:h-16 pl-14 pr-6 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#0fbc6f]/50 focus:ring-4 focus:ring-[#0fbc6f]/10 rounded-full text-base md:text-lg shadow-sm outline-none transition-all placeholder:text-slate-400 font-medium text-slate-900"
               />
 
@@ -632,8 +633,8 @@ export default function WriteReview() {
                                   )}
                               </div>
                               <p className="text-sm text-slate-500 truncate">
-                                {page.facebook_url || "Facebook Page"}{" "}
-                                • {page.review_count || 0} reviews
+                                {page.facebook_url || t("Facebook Page")}{" "}
+                                • {n(page.review_count || 0)} {t("reviews")}
                               </p>
                             </div>
                             <div className="shrink-0 flex items-center bg-[#e6f7ef] px-2 py-1 rounded">
@@ -641,7 +642,7 @@ export default function WriteReview() {
                                 className={`h-3 w-3 mr-1 ${rating > 0 ? "text-[#0fbc6f] fill-[#0fbc6f]" : "text-slate-400 fill-slate-400"}`}
                               />
                               <span className="text-sm font-bold text-[#0da662]">
-                                {rating > 0 ? rating.toFixed(1) : "0.0"}
+                                {rating > 0 ? n(rating.toFixed(1)) : n("0.0")}
                               </span>
                             </div>
                           </Link>
@@ -654,11 +655,10 @@ export default function WriteReview() {
                         <Store className="w-8 h-8" />
                       </div>
                       <h3 className="text-lg font-bold text-slate-900 mb-2">
-                        Can't find the page?
+                        {t("Can't find the page?")}
                       </h3>
                       <p className="text-slate-500 text-sm mb-6 max-w-sm">
-                        It might not be listed yet. Add it and be the first to
-                        write a review.
+                        {t("It might not be listed yet. Add it and be the first to write a review.")}
                       </p>
                       <button
                         onClick={() => {
@@ -674,7 +674,7 @@ export default function WriteReview() {
                         }}
                         className="px-6 py-3 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
                       >
-                        Add new page
+                        {t("Add new page")}
                       </button>
                     </div>
                   )}
@@ -684,7 +684,7 @@ export default function WriteReview() {
 
             {/* Examples suggestion items */}
             <div className="text-[12px] md:text-sm text-slate-400 font-bold mt-6 mb-6 px-4 leading-normal select-none">
-              Examples:{" "}
+              {t("Examples")}:{" "}
               <span
                 className="text-[#0fbc6f] hover:text-[#0da662] cursor-pointer hover:underline underline-offset-2 duration-150"
                 onClick={() => {
@@ -724,7 +724,7 @@ export default function WriteReview() {
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-rose-50 border border-rose-200 text-rose-700 hover:text-rose-800 rounded-2xl font-bold hover:bg-rose-100 active:scale-98 transition-all shadow-3xs"
               >
                 <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0" />
-                Report a Fraud
+                {t("Report a Fraud")}
               </button>
               <button
                 type="button"
@@ -735,7 +735,7 @@ export default function WriteReview() {
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:text-emerald-800 rounded-2xl font-bold hover:bg-emerald-100 active:scale-98 transition-all shadow-3xs"
               >
                 <SquarePen className="h-5 w-5 text-[#0fbc6f] shrink-0" />
-                Write a Review
+                {t("Write a Review")}
               </button>
             </div>
           </div>
@@ -746,7 +746,7 @@ export default function WriteReview() {
           {/* What can you review */}
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-1">
-              What can you review?
+              {t("What can you review?")}
             </h2>
             <div className="w-12 h-1 bg-emerald-500 mx-auto rounded-full mb-10"></div>
 
@@ -758,10 +758,10 @@ export default function WriteReview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                    Facebook Page
+                    {t("Facebook Page")}
                   </h3>
                   <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                    Review any Facebook Page and share your honest experience.
+                    {t("Review any Facebook Page and share your honest experience.")}
                   </p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 shrink-0 md:hidden ml-auto" />
@@ -774,10 +774,10 @@ export default function WriteReview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                    Seller Profile
+                    {t("Seller Profile")}
                   </h3>
                   <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                    Review seller profiles from marketplaces and communities.
+                    {t("Review seller profiles from marketplaces and communities.")}
                   </p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 shrink-0 md:hidden ml-auto" />
@@ -790,11 +790,10 @@ export default function WriteReview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                    Payment Number
+                    {t("Payment Number")}
                   </h3>
                   <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                    Review bKash or other payment numbers to help others stay
-                    safe.
+                    {t("Review bKash or other payment numbers to help others stay safe.")}
                   </p>
                 </div>
                 <ChevronRight className="h-5 w-5 text-slate-400 shrink-0 md:hidden ml-auto" />
@@ -806,14 +805,13 @@ export default function WriteReview() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-[#f0faf5]/60 border border-[#0fbc6f]/10 rounded-3xl p-6 md:p-8 text-left">
             <div className="md:col-span-1 space-y-3">
               <span className="inline-block px-3 py-1 bg-[#e6f7ef] text-[#0fbc6f] text-[11px] font-black uppercase tracking-wider rounded-lg">
-                Quick Guide
+                {t("Quick Guide")}
               </span>
               <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-                How to Submit a Review
+                {t("How to Submit a Review")}
               </h2>
               <p className="text-slate-500 text-sm leading-relaxed">
-                Your review helps build a safer community. It only takes a
-                minute.
+                {t("Your review helps build a safer community. It only takes a minute.")}
               </p>
             </div>
 
@@ -830,14 +828,14 @@ export default function WriteReview() {
                   <div>
                     <div className="flex items-center gap-2 md:justify-center">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                        1
+                        {n(1)}
                       </span>
                       <h4 className="font-bold text-slate-900 text-sm">
-                        Search
+                        {t("Search")}
                       </h4>
                     </div>
                     <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                      Search for the page, profile, or payment number.
+                      {t("Search for the page, profile, or payment number.")}
                     </p>
                   </div>
                 </div>
@@ -850,14 +848,14 @@ export default function WriteReview() {
                   <div>
                     <div className="flex items-center gap-2 md:justify-center">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                        2
+                        {n(2)}
                       </span>
                       <h4 className="font-bold text-slate-900 text-sm">
-                        Write Review
+                        {t("Write Review")}
                       </h4>
                     </div>
                     <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                      Share your experience and rate honestly.
+                      {t("Share your experience and rate honestly.")}
                     </p>
                   </div>
                 </div>
@@ -870,14 +868,14 @@ export default function WriteReview() {
                   <div>
                     <div className="flex items-center gap-2 md:justify-center">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                        3
+                        {n(3)}
                       </span>
                       <h4 className="font-bold text-slate-900 text-sm">
-                        Add Details
+                        {t("Add Details")}
                       </h4>
                     </div>
                     <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                      Add screenshots or details to support review.
+                      {t("Add screenshots or details to support review.")}
                     </p>
                   </div>
                 </div>
@@ -890,14 +888,14 @@ export default function WriteReview() {
                   <div>
                     <div className="flex items-center gap-2 md:justify-center">
                       <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                        4
+                        {n(4)}
                       </span>
                       <h4 className="font-bold text-slate-900 text-sm">
-                        Submit
+                        {t("Submit")}
                       </h4>
                     </div>
                     <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                      Submit your review and help others stay informed.
+                      {t("Submit your review and help others stay informed.")}
                     </p>
                   </div>
                 </div>
@@ -942,10 +940,10 @@ export default function WriteReview() {
           </div>
           <div className="space-y-1">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0d2a45] tracking-tight">
-              Write a Review or Report
+              {t("Write a Review or Report")}
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base leading-normal">
-              Share your experience to help others make safe decisions.
+              {t("Share your experience to help others make safe decisions.")}
             </p>
           </div>
         </div>
@@ -982,7 +980,7 @@ export default function WriteReview() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      index + 1
+                      n(index + 1)
                     )}
                   </div>
                   <span
@@ -1017,12 +1015,12 @@ export default function WriteReview() {
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
                 {currentStep === 1 
-                  ? "Provide information about the Facebook page you want to review."
+                  ? t("Provide information about the Facebook page you want to review.")
                   : currentStep === 2
-                    ? "Share details about your experience with this Facebook page."
+                    ? t("Share details about your experience with this Facebook page.")
                     : currentStep === 3 && steps[currentStep - 1]?.id === "evidence"
-                      ? "Attach payment receipts, screenshots or any other evidence of fraud."
-                      : "Review your account or log in to submit your honest feedback."
+                      ? t("Attach payment receipts, screenshots or any other evidence of fraud.")
+                      : t("Review your account or log in to submit your honest feedback.")
                 }
               </p>
             </div>
@@ -1035,7 +1033,7 @@ export default function WriteReview() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div className="flex-1 font-semibold leading-relaxed">
-                  <p className="font-bold text-rose-950 uppercase tracking-wider text-xs mb-1">Could Not Submit Review</p>
+                  <p className="font-bold text-rose-950 uppercase tracking-wider text-xs mb-1">{t("Could Not Submit Review")}</p>
                   <span>{submitError}</span>
                 </div>
                 <button 
@@ -1055,7 +1053,7 @@ export default function WriteReview() {
                   {/* Facebook Page Name Input */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Facebook Page Name <span className="text-[#00a859] font-extrabold">*</span>
+                      {t("Facebook Page Name")} <span className="text-[#00a859] font-extrabold">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
@@ -1065,10 +1063,10 @@ export default function WriteReview() {
                       </div>
                       <input
                         {...register("page_name", {
-                          required: "Page name is required",
+                          required: t("Page name is required"),
                         })}
                         className="w-full h-14 pl-15 pr-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/8 rounded-2xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                        placeholder="e.g. Unique Fashion Store"
+                        placeholder={t("e.g. Unique Fashion Store")}
                       />
                     </div>
                     {errors.page_name && (
@@ -1081,7 +1079,7 @@ export default function WriteReview() {
                   {/* Facebook URL Input */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Facebook URL <span className="text-[#00a859] font-extrabold">*</span>
+                      {t("Facebook URL")} <span className="text-[#00a859] font-extrabold">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-[#e6fcf0] text-[#00a859]">
@@ -1091,7 +1089,7 @@ export default function WriteReview() {
                       </div>
                       <input
                         {...register("page_url", {
-                          required: "Facebook URL is required",
+                          required: t("Facebook URL is required"),
                           validate: (value) => {
                             const valLower = value.toLowerCase().trim();
                             const isValidDomain =
@@ -1099,13 +1097,13 @@ export default function WriteReview() {
                               valLower.includes("fb.com") ||
                               valLower.includes("fb.watch");
                             if (!isValidDomain) {
-                              return "Please enter a valid Facebook URL (must contain facebook.com, fb.com or fb.watch)";
+                              return t("Please enter a valid Facebook URL (must contain facebook.com, fb.com or fb.watch)");
                             }
                             if (valLower.startsWith("http://") || valLower.startsWith("https://")) {
                               try {
                                 new URL(value);
-                              } catch (e) {
-                                return "Please enter a valid format (e.g., https://facebook.com/path)";
+                              } catch (_) {
+                                return t("Please enter a valid format (e.g., https://facebook.com/path)");
                               }
                             }
                             return true;
@@ -1131,7 +1129,7 @@ export default function WriteReview() {
               <div className="md:bg-[#fcfdfc] md:p-6 md:rounded-[22px] md:border md:border-[#e6f4ea] md:min-h-[170px] flex flex-col justify-between bg-transparent p-0 border-none rounded-none min-h-0">
                 <div>
                   <label className="block text-[#0d2a45] font-extrabold text-base mb-3">
-                    Contact Numbers
+                    {t("Contact Numbers")}
                   </label>
                   <div className="flex gap-2.5 mb-3">
                     <div className="relative flex-1">
@@ -1151,7 +1149,7 @@ export default function WriteReview() {
                           }
                         }}
                         className="w-full h-12 pl-13 pr-4 bg-white border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none text-sm text-slate-800 placeholder:text-slate-400 font-medium transition-all"
-                        placeholder="Add phone number"
+                        placeholder={t("Add phone number")}
                       />
                     </div>
                     <button
@@ -1160,7 +1158,7 @@ export default function WriteReview() {
                       className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
                       <Plus className="w-4 h-4 shrink-0" />
-                      <span>Add</span>
+                      <span>{t("Add")}</span>
                     </button>
                   </div>
 
@@ -1181,7 +1179,7 @@ export default function WriteReview() {
                             }
                             className="text-rose-500 hover:text-rose-700 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                           >
-                            Remove
+                            {t("Remove")}
                           </button>
                         </li>
                       ))}
@@ -1189,7 +1187,7 @@ export default function WriteReview() {
                   )}
                 </div>
                 <p className="text-[11px] text-slate-400 font-semibold select-none leading-none">
-                  Add one or more contact numbers.
+                  {t("Add one or more contact numbers.")}
                 </p>
               </div>
 
@@ -1197,7 +1195,7 @@ export default function WriteReview() {
               <div className="md:bg-[#fcfdfc] md:p-6 md:rounded-[22px] md:border md:border-[#e6f4ea] md:min-h-[170px] flex flex-col justify-between bg-transparent p-0 border-none rounded-none min-h-0">
                 <div>
                   <label className="block text-[#0d2a45] font-extrabold text-base mb-3">
-                    Payment Methods
+                    {t("Payment Methods")}
                   </label>
                   <div className="flex gap-2.5 mb-3">
                     <div className="relative flex-1">
@@ -1217,7 +1215,7 @@ export default function WriteReview() {
                           }
                         }}
                         className="w-full h-12 pl-13 pr-4 bg-white border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none text-sm text-slate-800 placeholder:text-slate-400 font-medium transition-all"
-                        placeholder="bKash / Nagad"
+                        placeholder={t("bKash / Nagad")}
                       />
                     </div>
                     <button
@@ -1226,7 +1224,7 @@ export default function WriteReview() {
                       className="bg-[#00a859] hover:bg-[#00904a] text-white px-5 rounded-xl text-sm font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
                       <Plus className="w-4 h-4 shrink-0" />
-                      <span>Add</span>
+                      <span>{t("Add")}</span>
                     </button>
                   </div>
 
@@ -1247,7 +1245,7 @@ export default function WriteReview() {
                             }
                             className="text-rose-500 hover:text-rose-700 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                           >
-                            Remove
+                            {t("Remove")}
                           </button>
                         </li>
                       ))}
@@ -1255,7 +1253,7 @@ export default function WriteReview() {
                   )}
                 </div>
                 <p className="text-[11px] text-slate-400 font-semibold select-none leading-none">
-                  Add one or more payment methods.
+                  {t("Add one or more payment methods.")}
                 </p>
               </div>
             </div>
@@ -1264,14 +1262,14 @@ export default function WriteReview() {
             {isAdmin && (
               <div className="border-t border-slate-100 pt-6 space-y-6">
                 <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#0d2a45]">
-                  Admin Settings (Only Visible to Admin)
+                  {t("Admin Settings (Only Visible to Admin)")}
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Profile Photo upload */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Profile Photo
+                      {t("Profile Photo")}
                     </label>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                       <input
@@ -1293,7 +1291,7 @@ export default function WriteReview() {
                             onClick={handleRemoveProfileImage}
                             className="text-[10px] uppercase tracking-wider font-extrabold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-lg transition-colors border border-rose-100 cursor-pointer"
                           >
-                            Remove
+                            {t("Remove")}
                           </button>
                         </div>
                       )}
@@ -1303,13 +1301,13 @@ export default function WriteReview() {
                   {/* Company Page Details */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Facebook Page Description (Page details)
+                      {t("Facebook Page Description (Page details)")}
                     </label>
                     <textarea
                       {...register("page_details")}
                       rows={2}
                       className="w-full bg-white px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/10 outline-none font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400 resize-none"
-                      placeholder="Brief details about the Facebook Page or shop..."
+                      placeholder={t("Brief details about the Facebook Page or shop...")}
                     />
                   </div>
                 </div>
@@ -1325,10 +1323,10 @@ export default function WriteReview() {
                 <div className="bg-[#e6fcf0]/40 border border-[#00a859]/20 p-4.5 rounded-2xl flex items-center justify-between shadow-3xs">
                   <div className="pr-4">
                     <h4 className="font-extrabold text-[#0d2a45] text-sm flex items-center gap-1.5">
-                      👥 Write Review On Behalf
+                      👥 {t("Write Review On Behalf")}
                     </h4>
                     <p className="text-xs text-slate-500 font-semibold mt-0.5 leading-relaxed">
-                      As an Admin, you can submit this review on behalf of someone else. The name will show as "On behalf" and no review limit is enforced.
+                      {t("As an Admin, you can submit this review on behalf of someone else. The name will show as \"On behalf\" and no review limit is enforced.")}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
@@ -1344,16 +1342,16 @@ export default function WriteReview() {
                 {isOnBehalf && (
                   <div className="bg-[#e6fcf0]/20 border border-[#00a859]/10 p-4.5 rounded-2xl animate-fade-in space-y-3">
                     <label className="block text-sm font-bold text-[#0d2a45]">
-                      Custom Reviewer Name (Optional)
+                      {t("Custom Reviewer Name (Optional)")}
                     </label>
                     <input
                       type="text"
                       {...register("on_behalf_name")}
                       className="w-full bg-white px-4 py-3 rounded-2xl border border-slate-200 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/10 outline-none font-medium text-sm text-slate-800 transition-all placeholder:text-slate-400"
-                      placeholder="Enter custom reviewer name (e.g. John Doe). If empty, defaults to 'On behalf'..."
+                      placeholder={t("Enter custom reviewer name (e.g. John Doe). If empty, defaults to 'On behalf'...")}
                     />
                     <p className="text-[10px] text-slate-400 font-semibold">
-                      * If provided, the review will display this custom reviewer name on the public directory instead of "On behalf".
+                      {t("* If provided, the review will display this custom reviewer name on the public directory instead of \"On behalf\".")}
                     </p>
                   </div>
                 )}
@@ -1363,14 +1361,14 @@ export default function WriteReview() {
             {/* Experience Type Selection Pills */}
             <div>
               <label className="block text-sm font-extrabold text-[#0d2a45] mb-3">
-                What kind of experience was this? <span className="text-[#00a859] font-extrabold">*</span>
+                {t("What kind of experience was this?")} <span className="text-[#00a859] font-extrabold">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 select-none">
                 {["Good", "Bad", "Fraud Report"].map((type) => {
                   const isSelected = reviewType === type;
                   return (
                     <label
-                      key={type}
+                       key={type}
                       className={`
                         cursor-pointer border-2 rounded-2xl p-4 flex items-center justify-between transition-all duration-200
                         ${
@@ -1395,7 +1393,7 @@ export default function WriteReview() {
                           <span className={`w-2.5 h-2.5 rounded-full transition-all ${isSelected ? "bg-currentColor scale-100" : "scale-0"}`} />
                         </span>
                         <span className="font-extrabold text-[#0d2a45] text-sm">
-                          {type}
+                          {t(type)}
                         </span>
                       </div>
                       <span className="text-xl shrink-0">
@@ -1410,7 +1408,7 @@ export default function WriteReview() {
             {/* Stars selection rating */}
             <div>
               <label className="block text-sm font-extrabold text-[#0d2a45] mb-2.5">
-                Rate your experience <span className="text-[#00a859] font-extrabold">*</span>
+                {t("Rate your experience")} <span className="text-[#00a859] font-extrabold">*</span>
               </label>
               <div className="flex gap-2.5 p-3.5 bg-slate-50/60 rounded-2xl w-fit border border-slate-100/90 select-none">
                 {[1, 2, 3, 4, 5].map((star) => {
@@ -1429,7 +1427,7 @@ export default function WriteReview() {
                         register("star_rating").onChange(event);
                       }}
                       className={`focus:outline-none transition-all ${isDisabled ? "opacity-20 cursor-not-allowed" : "hover:scale-115 active:scale-95 cursor-pointer"}`}
-                      title={isDisabled ? "Fraud reports must be 1 or 2 stars" : `Rate ${star} stars`}
+                      title={isDisabled ? t("Fraud reports must be 1 or 2 stars") : t("Rate") + " " + n(star) + " " + t("stars")}
                     >
                       <Star
                         className={`h-9 w-9 ${
@@ -1449,7 +1447,7 @@ export default function WriteReview() {
               {/* Title of the review */}
               <div>
                 <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                  Title of your review <span className="text-[#00a859] font-extrabold">*</span>
+                  {t("Title of your review")} <span className="text-[#00a859] font-extrabold">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
@@ -1458,9 +1456,9 @@ export default function WriteReview() {
                     </svg>
                   </div>
                   <input
-                    {...register("title", { required: "Title is required" })}
+                    {...register("title", { required: t("Title is required") })}
                     className="w-full h-14 pl-15 pr-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/8 rounded-2xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                    placeholder="e.g. Received bad quality service"
+                    placeholder={t("e.g. Received bad quality service")}
                   />
                 </div>
                 {errors.title && (
@@ -1473,7 +1471,7 @@ export default function WriteReview() {
               {/* Date of Experience */}
               <div>
                 <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                  Date of Experience <span className="text-[#00a859] font-extrabold">*</span>
+                  {t("Date of Experience")} <span className="text-[#00a859] font-extrabold">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-[#e6fcf0] text-[#00a859] pointer-events-none">
@@ -1483,7 +1481,7 @@ export default function WriteReview() {
                     type="date"
                     max={new Date().toISOString().split("T")[0]}
                     {...register("date_of_experience", {
-                      required: "Date of experience is required",
+                      required: t("Date of experience is required"),
                     })}
                     className="w-full h-14 pl-15 pr-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/8 rounded-2xl outline-none font-semibold text-slate-800 transition-all"
                   />
@@ -1499,23 +1497,23 @@ export default function WriteReview() {
             {/* Description Area */}
             <div>
               <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                Describe what happened <span className="text-[#00a859] font-extrabold">*</span>
+                {t("Describe what happened")} <span className="text-[#00a859] font-extrabold">*</span>
               </label>
               <textarea
                 {...register("description", {
-                  required: "Description is required",
+                  required: t("Description is required"),
                   minLength: {
                     value: minReviewLength,
-                    message: `Description must be at least ${minReviewLength} characters long.`,
+                    message: t("Description must be at least") + " " + n(minReviewLength) + " " + t("characters long."),
                   },
                   maxLength: {
                     value: maxReviewLength,
-                    message: `Description must be at most ${maxReviewLength} characters long.`,
+                    message: t("Description must be at most") + " " + n(maxReviewLength) + " " + t("characters long."),
                   },
                 })}
                 rows={5}
                 className="w-full bg-white px-4 py-4 rounded-2xl border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/8 outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                placeholder="Give exact details about your orders, the service received, communication methods, delivery dates, or payment details..."
+                placeholder={t("Give exact details about your orders, the service received, communication methods, delivery dates, or payment details...")}
               />
               {errors.description && (
                 <span className="text-red-500 text-xs mt-1.5 block font-semibold px-1">
@@ -1530,14 +1528,14 @@ export default function WriteReview() {
         {steps[currentStep - 1]?.id === "evidence" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in text-[#0d2a45]">
             <p className="text-sm font-semibold text-slate-500 -mt-2 select-none">
-              Providing transaction references helps build stronger communities and proves fraud reports more effectively.
+              {t("Providing transaction references helps build stronger communities and proves fraud reports more effectively.")}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Payment Number (bKash/Nagad) */}
               <div>
                 <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                  bKash / Nagad Number (Page's Account)
+                  {t("bKash / Nagad Number (Page's Account)")}
                 </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-[#e6fcf0] text-[#00a859]">
@@ -1548,7 +1546,7 @@ export default function WriteReview() {
                     {...register("bkash_number", {
                       pattern: {
                         value: /^01\d{9}$/,
-                        message: "11 digits starting with 01",
+                        message: t("11 digits starting with 01"),
                       },
                     })}
                     className={`w-full h-14 pl-15 pr-4 bg-white border rounded-2xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400 ${errors.bkash_number ? "border-rose-400 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500" : "border-slate-205 focus:ring-4 focus:ring-[#00a859]/8 focus:border-[#00a859]"}`}
@@ -1565,7 +1563,7 @@ export default function WriteReview() {
               {/* Facebook Post Link */}
               <div>
                 <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                  Facebook Post Link (Discussion / Proof)
+                  {t("Facebook Post Link (Discussion / Proof)")}
                 </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-blue-50 text-blue-600">
@@ -1574,7 +1572,7 @@ export default function WriteReview() {
                   <input
                     type="url"
                     {...register("facebook_post_link", {
-                      validate: (v) => !v || v.includes("facebook.com") || v.includes("fb.com") || v.includes("fb.watch") || "Must be a valid Facebook URL"
+                      validate: (v) => !v || v.includes("facebook.com") || v.includes("fb.com") || v.includes("fb.watch") || t("Must be a valid Facebook URL")
                     })}
                     className={`w-full h-14 pl-15 pr-4 bg-white border rounded-2xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400 ${errors.facebook_post_link ? "border-rose-400 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500" : "border-slate-205 focus:ring-4 focus:ring-[#00a859]/8 focus:border-[#00a859]"}`}
                     placeholder="https://facebook.com/groups/..."
@@ -1592,7 +1590,7 @@ export default function WriteReview() {
             {allowImageProof && (
               <div className="border-t border-slate-100 pt-6">
                 <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                  Upload Evidence Images (Up to 5 images, max 5MB each)
+                  {t("Upload Evidence Images (Up to 5 images, max 5MB each)")}
                 </label>
                 <div className="flex flex-col gap-3">
                   {proofImages.length < 5 && (
@@ -1605,7 +1603,7 @@ export default function WriteReview() {
                       
                       files.forEach(file => {
                          if (file.size > 5 * 1024 * 1024) {
-                             alert(`File ${file.name} exceeds 5MB limit`);
+                             alert(t("File exceeds 5MB limit"));
                              return;
                          }
                          if (proofImages.length >= 5) return;
@@ -1655,8 +1653,8 @@ export default function WriteReview() {
           <div className="space-y-6 animate-fade-in text-[#0d2a45]">
             <p className="text-sm font-semibold text-slate-500 -mt-2">
               {requireLoginReview
-                ? "An authenticated peer profile is required to prevent fraudulent reviews and spam reports."
-                : "Track, edit, or check your reviews anytime. Create a free account or leave empty to submit anonymously."}
+                ? t("An authenticated peer profile is required to prevent fraudulent reviews and spam reports.")
+                : t("Track, edit, or check your reviews anytime. Create a free account or leave empty to submit anonymously.")}
             </p>
 
             <div className="bg-[#fcfdfc] p-6 rounded-[22px] border border-dashed border-[#00a859]/20 space-y-5">
@@ -1665,18 +1663,18 @@ export default function WriteReview() {
                   {/* Your Full Name */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Your Full Name {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
+                      {t("Your Full Name")} {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
                     </label>
                     <input
                       type="text"
                       {...register("account_name", {
                         required:
                           !user && requireLoginReview
-                            ? "Full name is required for registration"
+                            ? t("Full name is required for registration")
                             : false,
                       })}
                       className="w-full h-13 px-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                      placeholder="e.g. John Doe"
+                      placeholder={t("e.g. John Doe")}
                     />
                     {errors.account_name && (
                       <span className="text-red-500 text-xs mt-1.5 block font-semibold px-1">
@@ -1688,14 +1686,14 @@ export default function WriteReview() {
                   {/* Email Address */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Email Address {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
+                      {t("Email Address")} {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
                     </label>
                     <input
                       type="email"
                       {...register("account_email", {
                         required:
                           !user && requireLoginReview
-                            ? "Email address is required"
+                            ? t("Email address is required")
                             : false,
                       })}
                       className="w-full h-13 px-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
@@ -1711,18 +1709,18 @@ export default function WriteReview() {
                   {/* Password */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Choose Password {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
+                      {t("Choose Password")} {requireLoginReview && <span className="text-rose-500 font-extrabold">*</span>}
                     </label>
                     <input
                       type="password"
                       {...register("account_password", {
                         required:
                           !user && requireLoginReview
-                            ? "Password is required"
+                            ? t("Password is required")
                             : false,
                       })}
                       className="w-full h-13 px-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                      placeholder="Min. 6 alphanumeric characters"
+                      placeholder={t("Min. 6 alphanumeric characters")}
                     />
                     {errors.account_password && (
                       <span className="text-red-500 text-xs mt-1.5 block font-semibold px-1">
@@ -1732,13 +1730,13 @@ export default function WriteReview() {
                   </div>
 
                   <div className="pt-2 text-sm text-slate-500 font-semibold select-none">
-                    Already have an account?{" "}
+                    {t("Already have an account?")}{" "}
                     <button
                       type="button"
                       className="text-[#00a859] font-extrabold hover:underline cursor-pointer"
                       onClick={() => setValue("is_login_mode", true)}
                     >
-                      Log in instead
+                      {t("Log in instead")}
                     </button>
                   </div>
                 </>
@@ -1747,12 +1745,12 @@ export default function WriteReview() {
                   {/* Login Email */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Email or Username <span className="text-rose-500 font-extrabold">*</span>
+                      {t("Email or Username")} <span className="text-rose-500 font-extrabold">*</span>
                     </label>
                     <input
                       type="text"
                       {...register("account_email", {
-                        required: !user ? "Email is required to log in" : false,
+                        required: !user ? t("Email is required to log in") : false,
                       })}
                       className="w-full h-13 px-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
                       placeholder="john@example.com"
@@ -1767,15 +1765,15 @@ export default function WriteReview() {
                   {/* Password */}
                   <div>
                     <label className="block text-sm font-bold text-[#0d2a45] mb-2">
-                      Enter Password <span className="text-rose-500 font-extrabold">*</span>
+                      {t("Enter Password")} <span className="text-rose-500 font-extrabold">*</span>
                     </label>
                     <input
                       type="password"
                       {...register("account_password", {
-                        required: !user ? "Password is required" : false,
+                        required: !user ? t("Password is required") : false,
                       })}
                       className="w-full h-13 px-4 bg-white border border-slate-205 focus:border-[#00a859] focus:ring-4 focus:ring-[#00a859]/5 rounded-xl outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-                      placeholder="Enter account password"
+                      placeholder={t("Enter account password")}
                     />
                     {errors.account_password && (
                       <span className="text-red-500 text-xs mt-1.5 block font-semibold px-1">
@@ -1785,13 +1783,13 @@ export default function WriteReview() {
                   </div>
 
                   <div className="pt-2 text-sm text-slate-500 font-semibold select-none">
-                    Don't have a peer account?{" "}
+                    {t("Don't have a peer account?")}{" "}
                     <button
                       type="button"
                       className="text-[#00a859] font-extrabold hover:underline cursor-pointer"
                       onClick={() => setValue("is_login_mode", false)}
                     >
-                      Register now
+                      {t("Register now")}
                     </button>
                   </div>
                 </>
@@ -1810,7 +1808,7 @@ export default function WriteReview() {
               <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Back</span>
+              <span>{t("Back")}</span>
             </button>
           ) : (
             <div /> // spacing layout wrapper
@@ -1822,7 +1820,7 @@ export default function WriteReview() {
               onClick={handleNextStep}
               className="px-8 h-13 bg-[#00a859] hover:bg-[#00904a] text-white font-extrabold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 group text-sm select-none active:scale-97 cursor-pointer"
             >
-              <span>Continue</span>
+              <span>{t("Continue")}</span>
               <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
@@ -1838,24 +1836,24 @@ export default function WriteReview() {
                   errorKeys.forEach((key) => {
                     const fieldError = err[key];
                     let labelName = key;
-                    if (key === "page_name") labelName = "Facebook Page Name";
-                    else if (key === "page_url") labelName = "Facebook Page URL";
-                    else if (key === "title") labelName = "Review Title";
-                    else if (key === "description") labelName = "Review Description";
-                    else if (key === "date_of_experience") labelName = "Date of Experience";
-                    else if (key === "star_rating") labelName = "Rating";
-                    else if (key === "bkash_number") labelName = "bKash / Contact Number";
-                    else if (key === "order_amount") labelName = "Order Amount";
-                    else if (key === "facebook_post_link") labelName = "Facebook Post Link";
-                    else if (key === "account_name") labelName = "Full Name";
-                    else if (key === "account_email") labelName = "Email Address";
-                    else if (key === "account_password") labelName = "Password";
+                    if (key === "page_name") labelName = t("Facebook Page Name");
+                    else if (key === "page_url") labelName = t("Facebook Page URL");
+                    else if (key === "title") labelName = t("Review Title");
+                    else if (key === "description") labelName = t("Review Description");
+                    else if (key === "date_of_experience") labelName = t("Date of Experience");
+                    else if (key === "star_rating") labelName = t("Rating");
+                    else if (key === "bkash_number") labelName = t("bKash / Contact Number");
+                    else if (key === "order_amount") labelName = t("Order Amount");
+                    else if (key === "facebook_post_link") labelName = t("Facebook Post Link");
+                    else if (key === "account_name") labelName = t("Full Name");
+                    else if (key === "account_email") labelName = t("Email Address");
+                    else if (key === "account_password") labelName = t("Password");
 
-                    const msg = fieldError?.message || "Is invalid or required";
+                    const msg = fieldError?.message || t("Is invalid or required");
                     messages.push(`• ${labelName}: ${msg}`);
                   });
 
-                  const errorMsg = `⚠️ Cannot Submit Review!\n\nPlease fill out or correct the following fields:\n\n${messages.join("\n")}`;
+                  const errorMsg = `⚠️ ${t("Cannot Submit Review!")}\n\n${t("Please fill out or correct the following fields:")}\n\n${messages.join("\n")}`;
                   setSubmitError(errorMsg);
                   alert(errorMsg);
                   window.scrollTo({ top: 100, behavior: "smooth" });
@@ -1866,10 +1864,10 @@ export default function WriteReview() {
             >
               <span>
                 {isSubmitting
-                  ? "Submitting..."
+                  ? t("Submitting...")
                   : isEditing
-                    ? "Update Review"
-                    : "Submit Review"}
+                    ? t("Update Review")
+                    : t("Submit Review")}
               </span>
               <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1880,7 +1878,7 @@ export default function WriteReview() {
 
         {currentStep === totalSteps && (
           <p className="text-center text-xs font-semibold text-slate-400 mt-4 select-none">
-            By submitting this review, you certify that this is an honest and accurate description of your transactions.
+            {t("By submitting this review, you certify that this is an honest and accurate description of your transactions.")}
           </p>
         )}
       </form>
@@ -1890,7 +1888,7 @@ export default function WriteReview() {
         <div>
           {" "}
           <h2 className="text-2xl md:text-3xl font-extrabold text-[#0a192f] mb-1">
-            What can you review?
+            {t("What can you review?")}
           </h2>{" "}
           <div className="w-12 h-1 bg-emerald-500 mx-auto rounded-full mb-10"></div>{" "}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1904,10 +1902,10 @@ export default function WriteReview() {
               <div className="flex-1 min-w-0">
                 {" "}
                 <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                  Facebook Page
+                  {t("Facebook Page")}
                 </h3>{" "}
                 <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                  Review any Facebook Page and share your honest experience.
+                  {t("Review any Facebook Page and share your honest experience.")}
                 </p>{" "}
               </div>{" "}
             </div>{" "}
@@ -1920,10 +1918,10 @@ export default function WriteReview() {
               <div className="flex-1 min-w-0">
                 {" "}
                 <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                  Seller Profile
+                  {t("Seller Profile")}
                 </h3>{" "}
                 <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                  Review seller profiles from marketplaces and communities.
+                  {t("Review seller profiles from marketplaces and communities.")}
                 </p>{" "}
               </div>{" "}
             </div>{" "}
@@ -1936,11 +1934,10 @@ export default function WriteReview() {
               <div className="flex-1 min-w-0">
                 {" "}
                 <h3 className="font-extrabold text-slate-900 text-base md:text-lg">
-                  Payment Number
+                  {t("Payment Number")}
                 </h3>{" "}
                 <p className="text-slate-500 text-xs md:text-sm mt-1 leading-relaxed">
-                  Review bKash or other payment numbers to help others stay
-                  safe.
+                  {t("Review bKash or other payment numbers to help others stay safe.")}
                 </p>{" "}
               </div>{" "}
             </div>{" "}
@@ -1951,13 +1948,13 @@ export default function WriteReview() {
           <div className="md:col-span-1 space-y-3">
             {" "}
             <span className="inline-block px-3 py-1 bg-emerald-50 text-[#0fbc6f] text-[11px] font-bold uppercase tracking-wider rounded-lg">
-              Quick Guide
+              {t("Quick Guide")}
             </span>{" "}
             <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight leading-tight">
-              How to Submit a Review
+              {t("How to Submit a Review")}
             </h2>{" "}
             <p className="text-slate-500 text-sm leading-relaxed">
-              Your review helps build a safer community. It only takes a minute.
+              {t("Your review helps build a safer community. It only takes a minute.")}
             </p>{" "}
           </div>{" "}
           <div className="md:col-span-2 relative">
@@ -1976,14 +1973,14 @@ export default function WriteReview() {
                   <div className="flex items-center gap-2 md:justify-center">
                     {" "}
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                      1
+                      {n(1)}
                     </span>{" "}
                     <h4 className="font-bold text-slate-900 text-sm">
-                      Search
+                      {t("Search")}
                     </h4>{" "}
                   </div>{" "}
                   <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                    Search for the page, profile, or payment number.
+                    {t("Search for the page, profile, or payment number.")}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -1998,14 +1995,14 @@ export default function WriteReview() {
                   <div className="flex items-center gap-2 md:justify-center">
                     {" "}
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                      2
+                      {n(2)}
                     </span>{" "}
                     <h4 className="font-bold text-slate-900 text-sm">
-                      Write Review
+                      {t("Write Review")}
                     </h4>{" "}
                   </div>{" "}
                   <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                    Share your experience and rate honestly.
+                    {t("Share your experience and rate honestly.")}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -2020,14 +2017,14 @@ export default function WriteReview() {
                   <div className="flex items-center gap-2 md:justify-center">
                     {" "}
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                      3
+                      {n(3)}
                     </span>{" "}
                     <h4 className="font-bold text-slate-900 text-sm">
-                      Add Details
+                      {t("Add Details")}
                     </h4>{" "}
                   </div>{" "}
                   <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                    Add screenshots or details to support review.
+                    {t("Add screenshots or details to support review.")}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}
@@ -2042,14 +2039,14 @@ export default function WriteReview() {
                   <div className="flex items-center gap-2 md:justify-center">
                     {" "}
                     <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-                      4
+                      {n(4)}
                     </span>{" "}
                     <h4 className="font-bold text-slate-900 text-sm">
-                      Submit
+                      {t("Submit")}
                     </h4>{" "}
                   </div>{" "}
                   <p className="text-slate-500 text-[12px] mt-1 pr-2 leading-relaxed md:text-center">
-                    Submit your review and help others stay informed.
+                    {t("Submit your review and help others stay informed.")}
                   </p>{" "}
                 </div>{" "}
               </div>{" "}

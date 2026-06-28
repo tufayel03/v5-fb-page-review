@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Search, ShieldCheck, ShieldAlert, Star, Store, MapPin, SlidersHorizontal, ChevronRight, X, Trophy, Facebook } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GlobalSearch() {
   const { user } = useAuth();
+  const { t, n } = useLanguage();
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -95,7 +97,7 @@ export default function GlobalSearch() {
                 type="text" 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search Facebook Page, brand, or category..."
+                placeholder={t("Search Facebook Page, brand, or category...")}
                 className="w-full py-3.5 pl-4 pr-12 bg-white border border-slate-300 hover:border-slate-400 rounded-full text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium text-lg shadow-sm"
               />
               <button type="submit" className="absolute right-3 p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors">
@@ -113,21 +115,21 @@ export default function GlobalSearch() {
               className="px-4 py-2 flex items-center gap-2 border border-slate-300 rounded-full text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0"
             >
                <SlidersHorizontal className="w-4 h-4 text-slate-600" />
-               All filters
+               {t("All filters")}
             </button>
             <div className="h-4 w-px bg-slate-300 shrink-0"></div>
             <button 
               className="px-4 py-2 border border-slate-300 rounded-full text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors whitespace-nowrap shrink-0 flex items-center gap-2"
             >
                <Star className="w-4 h-4 text-slate-600 fill-slate-600" />
-               Rating
+               {t("Rating")}
             </button>
          </div>
       </div>
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-20 flex-1 w-full py-8 md:py-12">
         <div className="mb-6 pb-2">
-           <h2 className="text-xl font-bold text-slate-900 mb-1">Facebook Pages ({filteredPages.length})</h2>
+           <h2 className="text-xl font-bold text-slate-900 mb-1">{t("Facebook Pages")} ({n(filteredPages.length)})</h2>
         </div>
 
         {loadingPages ? (
@@ -167,27 +169,27 @@ export default function GlobalSearch() {
                         </h3>
                         {page.status_badge === 'Verified Marketplace Seller' && (
                           <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Verified Seller
+                            <ShieldCheck className="w-3.5 h-3.5" /> {t("Verified Seller")}
                           </span>
                         )}
                         {page.status_badge === 'Gold Seller' && (
                           <span className="shrink-0 bg-amber-50 text-amber-700 border border-amber-300/60 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
-                            <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Gold Seller
+                            <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> {t("Gold Seller")}
                           </span>
                         )}
                         {page.status_badge === 'Suspicious' && (
                           <span className="shrink-0 bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
-                            ⚠️ Suspicious
+                            ⚠️ {t("Suspicious")}
                           </span>
                         )}
                         {page.status_badge === 'Under Review' && (
                           <span className="shrink-0 bg-blue-50 text-[#205cd4] border border-blue-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
-                            🔍 Under Review
+                            🔍 {t("Under Review")}
                           </span>
                         )}
                         {page.status_badge && page.status_badge.includes('Reported as Fraud') && (
                           <span className="shrink-0 bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
-                            <ShieldAlert className="h-3 w-3" /> Fraud
+                            <ShieldAlert className="h-3 w-3" /> {t("Fraud")}
                           </span>
                         )}
                       </div>
@@ -215,14 +217,14 @@ export default function GlobalSearch() {
                               })}
                             </div>
                             <div className="text-[#1c1c1c] font-medium text-[14px]">
-                               {rating > 0 ? rating.toFixed(1) : '0'} 
-                               <span className="text-[#696969] ml-2 font-normal">・ {page.review_count || 0} reviews</span>
+                               {rating > 0 ? n(rating.toFixed(1)) : n('0')} 
+                               <span className="text-[#696969] ml-2 font-normal">・ {n(page.review_count || 0)} {t("reviews")}</span>
                             </div>
                           </>
                         ) : (
                           <div className="flex flex-col gap-1.5">
                             <div className="text-[#1c1c1c] font-medium text-[14px]">
-                               <span className="text-[#696969] font-normal">{page.category || "Contact Number"} ・ {page.review_count || 0} reports</span>
+                               <span className="text-[#696969] font-normal">{page.category ? t(page.category) : t("Contact Number")} ・ {n(page.review_count || 0)} {t("reports")}</span>
                             </div>
                             {cleanDesc && (
                               <div className="text-[13px] text-[#696969] font-medium flex items-center gap-1.5 flex-wrap">
@@ -247,13 +249,13 @@ export default function GlobalSearch() {
                         {(page.fraud_report_count || 0) > 0 && !page.is_contact_only && (
                            <div className="flex items-center gap-1.5 text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded ml-2 text-xs">
                               <ShieldAlert className="w-3.5 h-3.5" />
-                              {page.fraud_report_count} Fraud Reports
+                              {n(page.fraud_report_count)} {t("Fraud Reports")}
                            </div>
                         )}
                         {page.is_contact_only && (
                            <div className="flex items-center gap-1.5 text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded ml-2 text-xs border border-rose-100">
                               <ShieldAlert className="w-3.5 h-3.5" />
-                              {page.status_badge === 'Reported as Fraud' ? 'Reported' : page.status_badge || 'Suspicious'}
+                              {page.status_badge === 'Reported as Fraud' ? t('Reported') : t(page.status_badge || 'Suspicious')}
                            </div>
                         )}
                       </div>
@@ -271,7 +273,7 @@ export default function GlobalSearch() {
                       disabled={currentPage === 1}
                       className="px-4 py-3 text-[14px] font-medium border border-[#dcdce6] bg-white text-[#696969] rounded-l-md hover:bg-[#f1f1f2] disabled:opacity-50 disabled:text-[#696969] transition-colors"
                     >
-                      Previous
+                      {t("Previous")}
                     </button>
                     {Array.from({ length: Math.ceil(filteredPages.length / itemsPerPage) }).map((_, i) => {
                       const pageNum = i + 1;
@@ -286,7 +288,7 @@ export default function GlobalSearch() {
                               : 'bg-white text-[#1c1c1c] hover:bg-[#f1f1f2]'
                           }`}
                         >
-                          {pageNum}
+                          {n(pageNum)}
                         </button>
                       )
                     })}
@@ -295,7 +297,7 @@ export default function GlobalSearch() {
                       disabled={currentPage === Math.ceil(filteredPages.length / itemsPerPage)}
                       className="-ml-px px-4 py-3 text-[14px] font-medium border border-[#dcdce6] bg-white text-[#205cd4] rounded-r-md hover:bg-[#f1f1f2] disabled:opacity-50 disabled:text-[#696969] transition-colors"
                     >
-                      Next page
+                      {t("Next page")}
                     </button>
                  </div>
               </div>
@@ -304,9 +306,9 @@ export default function GlobalSearch() {
           </div>
         ) : (
             <div className="py-12 max-w-2xl">
-             <h3 className="text-xl font-bold text-slate-900 mb-2">No Facebook Pages found</h3>
+             <h3 className="text-xl font-bold text-slate-900 mb-2">{t("No Facebook Pages found")}</h3>
              <p className="text-slate-500 mb-6">
-                We couldn't find any Facebook Pages matching your search. Try checking your spelling or using different keywords.
+                {t("We couldn't find any Facebook Pages matching your search. Try checking your spelling or using different keywords.")}
              </p>
           </div>
         )}
@@ -314,13 +316,13 @@ export default function GlobalSearch() {
         {/* Add Company Prompt */}
         {!loadingPages && (
           <div className="mt-16 text-center border-t border-[#dcdce6] pt-12 pb-8">
-             <h3 className="text-[20px] font-bold text-[#1c1c1c] mb-2">Can't find a Facebook Page?</h3>
-             <p className="text-[#1c1c1c] mb-8">It might not be listed on FB Page Review yet. Add it and be the first to write a review.</p>
+             <h3 className="text-[20px] font-bold text-[#1c1c1c] mb-2">{t("Can't find a Facebook Page?")}</h3>
+             <p className="text-[#1c1c1c] mb-8">{t("It might not be listed on FB Page Review yet. Add it and be the first to write a review.")}</p>
              <Link
                to="/write-review"
                className="inline-flex px-8 py-3 bg-white border-2 border-[#205cd4] text-[#205cd4] hover:bg-[#f1f1f2] rounded-full font-bold text-[15px] transition-colors"
              >
-               Add Facebook Page
+               {t("Add Facebook Page")}
              </Link>
           </div>
         )}
@@ -339,7 +341,7 @@ export default function GlobalSearch() {
            <div className="relative w-[360px] max-w-full h-full bg-white shadow-2xl flex flex-col pt-[16px] pb-6 px-6 animate-in slide-in-from-right duration-300">
              
              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-               <h2 className="text-xl font-bold text-[#1c1c1c]">All filters</h2>
+               <h2 className="text-xl font-bold text-[#1c1c1c]">{t("All filters")}</h2>
                <button 
                  onClick={() => setIsFilterOpen(false)}
                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -362,7 +364,7 @@ export default function GlobalSearch() {
                         }`}
                       >
                         {opt !== 'All' && <Star className="w-3.5 h-3.5 fill-current" />}
-                        {opt}
+                        {opt === 'All' ? t('All') : n(opt)}
                       </button>
                     ))}
                   </div>
@@ -370,7 +372,7 @@ export default function GlobalSearch() {
 
                {/* Company Status */}
                <div>
-                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">Facebook Page status</h3>
+                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">{t("Facebook Page status")}</h3>
                  <label className="flex items-start gap-3 cursor-pointer group">
                    <div className="flex items-center h-6">
                      <input 
@@ -381,15 +383,15 @@ export default function GlobalSearch() {
                      />
                    </div>
                    <div className="flex flex-col">
-                     <span className="text-[15px] font-medium text-[#1c1c1c] bg-transparent group-hover:underline">Verified Seller</span>
-                     <span className="text-sm text-[#696969]">Facebook Pages that have been verified.</span>
+                     <span className="text-[15px] font-medium text-[#1c1c1c] bg-transparent group-hover:underline">{t("Verified Seller")}</span>
+                     <span className="text-sm text-[#696969]">{t("Facebook Pages that have been verified.")}</span>
                    </div>
                  </label>
                </div>
 
                {/* Number of reviews */}
                <div>
-                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">Number of reviews</h3>
+                 <h3 className="text-sm font-bold text-[#1c1c1c] mb-3">{t("Number of reviews")}</h3>
                  <div className="space-y-4">
                    {['Any', '25+', '50+', '100+', '250+', '500+'].map((opt) => (
                      <label key={opt} className="flex items-center gap-3 cursor-pointer group">
@@ -405,7 +407,9 @@ export default function GlobalSearch() {
                             <div className="absolute w-2.5 h-2.5 bg-blue-600 rounded-full pointer-events-none" />
                          )}
                        </div>
-                       <span className={`text-[15px] ${activeReviewsNum === opt ? 'font-bold' : 'font-medium'} text-[#1c1c1c] group-hover:underline`}>{opt}</span>
+                       <span className={`text-[15px] ${activeReviewsNum === opt ? 'font-bold' : 'font-medium'} text-[#1c1c1c] group-hover:underline`}>
+                         {opt === 'Any' ? t('Any') : n(opt)}
+                       </span>
                      </label>
                    ))}
                  </div>
@@ -422,13 +426,13 @@ export default function GlobalSearch() {
                  }}
                  className="text-sm font-bold text-[#205cd4] hover:text-[#1c4eb8] hover:underline"
                >
-                 Reset
+                 {t("Reset")}
                </button>
                <button 
                  onClick={() => setIsFilterOpen(false)}
                  className="px-6 py-2.5 bg-[#205cd4] hover:bg-[#1c4eb8] text-white rounded-full font-bold text-[15px] transition-colors"
                >
-                 Show Results
+                 {t("Show Results")}
                </button>
              </div>
              

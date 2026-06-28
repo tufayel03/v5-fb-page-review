@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
-import { Search, Filter, ShieldAlert, Star, ShieldCheck, ArrowUpDown, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { Search, ShieldAlert, Star, ShieldCheck, ArrowUpDown, ChevronLeft, ChevronRight, FileDown } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminReviews() {
+  const { t, n } = useLanguage();
   const [reviews, setReviews] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -93,25 +95,15 @@ export default function AdminReviews() {
         setBulkConfirmDelete(false);
         fetchReviews();
       } else {
-        setBulkActionError(resData.error || `Bulk action failed`);
+        setBulkActionError(resData.error || t(`Bulk action failed`));
       }
     } catch (e: any) {
       console.error(e);
-      setBulkActionError(e.message || "An unexpected error occurred.");
+      setBulkActionError(e.message || t("An unexpected error occurred."));
     } finally {
       setBulkActionLoading(false);
     }
   };
-
-  const uniquePages = useMemo(() => {
-    const pages = new Map();
-    reviews.forEach(r => {
-      if (r.page_id && r.current_name) {
-        pages.set(r.page_id, r.current_name);
-      }
-    });
-    return Array.from(pages.entries()).map(([id, name]) => ({ id, name }));
-  }, [reviews]);
 
   const handleDeleteReview = async (reviewId: string) => {
     try {
@@ -125,11 +117,11 @@ export default function AdminReviews() {
         setDeleteConfirmId(null);
         fetchReviews(); // Refresh the list
       } else {
-        alert("Failed to delete review.");
+        alert(t("Failed to delete review."));
       }
     } catch (e) {
       console.error(e);
-      alert("An error occurred while deleting the review.");
+      alert(t("An error occurred while deleting the review."));
     }
   };
 
@@ -177,16 +169,16 @@ export default function AdminReviews() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Reviews
+            {t("Reviews")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage and moderate all reviews. (Type a page name in search to quickly moderate reviews for that page).
+            {t("Manage and moderate all reviews. (Type a page name in search to quickly moderate reviews for that page).")}
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-wrap justify-end">
           <button onClick={handleExportCSV} className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto">
-            <FileDown className="h-4 w-4" /> Export CSV
+            <FileDown className="h-4 w-4" /> {t("Export CSV")}
           </button>
           
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
@@ -200,10 +192,10 @@ export default function AdminReviews() {
                  }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="created_at-desc" className="bg-[#091124]">Sort: Recent First</option>
-                 <option value="created_at-asc" className="bg-[#091124]">Sort: Oldest First</option>
-                 <option value="rating-desc" className="bg-[#091124]">Sort: Rating (High to Low)</option>
-                 <option value="rating-asc" className="bg-[#091124]">Sort: Rating (Low to High)</option>
+                 <option value="created_at-desc" className="bg-[#091124]">{t("Sort: Recent First")}</option>
+                 <option value="created_at-asc" className="bg-[#091124]">{t("Sort: Oldest First")}</option>
+                 <option value="rating-desc" className="bg-[#091124]">{t("Sort: Rating (High to Low)")}</option>
+                 <option value="rating-asc" className="bg-[#091124]">{t("Sort: Rating (Low to High)")}</option>
               </select>
 
              <select
@@ -211,12 +203,12 @@ export default function AdminReviews() {
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Statuses</option>
-                 <option value="Pending" className="bg-[#091124]">Pending</option>
-                 <option value="Published" className="bg-[#091124]">Published</option>
-                 <option value="Verified" className="bg-[#091124]">Verified</option>
-                 <option value="Rejected" className="bg-[#091124]">Rejected</option>
-                 <option value="Under Review" className="bg-[#091124]">Under Review</option>
+                 <option value="all" className="bg-[#091124]">{t("All Statuses")}</option>
+                 <option value="Pending" className="bg-[#091124]">{t("Pending")}</option>
+                 <option value="Published" className="bg-[#091124]">{t("Published")}</option>
+                 <option value="Verified" className="bg-[#091124]">{t("Verified")}</option>
+                 <option value="Rejected" className="bg-[#091124]">{t("Rejected")}</option>
+                 <option value="Under Review" className="bg-[#091124]">{t("Under Review")}</option>
               </select>
 
              <select
@@ -224,10 +216,10 @@ export default function AdminReviews() {
                  onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Types</option>
-                 <option value="Good" className="bg-[#091124]">Good</option>
-                 <option value="Fraud Report" className="bg-[#091124]">Fraud Report</option>
-                 <option value="Bad" className="bg-[#091124]">Bad</option>
+                 <option value="all" className="bg-[#091124]">{t("All Types")}</option>
+                 <option value="Good" className="bg-[#091124]">{t("Good")}</option>
+                 <option value="Fraud Report" className="bg-[#091124]">{t("Fraud Report")}</option>
+                 <option value="Bad" className="bg-[#091124]">{t("Bad")}</option>
               </select>
 
              <select
@@ -235,12 +227,12 @@ export default function AdminReviews() {
                  onChange={(e) => { setRatingFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Ratings</option>
-                 <option value="5" className="bg-[#091124]">5 Stars</option>
-                 <option value="4" className="bg-[#091124]">4 Stars</option>
-                 <option value="3" className="bg-[#091124]">3 Stars</option>
-                 <option value="2" className="bg-[#091124]">2 Stars</option>
-                 <option value="1" className="bg-[#091124]">1 Star</option>
+                 <option value="all" className="bg-[#091124]">{t("All Ratings")}</option>
+                 <option value="5" className="bg-[#091124]">{t("5 Stars")}</option>
+                 <option value="4" className="bg-[#091124]">{t("4 Stars")}</option>
+                 <option value="3" className="bg-[#091124]">{t("3 Stars")}</option>
+                 <option value="2" className="bg-[#091124]">{t("2 Stars")}</option>
+                 <option value="1" className="bg-[#091124]">{t("1 Star")}</option>
               </select>
           </div>
           
@@ -248,7 +240,7 @@ export default function AdminReviews() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search by URL, page name, text..."
+              placeholder={t("Search by URL, page name, text...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -263,13 +255,13 @@ export default function AdminReviews() {
         <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-slate-100">
-              Selected <span className="text-indigo-400 text-base font-black">{selectedIds.length}</span> {selectedIds.length === 1 ? 'review' : 'reviews'} for bulk actions
+              {t("Selected")} <span className="text-indigo-400 text-base font-black">{n(selectedIds.length)}</span> {selectedIds.length === 1 ? t('review') : t('reviews')} {t("for bulk actions")}
             </span>
             <button
               onClick={() => setSelectedIds([])}
               className="text-xs bg-[#091124] hover:bg-[#050b18] border border-white/5 text-indigo-400 hover:text-indigo-300 font-bold px-2 py-1 rounded"
             >
-              Clear Selection
+              {t("Clear Selection")}
             </button>
           </div>
 
@@ -279,7 +271,7 @@ export default function AdminReviews() {
 
           <div className="flex items-center gap-4 w-full md:w-auto justify-end flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-bold whitespace-nowrap">Change Status:</span>
+              <span className="text-xs text-slate-400 font-bold whitespace-nowrap">{t("Change Status:")}</span>
               <select
                 disabled={bulkActionLoading}
                 onChange={(e) => {
@@ -290,31 +282,31 @@ export default function AdminReviews() {
                 }}
                 className="bg-[#091124] border border-white/10 text-slate-100 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
               >
-                <option value="">-- Choose Status --</option>
-                <option value="Published" className="bg-[#091124]">Published</option>
-                <option value="Verified" className="bg-[#091124]">Verified</option>
-                <option value="Pending" className="bg-[#091124]">Pending</option>
-                <option value="Rejected" className="bg-[#091124]">Rejected</option>
-                <option value="Under Review" className="bg-[#091124]">Under Review</option>
+                <option value="">-- {t("Choose Status")} --</option>
+                <option value="Published" className="bg-[#091124]">{t("Published")}</option>
+                <option value="Verified" className="bg-[#091124]">{t("Verified")}</option>
+                <option value="Pending" className="bg-[#091124]">{t("Pending")}</option>
+                <option value="Rejected" className="bg-[#091124]">{t("Rejected")}</option>
+                <option value="Under Review" className="bg-[#091124]">{t("Under Review")}</option>
               </select>
             </div>
 
             {bulkConfirmDelete ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-rose-400 font-black">Are you sure?</span>
+                <span className="text-xs text-rose-400 font-black">{t("Are you sure?")}</span>
                 <button
                   disabled={bulkActionLoading}
                   onClick={() => handleBulkAction('delete')}
                   className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
-                  Yes, Delete Selected
+                  {t("Yes, Delete Selected")}
                 </button>
                 <button
                   disabled={bulkActionLoading}
                   onClick={() => setBulkConfirmDelete(false)}
                   className="text-xs text-slate-400 hover:text-white px-2 py-1 transition-colors"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
               </div>
             ) : (
@@ -323,7 +315,7 @@ export default function AdminReviews() {
                 onClick={() => setBulkConfirmDelete(true)}
                 className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer"
               >
-                Delete Selected
+                {t("Delete Selected")}
               </button>
             )}
           </div>
@@ -350,21 +342,21 @@ export default function AdminReviews() {
                     className="w-4 h-4 rounded text-emerald-500 bg-[#050b18]/45 border-white/10 focus:ring-emerald-500/30 cursor-pointer"
                   />
                 </th>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('title')}>
-                  <div className="flex items-center gap-1">Review <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Review")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('current_name')}>
-                  <div className="flex items-center gap-1">Page <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Page")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('rating')}>
-                  <div className="flex items-center gap-1">Rating <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Rating")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('created_at')}>
-                  <div className="flex items-center gap-1">Date <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Date")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -382,7 +374,7 @@ export default function AdminReviews() {
                     colSpan={7}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No reviews found.
+                    {t("No reviews found.")}
                   </td>
                 </tr>
               ) : (
@@ -407,7 +399,7 @@ export default function AdminReviews() {
                         />
                       </td>
                       <td className="px-6 py-4 text-slate-400 font-medium">
-                        {startIndex + index + 1}
+                        {n(startIndex + index + 1)}
                       </td>
                       <td className="px-6 py-4 max-w-[250px]">
                         <p className="font-bold text-white truncate">
@@ -419,7 +411,7 @@ export default function AdminReviews() {
                         <div className="flex items-center gap-1 mt-1 text-emerald-400">
                           <Star className="h-3 w-3 fill-current" />
                           <span className="text-xs font-bold">
-                            {review.star_rating}
+                            {n(review.star_rating)}
                           </span>
                         </div>
                       </td>
@@ -430,7 +422,7 @@ export default function AdminReviews() {
                           rel="noreferrer"
                           className="font-bold text-slate-200 hover:text-emerald-400 hover:underline truncate block w-40 transition-colors"
                         >
-                          {review.current_name || "Unknown Page"}
+                          {review.current_name || t("Unknown Page")}
                         </a>
                       </td>
                        <td className="px-6 py-4">
@@ -449,24 +441,24 @@ export default function AdminReviews() {
                         >
                           {review.review_type === "Fraud Report" ? (
                             <span className="flex items-center gap-1">
-                              <ShieldAlert className="h-3 w-3" /> Fraud
+                              <ShieldAlert className="h-3 w-3" /> {t("Fraud")}
                             </span>
                           ) : (review.review_type === "Safe" || review.review_type === "Good") ? (
                             <span className="flex items-center gap-1">
-                              <ShieldCheck className="h-3 w-3" /> Good
+                              <ShieldCheck className="h-3 w-3" /> {t("Good")}
                             </span>
                           ) : (review.review_type === "Suspicious" || review.review_type === "Bad") ? (
                             <span className="flex items-center gap-1">
-                              <ShieldAlert className="h-3 w-3 text-amber-400" /> Bad
+                              <ShieldAlert className="h-3 w-3 text-amber-400" /> {t("Bad")}
                             </span>
                           ) : (
-                            review.review_type
+                            t(review.review_type)
                           )}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-slate-200 font-bold text-xs uppercase tracking-wide">
-                          {review.status}
+                          {t(review.status)}
                         </p>
                         <p className="text-xs text-slate-400 mt-1">
                           {new Date(review.created_at).toLocaleDateString()}
@@ -474,15 +466,15 @@ export default function AdminReviews() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link to={`/tufayel/reviews/${review.id}`} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 hover:underline px-2 py-1">
-                          View
+                          {t("View")}
                         </Link>
                         {deleteConfirmId === review.id ? (
                           <button onClick={() => handleDeleteReview(review.id)} className="text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 px-2 py-1 rounded cursor-pointer">
-                            Confirm
+                            {t("Confirm")}
                           </button>
                         ) : (
                           <button onClick={() => setDeleteConfirmId(review.id)} className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:underline px-2 py-1 ml-1 cursor-pointer">
-                            Delete
+                            {t("Delete")}
                           </button>
                         )}
                       </td>
@@ -496,20 +488,20 @@ export default function AdminReviews() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-medium">
-              Showing {reviews.length === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + reviews.length, total)} of {total} entries
+              {t("Showing")} {reviews.length === 0 ? n(0) : n(startIndex + 1)} {t("to")} {n(Math.min(startIndex + reviews.length, total))} {t("of")} {n(total)} {t("entries")}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -520,7 +512,7 @@ export default function AdminReviews() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

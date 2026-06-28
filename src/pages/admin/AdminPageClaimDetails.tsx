@@ -9,8 +9,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { Link } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminPageClaimDetails() {
+  const { t, n } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const [claim, setClaim] = useState<any>(null);
@@ -35,7 +37,7 @@ export default function AdminPageClaimDetails() {
     statusString?: string,
   ) => {
     if (action === "delete") {
-      if (!window.confirm("Are you sure you want to delete this claim?")) return;
+      if (!window.confirm(t("Are you sure you want to delete this claim?"))) return;
     }
     setSaving(action);
     try {
@@ -48,7 +50,7 @@ export default function AdminPageClaimDetails() {
           navigate("/admin/claims");
         } else {
           const err = await res.json();
-          alert(err.error || "Failed to delete claim");
+          alert(t(err.error || "Failed to delete claim"));
           setSaving("");
         }
         return;
@@ -85,13 +87,13 @@ export default function AdminPageClaimDetails() {
   if (loading)
     return (
       <div className="p-8 text-center text-slate-400 font-bold animate-pulse">
-        Loading...
+        {t("Loading...")}
       </div>
     );
   if (!claim)
     return (
       <div className="p-8 text-center text-slate-400 font-bold">
-        Claim not found.
+        {t("Claim not found.")}
       </div>
     );
 
@@ -101,7 +103,7 @@ export default function AdminPageClaimDetails() {
         to="/tufayel/page-claims"
         className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Claims
+        <ArrowLeft className="h-4 w-4" /> {t("Back to Claims")}
       </Link>
 
       <div className="bg-[#091124] rounded-xl border border-white/5 shadow-xl overflow-hidden">
@@ -112,7 +114,7 @@ export default function AdminPageClaimDetails() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">
-                Claim Request for {claim.page_name}
+                {t("Claim Request for")} {claim.page_name}
               </h1>
               <a
                 href={claim.facebook_url}
@@ -137,7 +139,7 @@ export default function AdminPageClaimDetails() {
               }
            `}
           >
-            {claim.status}
+            {t(claim.status)}
           </span>
         </div>
 
@@ -145,29 +147,29 @@ export default function AdminPageClaimDetails() {
           <div className="p-6 md:col-span-2 space-y-6">
             <div>
               <h3 className="font-bold text-white mb-3">
-                Claimer Information
+                {t("Claimer Information")}
               </h3>
               <div className="bg-[#050b18]/40 rounded-lg p-4 border border-white/5 grid grid-cols-2 gap-4 text-sm font-semibold">
                 <div>
-                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">Username</span>
+                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">{t("Username")}</span>
                   <span className="font-black text-slate-200">
                     @{claim.claimer_username}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">Contact Email</span>
+                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">{t("Contact Email")}</span>
                   <span className="font-bold text-white">
                     {claim.contact_email}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">Contact Phone</span>
+                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">{t("Contact Phone")}</span>
                   <span className="font-bold text-white">
-                    {claim.contact_phone}
+                    {n(claim.contact_phone)}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">Submitted</span>
+                  <span className="block text-slate-400 text-xs uppercase tracking-wider font-bold mb-0.5">{t("Submitted")}</span>
                   <span className="font-bold text-slate-300">
                     {new Date(claim.created_at).toLocaleString()}
                   </span>
@@ -177,15 +179,14 @@ export default function AdminPageClaimDetails() {
 
             <div>
               <h3 className="font-bold text-white mb-3 border-b border-white/5 pb-2">
-                Admin Verification Checklist
+                {t("Admin Verification Checklist")}
               </h3>
               <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 font-semibold leading-relaxed">
                 <li>
-                  Check the <strong>FB Page Review</strong> official Facebook
-                  Page Inbox.
+                  {t("Check the")} <strong>{t("FB Page Review")}</strong> {t("official Facebook Page Inbox.")}
                 </li>
                 <li>
-                  Did the page{" "}
+                  {t("Did the page")}{" "}
                   <a
                     href={claim.facebook_url}
                     target="_blank"
@@ -194,52 +195,52 @@ export default function AdminPageClaimDetails() {
                   >
                     {claim.page_name}
                   </a>{" "}
-                  send a message?
+                  {t("send a message?")}
                 </li>
                 <li>
-                  Does the message contain the exact username:{" "}
+                  {t("Does the message contain the exact username:")}{" "}
                   <strong className="text-emerald-400">
                     @{claim.claimer_username}
                   </strong>{" "}
                   ?
                 </li>
-                <li>Ensure the Facebook page URL matches exactly.</li>
-                <li>Ensure there are no open disputes over ownership.</li>
+                <li>{t("Ensure the Facebook page URL matches exactly.")}</li>
+                <li>{t("Ensure there are no open disputes over ownership.")}</li>
               </ol>
             </div>
 
             <div>
               <label className="block font-bold text-white mb-2">
-                Admin Notes
+                {t("Admin Notes")}
               </label>
               <textarea
                 value={adminNote}
                 onChange={(e) => setAdminNote(e.target.value)}
                 rows={4}
                 className="w-full bg-[#091124] border-white/5 text-slate-200 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 p-3 border outline-none font-medium placeholder-slate-600"
-                placeholder="Add notes before approving or rejecting..."
+                placeholder={t("Add notes before approving or rejecting...")}
               />
             </div>
           </div>
 
           <div className="p-6 bg-[#050b18]/60 flex flex-col gap-3">
-            <h3 className="font-bold text-white mb-2">Actions</h3>
+            <h3 className="font-bold text-white mb-2">{t("Actions")}</h3>
 
             {claim.status !== "Approved" ? (
               <>
                 {claim.status === "Rejected" && (
                   <div className="text-sm font-semibold text-rose-450 p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg text-center">
-                    This claim is currently Rejected. You can still approve it or ask for more info below.
+                    {t("This claim is currently Rejected. You can still approve it or ask for more info below.")}
                   </div>
                 )}
                 {claim.status === "Need More Info" && (
                   <div className="text-sm font-semibold text-amber-500 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
-                    This claim is marked as "Need More Info". You can approve or reject it below.
+                    {t("This claim is marked as \"Need More Info\". You can approve or reject it below.")}
                   </div>
                 )}
                 {claim.status === "Revoked" && (
                   <div className="text-sm font-semibold text-zinc-400 p-4 bg-white/5 border border-white/5 rounded-lg text-center">
-                    This claim was Revoked. You can restore ownership by approving it below.
+                    {t("This claim was Revoked. You can restore ownership by approving it below.")}
                   </div>
                 )}
                 <button
@@ -248,21 +249,21 @@ export default function AdminPageClaimDetails() {
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer"
                 >
                   <CheckCircle className="h-5 w-5" />{" "}
-                  {saving === "approve" ? "Approving..." : "Approve Claim"}
+                  {saving === "approve" ? t("Approving...") : t("Approve Claim")}
                 </button>
                 <button
                   onClick={() => handleStatusChange("reject", "Need More Info")}
                   disabled={!!saving}
                   className="w-full bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2 cursor-pointer"
                 >
-                  <Info className="h-5 w-5" /> Need More Info
+                  <Info className="h-5 w-5" /> {t("Need More Info")}
                 </button>
                 <button
                   onClick={() => handleStatusChange("reject")}
                   disabled={!!saving}
                   className="w-full bg-white/5 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 border border-white/5 font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <XCircle className="h-5 w-5" /> Reject Claim
+                  <XCircle className="h-5 w-5" /> {t("Reject Claim")}
                 </button>
                 
                 {claim.status === "Rejected" && (
@@ -271,21 +272,21 @@ export default function AdminPageClaimDetails() {
                     disabled={!!saving}
                     className="w-full bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 cursor-pointer"
                   >
-                    <Trash2 className="h-5 w-5" /> {saving === "delete" ? "Deleting..." : "Delete Claim Record"}
+                    <Trash2 className="h-5 w-5" /> {saving === "delete" ? t("Deleting...") : t("Delete Claim Record")}
                   </button>
                 )}
               </>
             ) : (
               <>
                 <div className="text-sm font-semibold text-emerald-400 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-2">
-                  This claim is approved. The user has access to this page.
+                  {t("This claim is approved. The user has access to this page.")}
                 </div>
                 <button
                   onClick={() => handleStatusChange("revoke")}
                   disabled={!!saving}
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-600/15 cursor-pointer"
                 >
-                  <XCircle className="h-5 w-5" /> {saving === "revoke" ? "Revoking..." : "Revoke Ownership"}
+                  <XCircle className="h-5 w-5" /> {saving === "revoke" ? t("Revoking...") : t("Revoke Ownership")}
                 </button>
               </>
             )}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, Filter, Phone, AlertTriangle, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, Upload } from "lucide-react";
+import { Search, Phone, AlertTriangle, Plus, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, Upload } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminContactNumbers() {
+  const { t, n } = useLanguage();
   const [numbers, setNumbers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,7 +54,7 @@ export default function AdminContactNumbers() {
               setTimeout(() => {
                 setImportProgress(null);
                 setImportJobId(null);
-                alert(`Import ${data.status}! Added: ${data.successful_rows}, Failed: ${data.failed_rows}`);
+                alert(t(`Import ${data.status}! Added: ${data.successful_rows}, Failed: ${data.failed_rows}`));
                 setShowImportModal(false);
                 setImportFile(null);
                 fetchNumbers();
@@ -69,7 +71,7 @@ export default function AdminContactNumbers() {
 
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!importFile) return alert("Please select an Excel file first.");
+    if (!importFile) return alert(t("Please select an Excel file first."));
 
     const formData = new FormData();
     formData.append('file', importFile);
@@ -88,11 +90,11 @@ export default function AdminContactNumbers() {
         setImportJobId(data.jobId);
         setImportProgress(5);
       } else {
-        alert("Import failed: " + (data.error || "Unknown error"));
+        alert(t("Import failed: ") + (data.error || t("Unknown error")));
         setImportProgress(null);
       }
     } catch (err) {
-      alert("Network error occurred during import.");
+      alert(t("Network error occurred during import."));
       setImportProgress(null);
     }
   };
@@ -178,14 +180,14 @@ export default function AdminContactNumbers() {
         a.remove();
       })
       .catch(err => {
-        alert(err.message || "Export failed");
+        alert(t(err.message || "Export failed"));
       });
   };
 
   const executeBulkAction = async () => {
     if (selectedIds.length === 0) return;
     if (!bulkAction) {
-      alert("Please select a valid bulk action.");
+      alert(t("Please select a valid bulk action."));
       return;
     }
 
@@ -197,7 +199,7 @@ export default function AdminContactNumbers() {
     }
 
     if (bulkAction === 'delete') {
-      const confirmDelete = window.confirm(`⚠️ Permanently delete ${selectedIds.length} selected contact numbers? This cannot be undone!`);
+      const confirmDelete = window.confirm(t("⚠️ Permanently delete {{count}} selected contact numbers? This cannot be undone!", { count: selectedIds.length }));
       if (!confirmDelete) return;
     }
 
@@ -221,13 +223,13 @@ export default function AdminContactNumbers() {
         throw new Error(data.error || 'Failed to execute bulk action');
       }
 
-      alert(data.message || 'Bulk action completed successfully!');
+      alert(t(data.message || 'Bulk action completed successfully!'));
       setSelectedIds([]);
       setBulkAction("");
       fetchNumbers();
     } catch(err: any) {
       console.error(err);
-      alert(err.message || 'An error occurred during bulk operations.');
+      alert(t(err.message || 'An error occurred during bulk operations.'));
     } finally {
       setBulkLoading(false);
     }
@@ -326,30 +328,29 @@ export default function AdminContactNumbers() {
         setShowAddModal(false);
         if (data.count > 1) {
           fetchNumbers();
-          alert(`Successfully added ${data.count} numbers. Skipped ${data.skipped?.length || 0} duplicates.`);
+          alert(t(`Successfully added ${data.count} numbers. Skipped ${data.skipped?.length || 0} duplicates.`));
         } else if (data.id) {
           navigate(`/tufayel/contact-numbers/${data.id}`);
         } else {
           fetchNumbers();
         }
       } else {
-        alert(data.error || "Failed to add number. The number might already exist.");
+        alert(t(data.error || "Failed to add number. The number might already exist."));
       }
     } catch (err) {
-      alert("Error adding number");
+      alert(t("Error adding number"));
     }
   };
 
-  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            bKash / Contact Numbers
+            {t("bKash / Contact Numbers")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage payment and contact numbers.
+            {t("Manage payment and contact numbers.")}
           </p>
         </div>
         
@@ -360,8 +361,8 @@ export default function AdminContactNumbers() {
                  onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Types</option>
-                 {uniqueTypes.map(t => <option key={t as string} value={t as string} className="bg-[#091124]">{t as string}</option>)}
+                 <option value="all" className="bg-[#091124]">{t("All Types")}</option>
+                 {uniqueTypes.map(tOption => <option key={tOption as string} value={tOption as string} className="bg-[#091124]">{t(tOption as string)}</option>)}
               </select>
 
               <select
@@ -369,11 +370,11 @@ export default function AdminContactNumbers() {
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Statuses</option>
-                 <option value="Reported" className="bg-[#091124]">Reported</option>
-                 <option value="Suspicious" className="bg-[#091124]">Suspicious</option>
-                 <option value="Verified Merchant" className="bg-[#091124]">Verified Merchant</option>
-                 <option value="Safe" className="bg-[#091124]">Safe</option>
+                 <option value="all" className="bg-[#091124]">{t("All Statuses")}</option>
+                 <option value="Reported" className="bg-[#091124]">{t("Reported")}</option>
+                 <option value="Suspicious" className="bg-[#091124]">{t("Suspicious")}</option>
+                 <option value="Verified Merchant" className="bg-[#091124]">{t("Verified Merchant")}</option>
+                 <option value="Safe" className="bg-[#091124]">{t("Safe")}</option>
               </select>
 
               <select
@@ -381,16 +382,18 @@ export default function AdminContactNumbers() {
                  onChange={(e) => { setAddedByFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Sources</option>
-                 <option value="admin" className="bg-[#091124]">Admin Added</option>
-                 <option value="users" className="bg-[#091124]">User Added</option>
+                 <option value="all" className="bg-[#091124]">{t("All Sources")}</option>
+                 <option value="admin" className="bg-[#091124]">{t("Admin Added")}</option>
+                 <option value="users" className="bg-[#091124]">{t("User Added")}</option>
               </select>
           </div>
           <div className="relative flex-1 w-full lg:w-64">
-            <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
+            <span className="absolute left-3 top-2.5 text-slate-400">
+              <Search className="h-4 w-4" />
+            </span>
             <input
               type="text"
-              placeholder="Search numbers..."
+              placeholder={t("Search numbers...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -401,23 +404,22 @@ export default function AdminContactNumbers() {
               onClick={() => setShowImportModal(true)}
               className="bg-sky-600/15 hover:bg-sky-600/25 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full lg:w-auto cursor-pointer"
             >
-              <Upload className="h-4 w-4" /> Import Excel
+              <Upload className="h-4 w-4" /> {t("Import Excel")}
             </button>
             <button
               onClick={handleExportExcel}
               className="bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 border border-indigo-500/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full lg:w-auto cursor-pointer"
             >
-              <FileDown className="h-4 w-4" /> Export Excel
+              <FileDown className="h-4 w-4" /> {t("Export Excel")}
             </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full lg:w-auto"
             >
-              <Plus className="h-4 w-4" /> Add Number
+              <Plus className="h-4 w-4" /> {t("Add Number")}
             </button>
           </div>
         </div>
-
       </div>
 
       {/* Clear filter indicator */}
@@ -433,7 +435,7 @@ export default function AdminContactNumbers() {
             }}
             className="text-xs text-rose-400 hover:text-rose-300 font-bold transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            ✕ Reset All Active Filters
+            ✕ {t("Reset All Active Filters")}
           </button>
         </div>
       )}
@@ -442,7 +444,7 @@ export default function AdminContactNumbers() {
         <div className="fixed inset-0 bg-[#050b18]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in animate-duration-150">
           <div className="bg-[#091124] border border-white/5 rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#050b18]/40">
-              <h3 className="font-bold text-white">Add New Number</h3>
+              <h3 className="font-bold text-white">{t("Add New Number")}</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-white"
@@ -453,7 +455,7 @@ export default function AdminContactNumbers() {
             <form onSubmit={handleAddNumber} className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-1">
-                  Phone Number *
+                  {t("Phone Number *")}
                 </label>
                 <input
                   required
@@ -471,7 +473,7 @@ export default function AdminContactNumbers() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-300 mb-1">
-                  Description
+                  {t("Description")}
                 </label>
                 <textarea
                   value={newNumberForm.description}
@@ -483,13 +485,13 @@ export default function AdminContactNumbers() {
                   }
                   rows={3}
                   className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium placeholder:text-slate-650"
-                  placeholder="e.g. Scammer number, active on various pages..."
+                  placeholder={t("e.g. Scammer number, active on various pages...")}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-1">
-                    Type
+                    {t("Type")}
                   </label>
                   <select
                     value={newNumberForm.type}
@@ -501,13 +503,13 @@ export default function AdminContactNumbers() {
                     }
                     className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm font-medium focus:outline-none"
                   >
-                    <option value="Contact Number" className="bg-[#091124]">Contact Number</option>
-                     <option value="Payment Number" className="bg-[#091124]">Payment Number</option>
+                    <option value="Contact Number" className="bg-[#091124]">{t("Contact Number")}</option>
+                    <option value="Payment Number" className="bg-[#091124]">{t("Payment Number")}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-300 mb-1">
-                    Status
+                    {t("Status")}
                   </label>
                   <select
                     value={newNumberForm.status}
@@ -519,13 +521,12 @@ export default function AdminContactNumbers() {
                     }
                     className="w-full bg-[#050b18] border border-white/5 text-slate-100 rounded-lg p-2.5 text-sm font-medium focus:outline-none"
                   >
-                    <option value="Reported" className="bg-[#091124]">Reported</option>
-                    <option value="Suspicious" className="bg-[#091124]">Suspicious</option>
-                    <option value="Verified Merchant" className="bg-[#091124]">Verified Merchant</option>
-                    <option value="Safe" className="bg-[#091124]">Safe</option>
+                    <option value="Reported" className="bg-[#091124]">{t("Reported")}</option>
+                    <option value="Suspicious" className="bg-[#091124]">{t("Suspicious")}</option>
+                    <option value="Verified Merchant" className="bg-[#091124]">{t("Verified Merchant")}</option>
+                    <option value="Safe" className="bg-[#091124]">{t("Safe")}</option>
                   </select>
                 </div>
-
               </div>
               <div className="pt-4 flex justify-end gap-2 border-t border-white/5">
                 <button
@@ -533,28 +534,29 @@ export default function AdminContactNumbers() {
                   onClick={() => setShowAddModal(false)}
                   className="px-4 py-2 text-slate-300 font-bold hover:text-white rounded-lg text-sm"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm"
                 >
-                  Add Number
+                  {t("Add Number")}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+      
       {/* Bulk Action Workspace Banner */}
       {selectedIds.length > 0 && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 animate-fade-in">
           <div className="flex flex-wrap items-center gap-3">
             <div className="h-7 px-3 rounded-full bg-emerald-500 text-[#050b18] text-xs font-black flex items-center justify-center select-none shadow">
-              {selectedIds.length} Selected
+              {n(selectedIds.length)} {t("Selected")}
             </div>
             <p className="text-sm text-slate-200 mt-1 lg:mt-0 font-semibold">
-              Select an action to apply to the contact numbers chosen above.
+              {t("Select an action to apply to the contact numbers chosen above.")}
             </p>
             {selectedIds.length === numbers.length && totalCount > numbers.length && (
               <button
@@ -562,7 +564,7 @@ export default function AdminContactNumbers() {
                 onClick={selectAllMatchingContacts}
                 className="bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                {selectingAllMatching ? "Loading all..." : `Select all ${totalCount} numbers`}
+                {selectingAllMatching ? t("Loading all...") : t("Select all {{count}} numbers", { count: totalCount })}
               </button>
             )}
           </div>
@@ -573,10 +575,10 @@ export default function AdminContactNumbers() {
               onChange={(e) => setBulkAction(e.target.value)}
               className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none"
             >
-              <option value="">-- Bulk Actions --</option>
-              <option value="change_status">Bulk Change Status...</option>
-              <option value="export">Bulk Export to Excel</option>
-              <option value="delete">Bulk Permanently Delete</option>
+              <option value="">{t("-- Bulk Actions --")}</option>
+              <option value="change_status">{t("Bulk Change Status...")}</option>
+              <option value="export">{t("Bulk Export to Excel")}</option>
+              <option value="delete">{t("Bulk Permanently Delete")}</option>
             </select>
 
             {bulkAction === "change_status" && (
@@ -585,11 +587,11 @@ export default function AdminContactNumbers() {
                 onChange={(e) => setBulkStatusValue(e.target.value)}
                 className="bg-[#050b18] border border-white/10 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none"
               >
-                <option value="Normal">Normal</option>
-                <option value="Reported">Reported</option>
-                <option value="Suspicious">Suspicious</option>
-                <option value="Verified Merchant">Verified Merchant</option>
-                <option value="Safe">Safe</option>
+                <option value="Normal">{t("Normal")}</option>
+                <option value="Reported">{t("Reported")}</option>
+                <option value="Suspicious">{t("Suspicious")}</option>
+                <option value="Verified Merchant">{t("Verified Merchant")}</option>
+                <option value="Safe">{t("Safe")}</option>
               </select>
             )}
 
@@ -598,13 +600,13 @@ export default function AdminContactNumbers() {
               onClick={executeBulkAction}
               className="bg-emerald-600 hover:bg-emerald-500 font-extrabold text-[#050b18] px-4 py-2 rounded-lg text-sm transition-all shadow hover:shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {bulkLoading ? "Running..." : "Apply to Chosen"}
+              {bulkLoading ? t("Running...") : t("Apply to Chosen")}
             </button>
             <button
               onClick={() => setSelectedIds([])}
               className="text-xs text-slate-400 hover:text-slate-200 font-semibold px-2 py-1 transition-all"
             >
-              Clear choices
+              {t("Clear choices")}
             </button>
           </div>
         </div>
@@ -613,20 +615,19 @@ export default function AdminContactNumbers() {
       <div className="bg-[#091124] border border-white/5 rounded-xl shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-300">
-            
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs select-none">
               <tr>
                 <th className="px-6 py-4 border-b border-white/5 w-16">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={numbers.length > 0 && numbers.every(n => {
-                        const rowIds = n.grouped_ids ? n.grouped_ids.split(',') : [n.id];
-                        return rowIds.every(id => selectedIds.includes(id));
+                      checked={numbers.length > 0 && numbers.every(numRow => {
+                        const rowIds = numRow.grouped_ids ? numRow.grouped_ids.split(',') : [numRow.id];
+                        return rowIds.every(idVal => selectedIds.includes(idVal));
                       })}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          const allIds = numbers.flatMap(n => n.grouped_ids ? n.grouped_ids.split(',') : [n.id]);
+                          const allIds = numbers.flatMap(numRow => numRow.grouped_ids ? numRow.grouped_ids.split(',') : [numRow.id]);
                           setSelectedIds(allIds);
                         } else {
                           setSelectedIds([]);
@@ -634,24 +635,24 @@ export default function AdminContactNumbers() {
                       }}
                       className="rounded border-slate-700 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 shrink-0"
                     />
-                    <span>SL</span>
+                    <span>{t("SL")}</span>
                   </div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('number')}>
-                  <div className="flex items-center gap-1">Number <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Number")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
 
                 <th className="px-6 py-4 border-b border-white/5 text-center cursor-pointer hover:bg-white/5" onClick={() => handleSort('linked_page_count')}>
-                  <div className="flex items-center justify-center gap-1">Linked Pages <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center justify-center gap-1">{t("Linked Pages")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort('status_badge')}>
-                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Status")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5 text-center" onClick={() => handleSort('fraud_report_count')}>
-                  <div className="flex items-center justify-center gap-1">Fraud Reports <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center justify-center gap-1">{t("Fraud Reports")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -659,30 +660,27 @@ export default function AdminContactNumbers() {
             <tbody className="divide-y divide-white/5">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center">
+                  <td colSpan={6} className="px-6 py-8 text-center">
                     <div className="animate-pulse h-4 w-32 bg-white/5 mx-auto rounded"></div>
                   </td>
                 </tr>
               ) : paginatedNumbers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No numbers found.
+                    {t("No numbers found.")}
                   </td>
                 </tr>
               ) : (
-                paginatedNumbers.map((number, index) => {
-                  const isReported =
-                    number.status === "Reported" ||
-                    number.status === "Suspicious";
+                paginatedNumbers.map((numberItem, index) => {
                   return (
                     <tr
-                      key={number.id}
+                      key={numberItem.id}
                       className={`hover:bg-white/[0.02] transition-all ${(() => {
-                        const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
-                        return rowIds.every(id => selectedIds.includes(id)) ? "bg-emerald-500/[0.04] text-white" : "";
+                        const rowIds = numberItem.grouped_ids ? numberItem.grouped_ids.split(',') : [numberItem.id];
+                        return rowIds.every(idVal => selectedIds.includes(idVal)) ? "bg-emerald-500/[0.04] text-white" : "";
                       })()}`}
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium whitespace-nowrap">
@@ -690,56 +688,56 @@ export default function AdminContactNumbers() {
                           <input
                             type="checkbox"
                             checked={(() => {
-                              const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
-                              return rowIds.every(id => selectedIds.includes(id));
+                              const rowIds = numberItem.grouped_ids ? numberItem.grouped_ids.split(',') : [numberItem.id];
+                              return rowIds.every(idVal => selectedIds.includes(idVal));
                             })()}
                             onChange={(e) => {
-                              const rowIds = number.grouped_ids ? number.grouped_ids.split(',') : [number.id];
+                              const rowIds = numberItem.grouped_ids ? numberItem.grouped_ids.split(',') : [numberItem.id];
                               if (e.target.checked) {
                                 setSelectedIds(prev => {
                                   const newIds = [...prev];
-                                  rowIds.forEach(id => {
-                                    if (!newIds.includes(id)) newIds.push(id);
+                                  rowIds.forEach(idVal => {
+                                    if (!newIds.includes(idVal)) newIds.push(idVal);
                                   });
                                   return newIds;
                                 });
                               } else {
-                                setSelectedIds(prev => prev.filter(id => !rowIds.includes(id)));
+                                setSelectedIds(prev => prev.filter(idVal => !rowIds.includes(idVal)));
                               }
                             }}
                             className="rounded border-slate-700 bg-[#050b18] text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 shrink-0"
                           />
-                          <span className="font-mono text-xs text-slate-500">{startIndex + index + 1}</span>
+                          <span className="font-mono text-xs text-slate-500">{n(startIndex + index + 1)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="font-bold text-white">
-                          {number.number}
+                          {numberItem.number}
                         </p>
                         <div className="text-xs mt-0.5 flex flex-wrap gap-1 text-slate-400">
-                          {number.linked_pages_info && number.linked_pages_info.length > 0 ? (
-                            number.linked_pages_info.map((p: any, idx: number) => (
+                          {numberItem.linked_pages_info && numberItem.linked_pages_info.length > 0 ? (
+                            numberItem.linked_pages_info.map((p: any, idx: number) => (
                               <React.Fragment key={p.id}>
                                 {idx > 0 && <span className="text-slate-600">, </span>}
                                 <Link
                                   to={`/tufayel/pages/${p.id}`}
                                   className="text-emerald-400 hover:text-emerald-300 hover:underline font-medium"
                                 >
-                                  {p.name || "Unknown Page"}
+                                  {p.name || t("Unknown Page")}
                                 </Link>
                               </React.Fragment>
                             ))
-                          ) : number.display_name ? (
-                            <span>{number.display_name}</span>
+                          ) : numberItem.display_name ? (
+                            <span>{numberItem.display_name}</span>
                           ) : (
-                            <span className="text-slate-500 italic">No Name</span>
+                            <span className="text-slate-500 italic">{t("No Name")}</span>
                           )}
                         </div>
                       </td>
 
                       <td className="px-6 py-4 text-center">
                         {(() => {
-                          const count = number.linked_pages_info ? number.linked_pages_info.length : 0;
+                          const count = numberItem.linked_pages_info ? numberItem.linked_pages_info.length : 0;
                           return count > 0 ? (
                             <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-black ${
                               count >= 3
@@ -748,7 +746,7 @@ export default function AdminContactNumbers() {
                                   ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
                                   : 'bg-slate-500/15 text-slate-400 border border-slate-500/20'
                             }`}>
-                              {count} {count === 1 ? 'page' : 'pages'}
+                              {n(count)} {count === 1 ? t('page') : t('pages')}
                             </span>
                           ) : (
                             <span className="text-slate-600 font-medium">—</span>
@@ -759,24 +757,24 @@ export default function AdminContactNumbers() {
                         <span
                           className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider
                             ${
-                              number.status === "Reported"
+                              numberItem.status === "Reported"
                                 ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                                : number.status === "Suspicious"
+                                : numberItem.status === "Suspicious"
                                   ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                  : number.status === "Verified Merchant"
+                                  : numberItem.status === "Verified Merchant"
                                     ? "bg-[#10b981]/10 text-emerald-400 border border-emerald-500/20"
                                     : "bg-slate-500/10 text-slate-400 border border-[#475569]/30"
                             }
                           `}
                         >
-                          {number.status}
+                          {t(numberItem.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {number.fraud_report_count > 0 ? (
+                        {numberItem.fraud_report_count > 0 ? (
                           <div className="flex items-center justify-center gap-1 text-rose-400 font-bold">
                             <AlertTriangle className="h-3 w-3 animate-pulse" />{" "}
-                            {number.fraud_report_count}
+                            {n(numberItem.fraud_report_count)}
                           </div>
                         ) : (
                           <span className="text-slate-500 font-medium">-</span>
@@ -784,10 +782,10 @@ export default function AdminContactNumbers() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
-                          to={`/tufayel/contact-numbers/${number.id}`}
+                          to={`/tufayel/contact-numbers/${numberItem.id}`}
                           className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline px-2 py-1"
                         >
-                          View
+                          {t("View")}
                         </Link>
                       </td>
                     </tr>
@@ -800,20 +798,20 @@ export default function AdminContactNumbers() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-medium font-semibold">
-              Showing {totalCount === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} entries
+              {t("Showing")} {totalCount === 0 ? n(0) : n(startIndex + 1)} {t("to")} {n(Math.min(startIndex + itemsPerPage, totalCount))} {t("of")} {n(totalCount)} {t("entries")}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -824,7 +822,7 @@ export default function AdminContactNumbers() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
@@ -843,7 +841,7 @@ export default function AdminContactNumbers() {
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#050b18]/40">
               <h3 className="font-bold text-white flex items-center gap-2">
                 <Upload className="h-5 w-5 text-sky-400" />
-                Import Contact Numbers
+                {t("Import Contact Numbers")}
               </h3>
               <button
                 onClick={() => {
@@ -864,17 +862,17 @@ export default function AdminContactNumbers() {
                     <div className="w-full bg-white/10 rounded-full h-3 mb-3">
                       <div className="bg-sky-500 h-3 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
                     </div>
-                    <div className="text-lg font-extrabold text-sky-400 mb-1">{importProgress}%</div>
-                    <div className="text-xs text-slate-400 font-semibold">Processing file, please do not close...</div>
+                    <div className="text-lg font-extrabold text-sky-400 mb-1">{n(importProgress)}%</div>
+                    <div className="text-xs text-slate-400 font-semibold">{t("Processing file, please do not close...")}</div>
                   </div>
                 ) : (
                   <>
                     <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
                     <div className="text-xs font-bold text-slate-200 mb-1">
-                      Drag & drop your Excel file here or click below
+                      {t("Drag & drop your Excel file here or click below")}
                     </div>
                     <p className="text-[10px] text-slate-400 mb-3">
-                      Supports XLSX sheets only (Max 10MB)
+                      {t("Supports XLSX sheets only (Max 10MB)")}
                     </p>
                     <input
                       type="file"
@@ -896,7 +894,7 @@ export default function AdminContactNumbers() {
                   disabled={importProgress !== null}
                   className={`text-xs font-bold flex items-center gap-1 transition-colors ${importProgress !== null ? 'text-slate-500 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}
                 >
-                  <FileDown className="h-4 w-4" /> Download Sample Template
+                  <FileDown className="h-4 w-4" /> {t("Download Sample Template")}
                 </button>
                 
                 <div className="flex gap-2">
@@ -909,7 +907,7 @@ export default function AdminContactNumbers() {
                     disabled={importProgress !== null}
                     className="px-3 py-1.5 text-xs text-slate-300 hover:text-white font-bold cursor-pointer disabled:opacity-40"
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                   <button
                     type="submit"
@@ -920,7 +918,7 @@ export default function AdminContactNumbers() {
                         : 'bg-sky-400 hover:bg-sky-500 shadow-md shadow-sky-500/10'
                     }`}
                   >
-                    {importProgress !== null ? 'Importing...' : 'Upload & Import'}
+                    {importProgress !== null ? t('Importing...') : t('Upload & Import')}
                   </button>
                 </div>
               </div>

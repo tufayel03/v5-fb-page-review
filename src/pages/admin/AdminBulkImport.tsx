@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Upload, Download, FileText, CheckCircle, XCircle, ShieldAlert, RefreshCw, Archive } from "lucide-react";
 import AdminGoogleSheetSync from "./AdminGoogleSheetSync";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminBulkImport() {
+  const { t, n } = useLanguage();
   const [activeTab, setActiveTab] = useState("import");
   const [imports, setImports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,20 +50,20 @@ export default function AdminBulkImport() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("Backup created successfully on server!");
+        alert(t("Backup created successfully on server!"));
         fetchServerBackups();
       } else {
-        alert("Failed to create backup: " + (data.error || "Unknown error"));
+        alert(t("Failed to create backup: ") + (data.error || t("Unknown error")));
       }
     } catch(err) {
-      alert("Network error");
+      alert(t("Network error"));
     } finally {
       setBackupLoading(false);
     }
   };
 
   const handleRestoreFromServer = async (filename: string) => {
-    if (!confirm(`⚠️ CRITICAL WARNING: This will completely replace the current database and uploaded media files with the backup "${filename}". All current changes will be overwritten! Are you absolutely sure you want to proceed?`)) {
+    if (!confirm(t("⚠️ CRITICAL WARNING: This will completely replace the current database and uploaded media files with the backup \"{{filename}}\". All current changes will be overwritten! Are you absolutely sure you want to proceed?", { filename }))) {
       return;
     }
     
@@ -76,23 +78,23 @@ export default function AdminBulkImport() {
       const data = await res.json();
       if (res.ok && data.success) {
         setRestoreProgress(100);
-        setRestoreMessage({ type: 'success', text: data.message || "Website restored successfully! Server is restarting..." });
+        setRestoreMessage({ type: 'success', text: data.message || t("Website restored successfully! Server is restarting...") });
         setTimeout(() => {
           localStorage.clear();
           window.location.href = '/login';
         }, 4000);
       } else {
-        setRestoreMessage({ type: 'error', text: data.error || "Failed to restore backup" });
+        setRestoreMessage({ type: 'error', text: data.error || t("Failed to restore backup") });
         setRestoreProgress(null);
       }
     } catch(err) {
-      setRestoreMessage({ type: 'error', text: "Network error during restore." });
+      setRestoreMessage({ type: 'error', text: t("Network error during restore.") });
       setRestoreProgress(null);
     }
   };
 
   const handleDeleteBackup = async (filename: string) => {
-    if (!confirm(`Are you sure you want to permanently delete backup "${filename}" from the server? This cannot be undone.`)) {
+    if (!confirm(t("Are you sure you want to permanently delete backup \"{{filename}}\" from the server? This cannot be undone.", { filename }))) {
       return;
     }
     
@@ -105,10 +107,10 @@ export default function AdminBulkImport() {
       if (res.ok && data.success) {
         fetchServerBackups();
       } else {
-        alert("Failed to delete backup: " + (data.error || "Unknown error"));
+        alert(t("Failed to delete backup: ") + (data.error || t("Unknown error")));
       }
     } catch(err) {
-      alert("Network error");
+      alert(t("Network error"));
     }
   };
 
@@ -140,9 +142,9 @@ export default function AdminBulkImport() {
 
   const handleRestore = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!restoreFile) return alert("Please select a valid website_full_backup.zip file");
+    if (!restoreFile) return alert(t("Please select a valid website_full_backup.zip file"));
 
-    if (!confirm("⚠️ WARNING: This will completely overwrite your database and all uploaded media files! Are you absolutely sure you want to proceed?")) {
+    if (!confirm(t("⚠️ WARNING: This will completely overwrite your database and all uploaded media files! Are you absolutely sure you want to proceed?"))) {
       return;
     }
 
@@ -168,13 +170,13 @@ export default function AdminBulkImport() {
         if (xhr.status === 200) {
           setRestoreProgress(100);
           const resData = JSON.parse(xhr.responseText);
-          setRestoreMessage({ type: 'success', text: resData.message || "Website restored successfully! Server is restarting..." });
+          setRestoreMessage({ type: 'success', text: resData.message || t("Website restored successfully! Server is restarting...") });
           setTimeout(() => {
             localStorage.clear();
             window.location.href = '/login';
           }, 4000);
         } else {
-          let errMsg = "Restore failed";
+          let errMsg = t("Restore failed");
           try {
             const resData = JSON.parse(xhr.responseText);
             errMsg = resData.error || errMsg;
@@ -185,13 +187,13 @@ export default function AdminBulkImport() {
       };
 
       xhr.onerror = () => {
-        setRestoreMessage({ type: 'error', text: "Network error during restore." });
+        setRestoreMessage({ type: 'error', text: t("Network error during restore.") });
         setRestoreProgress(null);
       };
 
       xhr.send(formData);
     } catch(err) {
-      setRestoreMessage({ type: 'error', text: "An unexpected error occurred." });
+      setRestoreMessage({ type: 'error', text: t("An unexpected error occurred.") });
       setRestoreProgress(null);
     }
   };
@@ -225,8 +227,7 @@ export default function AdminBulkImport() {
           });
           const data = await res.json();
           if (data && data.total_rows > 0) {
-            const processed = data.successful_rows + data.failed_rows; // skipped rows are not added to total loops? actually total_rows might be the full length
-            // We can just fake up to 99% or calculate
+            const processed = data.successful_rows + data.failed_rows;
             const pct = Math.min(99, Math.round((processed / data.total_rows) * 100));
             setImportProgress(pct);
             
@@ -236,7 +237,11 @@ export default function AdminBulkImport() {
               setTimeout(() => {
                 setImportProgress(null);
                 setJobId(null);
-                alert(`Import ${data.status}! Added: ${data.successful_rows}, Failed: ${data.failed_rows}`);
+                alert(t("Import {{status}}! Added: {{success}}, Failed: {{fail}}", {
+                  status: t(data.status),
+                  success: n(data.successful_rows),
+                  fail: n(data.failed_rows)
+                }));
                 setFile(null);
                 fetchHistory();
               }, 500);
@@ -252,7 +257,7 @@ export default function AdminBulkImport() {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return alert("Please select a file");
+    if (!file) return alert(t("Please select a file"));
 
     const formData = new FormData();
     formData.append('file', file);
@@ -271,11 +276,11 @@ export default function AdminBulkImport() {
         setJobId(data.jobId);
         setImportProgress(5);
       } else {
-        alert("Import failed to start: " + (data.error || "Unknown error"));
+        alert(t("Import failed to start: ") + (data.error || t("Unknown error")));
         setImportProgress(null);
       }
     } catch (err) {
-      alert("Network error");
+      alert(t("Network error"));
       setImportProgress(null);
     }
   };
@@ -319,7 +324,7 @@ export default function AdminBulkImport() {
           a.remove();
           window.URL.revokeObjectURL(url);
         } else {
-          alert("Failed to export Facebook pages");
+          alert(t("Failed to export Facebook pages"));
         }
       }, 500);
     };
@@ -327,7 +332,7 @@ export default function AdminBulkImport() {
     xhr.onerror = () => {
       clearInterval(fakeProgressInterval);
       setExportProgress(null);
-      alert("Export failed: Network error");
+      alert(t("Export failed: Network error"));
     };
 
     xhr.send();
@@ -337,10 +342,10 @@ export default function AdminBulkImport() {
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          Bulk Import & Export
+          {t("Bulk Import & Export")}
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          Manage bulk data operations via Excel files or Google Sheets.
+          {t("Manage bulk data operations via Excel files or Google Sheets.")}
         </p>
       </div>
 
@@ -349,31 +354,31 @@ export default function AdminBulkImport() {
           onClick={() => setActiveTab("import")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "import" ? "bg-white/5 text-white shadow-md border border-white/5" : "text-slate-400 hover:text-white"}`}
         >
-          Import Data
+          {t("Import Data")}
         </button>
         <button
           onClick={() => setActiveTab("export")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "export" ? "bg-white/5 text-white shadow-md border border-white/5" : "text-slate-400 hover:text-white"}`}
         >
-          Export Data
+          {t("Export Data")}
         </button>
         <button
           onClick={() => setActiveTab("history")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "history" ? "bg-white/5 text-white shadow-md border border-white/5" : "text-slate-400 hover:text-white"}`}
         >
-          History
+          {t("History")}
         </button>
         <button
           onClick={() => setActiveTab("google-sheet")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "google-sheet" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10"}`}
         >
-          Google Sheet Sync
+          {t("Google Sheet Sync")}
         </button>
         <button
           onClick={() => setActiveTab("backup-restore")}
           className={`flex-1 py-2 px-4 text-sm font-bold rounded-md transition-colors whitespace-nowrap ${activeTab === "backup-restore" ? "bg-amber-600 text-white shadow border border-amber-500/20" : "text-slate-400 hover:text-amber-400 hover:bg-amber-500/10"}`}
         >
-          Full Backup & Restore
+          {t("Full Backup & Restore")}
         </button>
       </div>
 
@@ -382,13 +387,13 @@ export default function AdminBulkImport() {
       {activeTab === "import" && (
         <div className="bg-[#091124] rounded-xl border border-white/5 shadow-xl p-6">
           <h2 className="text-lg font-bold text-white mb-6">
-            Upload Excel File (.xlsx)
+            {t("Upload Excel File (.xlsx)")}
           </h2>
 
           <form onSubmit={handleImport} className="space-y-6 max-w-xl">
             <div>
               <label className="block text-sm font-bold text-slate-300 mb-1">
-                Import Type
+                {t("Import Type")}
               </label>
               <select
                 value={importType}
@@ -396,9 +401,9 @@ export default function AdminBulkImport() {
                 className="w-full border border-white/5 bg-[#050b18]/45 text-white rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 disabled={importProgress !== null}
               >
-                <option value="Facebook Pages">Facebook Pages</option>
-                <option value="Fraud Pages">Fraud Pages</option>
-                <option value="Contact Numbers">Contact Numbers</option>
+                <option value="Facebook Pages">{t("Facebook Pages")}</option>
+                <option value="Fraud Pages">{t("Fraud Pages")}</option>
+                <option value="Contact Numbers">{t("Contact Numbers")}</option>
               </select>
             </div>
 
@@ -408,17 +413,17 @@ export default function AdminBulkImport() {
                   <div className="w-full bg-white/10 rounded-full h-4 mb-4">
                     <div className="bg-blue-600 h-4 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
                   </div>
-                  <div className="text-xl font-bold text-blue-400 mb-2">{importProgress}%</div>
-                  <div className="text-sm text-slate-400 font-medium">Processing File... Please wait.</div>
+                  <div className="text-xl font-bold text-blue-400 mb-2">{n(importProgress)}%</div>
+                  <div className="text-sm text-slate-400 font-medium">{t("Processing File... Please wait.")}</div>
                 </div>
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-slate-400 mx-auto mb-4" />
                   <div className="text-sm font-bold text-slate-200 mb-1">
-                    Click to upload or drag and drop
+                    {t("Click to upload or drag and drop")}
                   </div>
                   <p className="text-xs text-slate-400 mb-4">
-                    XLSX up to 10MB
+                    {t("XLSX up to {{size}}", { size: "10MB" })}
                   </p>
                   <input
                     type="file"
@@ -441,10 +446,10 @@ export default function AdminBulkImport() {
               >
                 {importProgress !== null ? (
                   <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div> Importing...
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div> {t("Importing...")}
                   </span>
                 ) : (
-                  <><Upload className="h-4 w-4" /> Upload & Parse</>
+                  <><Upload className="h-4 w-4" /> {t("Upload & Parse")}</>
                 )}
               </button>
               <button
@@ -460,7 +465,7 @@ export default function AdminBulkImport() {
                 disabled={importProgress !== null}
                 className={`text-sm font-bold flex items-center gap-1 transition-colors ${importProgress !== null ? 'text-slate-500 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}
               >
-                <FileText className="h-4 w-4" /> Download Sample Template
+                <FileText className="h-4 w-4" /> {t("Download Sample Template")}
               </button>
             </div>
           </form>
@@ -470,7 +475,7 @@ export default function AdminBulkImport() {
       {activeTab === "export" && (
         <div className="bg-[#091124] rounded-xl border border-white/5 shadow-xl p-6">
           <h2 className="text-lg font-bold text-white mb-6">
-            Export Database
+            {t("Export Database")}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -487,18 +492,18 @@ export default function AdminBulkImport() {
                     <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                       <div className="bg-emerald-600 h-2 rounded-full transition-all duration-300" style={{ width: `${exportProgress}%` }}></div>
                     </div>
-                    <div className="text-sm font-bold text-emerald-400">{exportProgress}%</div>
+                    <div className="text-sm font-bold text-emerald-400">{n(exportProgress)}%</div>
                   </div>
                 )}
-                <h3 className="font-bold text-slate-200 mb-4">{item}</h3>
+                <h3 className="font-bold text-slate-200 mb-4">{t(item)}</h3>
                 <button 
                   disabled={exportProgress !== null}
                   onClick={() => {
-                    handleExportFacebookPages(); // Adjust url for fraud pages if needed in future, but template is same
+                    handleExportFacebookPages();
                   }}
                   className="bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white py-2 px-4 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-2 w-full justify-center disabled:opacity-50 transition-all animate-none"
                 >
-                  <Download className="h-4 w-4" /> Export .XLSX
+                  <Download className="h-4 w-4" /> {t("Export .XLSX")}
                 </button>
               </div>
             ))}
@@ -511,16 +516,16 @@ export default function AdminBulkImport() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-[#050b18]/45 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5">Date</th>
-                <th className="px-6 py-4 border-b border-white/5">Type</th>
+                <th className="px-6 py-4 border-b border-white/5">{t("Date")}</th>
+                <th className="px-6 py-4 border-b border-white/5">{t("Type")}</th>
                 <th className="px-6 py-4 border-b border-white/5">
-                  File Name
+                  {t("File Name")}
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-center">
-                  Status
+                  {t("Status")}
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right">
-                  Result
+                  {t("Result")}
                 </th>
               </tr>
             </thead>
@@ -531,7 +536,7 @@ export default function AdminBulkImport() {
                     colSpan={5}
                     className="px-6 py-8 text-center animate-pulse text-slate-400"
                   >
-                    Loading...
+                    {t("Loading...")}
                   </td>
                 </tr>
               ) : imports.length === 0 ? (
@@ -540,7 +545,7 @@ export default function AdminBulkImport() {
                     colSpan={5}
                     className="px-6 py-8 text-center text-slate-400"
                   >
-                    No import history found.
+                    {t("No import history found.")}
                   </td>
                 </tr>
               ) : (
@@ -551,7 +556,7 @@ export default function AdminBulkImport() {
                         {new Date(imp.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 font-bold text-white">
-                        {imp.import_type}
+                        {t(imp.import_type)}
                       </td>
                       <td className="px-6 py-4 text-xs font-mono">
                         {imp.file_name || 'N/A'}
@@ -559,25 +564,25 @@ export default function AdminBulkImport() {
                       <td className="px-6 py-4 text-center">
                         {imp.status === 'Completed' || imp.status === 'Completed With Errors' ? (
                           <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/15 text-emerald-400 px-2 py-1 rounded text-[10px] font-black uppercase">
-                            <CheckCircle className="h-3 w-3" /> {imp.status}
+                            <CheckCircle className="h-3 w-3" /> {t(imp.status)}
                           </span>
                         ) : imp.status === 'Failed' ? (
                           <span className="inline-flex items-center gap-1 bg-rose-500/10 border border-rose-500/15 text-rose-400 px-2 py-1 rounded text-[10px] font-black uppercase">
-                            <XCircle className="h-3 w-3" /> Failed
+                            <XCircle className="h-3 w-3" /> {t("Failed")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/15 text-blue-400 px-2 py-1 rounded text-[10px] font-black uppercase">
-                             Processing
+                             {t("Processing")}
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right text-xs">
                         <span className="text-emerald-400 font-bold">
-                          {imp.successful_rows || 0} added
+                          {n(imp.successful_rows || 0)} {t("added")}
                         </span>
                         {(imp.failed_rows || 0) > 0 && (
                           <span className="text-rose-400 font-bold ml-2">
-                            {imp.failed_rows} failed
+                            {n(imp.failed_rows)} {t("failed")}
                           </span>
                         )}
                       </td>
@@ -585,7 +590,7 @@ export default function AdminBulkImport() {
                     {(imp.status === 'Failed' || imp.status === 'Completed With Errors') && imp.error_report && imp.error_report !== '[]' && (
                       <tr className="bg-rose-500/5">
                         <td colSpan={5} className="px-6 py-3 text-xs text-rose-400">
-                          <div className="font-bold mb-1">Error Details:</div>
+                          <div className="font-bold mb-1">{t("Error Details:")}</div>
                           <div className="max-h-32 overflow-y-auto">
                             {(() => {
                               try {
@@ -597,14 +602,14 @@ export default function AdminBulkImport() {
                                         let friendlyMsg = e.error || "";
                                         if (friendlyMsg.includes('NOT NULL constraint failed: FacebookPages.')) {
                                           const field = friendlyMsg.split('.').pop() || 'field';
-                                          friendlyMsg = `The column "${field}" cannot be empty. Please provide a value or ensure it's not strictly required.`;
+                                          friendlyMsg = t(`The column "${field}" cannot be empty. Please provide a value or ensure it's not strictly required.`);
                                         } else if (friendlyMsg.includes('UNIQUE constraint failed')) {
-                                          friendlyMsg = "A record with this exact information already exists in the system (Duplicate).";
+                                          friendlyMsg = t("A record with this exact information already exists in the system (Duplicate).");
                                         }
                                         return (
                                           <li key={idx}>
-                                            {e.rowIndex && e.rowIndex > 0 ? <span className="font-semibold text-rose-400">Row {e.rowIndex}: </span> : null}
-                                            {friendlyMsg}
+                                            {e.rowIndex && e.rowIndex > 0 ? <span className="font-semibold text-rose-400">{t("Row")} {n(e.rowIndex)}: </span> : null}
+                                            {t(friendlyMsg)}
                                           </li>
                                         );
                                       })}
@@ -638,21 +643,21 @@ export default function AdminBulkImport() {
                     <Archive className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">WordPress-Style Backup Manager</h2>
-                    <p className="text-xs text-slate-400">Store and manage backup files directly on the server</p>
+                    <h2 className="text-lg font-bold text-white">{t("WordPress-Style Backup Manager")}</h2>
+                    <p className="text-xs text-slate-400">{t("Store and manage backup files directly on the server")}</p>
                   </div>
                 </div>
                 
                 <div className="bg-[#050b18]/45 border border-white/5 rounded-lg p-4 space-y-2">
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">What's in the backup payload:</h3>
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">{t("What's in the backup payload:")}</h3>
                   <ul className="list-disc pl-4 space-y-1 text-xs text-slate-400">
-                    <li><strong>Database state (`data.db`)</strong>: All pages, reviews, claims, disputes, blogs, visitor analytics logs.</li>
-                    <li><strong>Uploads filesystem (`/uploads/`)</strong>: All page profile images, fraud evidence, and review proof attachments.</li>
+                    <li><strong>{t("Database state (data.db)")}</strong>: {t("All pages, reviews, claims, disputes, blogs, visitor analytics logs.")}</li>
+                    <li><strong>{t("Uploads filesystem (/uploads/)")}</strong>: {t("All page profile images, fraud evidence, and review proof attachments.")}</li>
                   </ul>
                 </div>
                 
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Generate secure point-in-time archives kept on the server storage. You can instantly restore any backup from the list below with 1 click, download files locally, or delete them to reclaim server disk space.
+                  {t("Generate secure point-in-time archives kept on the server storage. You can instantly restore any backup from the list below with 1 click, download files locally, or delete them to reclaim server disk space.")}
                 </p>
               </div>
 
@@ -664,12 +669,12 @@ export default function AdminBulkImport() {
                 {backupLoading ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    Packaging website files & database...
+                    {t("Packaging website files & database...")}
                   </>
                 ) : (
                   <>
                     <Archive className="h-4 w-4" />
-                    Create Backup on Server
+                    {t("Create Backup on Server")}
                   </>
                 )}
               </button>
@@ -683,17 +688,17 @@ export default function AdminBulkImport() {
                     <Upload className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">Manual Backup Restore</h2>
-                    <p className="text-xs text-slate-400">Upload a `.zip` archive from your computer</p>
+                    <h2 className="text-lg font-bold text-white">{t("Manual Backup Restore")}</h2>
+                    <p className="text-xs text-slate-400">{t("Upload a .zip archive from your computer")}</p>
                   </div>
                 </div>
 
                 <div className="p-3 bg-rose-950/20 border border-rose-500/20 rounded-lg flex gap-3">
                   <ShieldAlert className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-rose-300">CRITICAL WARNING</h4>
+                    <h4 className="text-xs font-bold text-rose-300">{t("CRITICAL WARNING")}</h4>
                     <p className="text-[11px] text-rose-200 leading-relaxed">
-                      Restoring a backup will **completely replace** the current database and deletes any newly uploaded files since the backup was made. This action is **irreversible**.
+                      {t("Restoring a backup will **completely replace** the current database and deletes any newly uploaded files since the backup was made. This action is **irreversible**.")}
                     </p>
                   </div>
                 </div>
@@ -705,8 +710,8 @@ export default function AdminBulkImport() {
                         <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                           <div className="bg-indigo-500 h-2 rounded-full transition-all duration-300" style={{ width: `${restoreProgress}%` }}></div>
                         </div>
-                        <div className="text-xs font-bold text-indigo-400">{restoreProgress}% Processed</div>
-                        <p className="text-[10px] text-slate-400 mt-1">Replacing database and uploads folder...</p>
+                        <div className="text-xs font-bold text-indigo-400">{n(restoreProgress)}% {t("Processed")}</div>
+                        <p className="text-[10px] text-slate-400 mt-1">{t("Replacing database and uploads folder...")}</p>
                       </div>
                     ) : (
                       <input
@@ -720,7 +725,7 @@ export default function AdminBulkImport() {
 
                   {restoreMessage && (
                     <div className={`p-3 rounded-lg text-xs font-semibold ${restoreMessage.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'}`}>
-                      {restoreMessage.text}
+                      {t(restoreMessage.text)}
                     </div>
                   )}
                   
@@ -732,12 +737,12 @@ export default function AdminBulkImport() {
                     {restoreProgress !== null ? (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin" />
-                        Restoring Platform...
+                        {t("Restoring Platform...")}
                       </>
                     ) : (
                       <>
                         <Upload className="h-4 w-4" />
-                        Upload & Restore Website
+                        {t("Upload & Restore Website")}
                       </>
                     )}
                   </button>
@@ -751,7 +756,7 @@ export default function AdminBulkImport() {
             <div className="p-4 bg-[#050b18]/45 border-b border-white/5 flex items-center justify-between">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <Archive className="h-4 w-4 text-amber-500" />
-                Backups Stored on Server ({serverBackups.length})
+                {t("Backups Stored on Server ({{count}})", { count: n(serverBackups.length) })}
               </h3>
               <button 
                 onClick={fetchServerBackups}
@@ -759,30 +764,30 @@ export default function AdminBulkImport() {
                 className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`h-3 w-3 ${backupsLoadingState ? 'animate-spin' : ''}`} />
-                Refresh List
+                {t("Refresh List")}
               </button>
             </div>
             
             <table className="w-full text-left text-sm text-slate-300">
               <thead className="bg-[#050b18]/45 text-slate-400 uppercase font-bold text-xs">
                 <tr>
-                  <th className="px-6 py-4 border-b border-white/5">Backup File Name</th>
-                  <th className="px-6 py-4 border-b border-white/5">Date Created</th>
-                  <th className="px-6 py-4 border-b border-white/5">File Size</th>
-                  <th className="px-6 py-4 border-b border-white/5 text-right">Actions</th>
+                  <th className="px-6 py-4 border-b border-white/5">{t("Backup File Name")}</th>
+                  <th className="px-6 py-4 border-b border-white/5">{t("Date Created")}</th>
+                  <th className="px-6 py-4 border-b border-white/5">{t("File Size")}</th>
+                  <th className="px-6 py-4 border-b border-white/5 text-right">{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {backupsLoadingState && serverBackups.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center animate-pulse text-slate-400">
-                      Scanning server storage for backup packages...
+                      {t("Scanning server storage for backup packages...")}
                     </td>
                   </tr>
                 ) : serverBackups.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
-                      No backups stored on the server. Click "Create Backup on Server" to make one!
+                      {t("No backups stored on the server. Click \"Create Backup on Server\" to make one!")}
                     </td>
                   </tr>
                 ) : (
@@ -804,27 +809,27 @@ export default function AdminBulkImport() {
                           <a
                             href={`/api/admin/backups/download/${bk.filename}?token=${localStorage.getItem('token')}`}
                             className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600 hover:text-white py-1.5 px-3 rounded-lg font-bold text-xs flex items-center gap-1 transition-all"
-                            title="Download backup file to your computer"
+                            title={t("Download backup file to your computer")}
                           >
-                            <Download className="h-3 w-3" /> Download
+                            <Download className="h-3 w-3" /> {t("Download")}
                           </a>
                           
                           {/* Restore Button */}
                           <button
                             onClick={() => handleRestoreFromServer(bk.filename)}
                             className="bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600 hover:text-white py-1.5 px-3 rounded-lg font-bold text-xs flex items-center gap-1 transition-all"
-                            title="Restore website from this backup file directly"
+                            title={t("Restore website from this backup file directly")}
                           >
-                            <RefreshCw className="h-3 w-3" /> Restore
+                            <RefreshCw className="h-3 w-3" /> {t("Restore")}
                           </button>
                           
                           {/* Delete Button */}
                           <button
                             onClick={() => handleDeleteBackup(bk.filename)}
                             className="bg-rose-600/10 border border-rose-500/20 text-rose-400 hover:bg-rose-600 hover:text-white py-1.5 px-3 rounded-lg font-bold text-xs flex items-center gap-1 transition-all"
-                            title="Permanently delete from server storage"
+                            title={t("Permanently delete from server storage")}
                           >
-                            <XCircle className="h-3 w-3" /> Delete
+                            <XCircle className="h-3 w-3" /> {t("Delete")}
                           </button>
                         </div>
                       </td>

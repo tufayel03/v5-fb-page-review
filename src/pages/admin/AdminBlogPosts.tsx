@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, Filter, Plus, ArrowUpDown, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminBlogPosts() {
+  const { t, n } = useLanguage();
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,10 +101,10 @@ export default function AdminBlogPosts() {
         setShowAddModal(false);
         navigate(`/tufayel/blog-posts/${data.id}`);
       } else {
-        alert("Failed to construct blog post. Check if slug exists.");
+        alert(t("Failed to construct blog post. Check if slug exists."));
       }
     } catch (err) {
-      alert("Error creating blog post");
+      alert(t("Error creating blog post"));
     }
   };
 
@@ -121,10 +123,10 @@ export default function AdminBlogPosts() {
       if (res.ok) {
         fetchBlogs();
       } else {
-        alert(data.error || "Failed to delete post");
+        alert(data.error || t("Failed to delete post"));
       }
     } catch (e: any) {
-      alert("Error: " + e.message);
+      alert(t("Error: ") + e.message);
     } finally {
       setDeleteConfirmId(null);
     }
@@ -149,10 +151,10 @@ export default function AdminBlogPosts() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Blog Posts
+            {t("Blog Posts")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage articles, safety guides, and updates.
+            {t("Manage articles, safety guides, and updates.")}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -160,7 +162,7 @@ export default function AdminBlogPosts() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search posts..."
+              placeholder={t("Search posts...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
@@ -170,7 +172,7 @@ export default function AdminBlogPosts() {
             onClick={() => setShowAddModal(true)}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
           >
-            <Plus className="h-4 w-4" /> New Post
+            <Plus className="h-4 w-4" /> {t("New Post")}
           </button>
         </div>
       </div>
@@ -179,7 +181,7 @@ export default function AdminBlogPosts() {
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-900">Create Draft Post</h3>
+              <h3 className="font-bold text-slate-900">{t("Create Draft Post")}</h3>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="text-slate-400 hover:text-slate-600"
@@ -190,7 +192,7 @@ export default function AdminBlogPosts() {
             <form onSubmit={handleCreate} className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Title *
+                  {t("Title *")}
                 </label>
                 <input
                   required
@@ -208,12 +210,12 @@ export default function AdminBlogPosts() {
                     });
                   }}
                   className="w-full border border-slate-300 rounded-lg p-2 text-sm"
-                  placeholder="e.g. How to verify a page"
+                  placeholder={t("e.g. How to verify a page")}
                 />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Slug *
+                  {t("Slug *")}
                 </label>
                 <input
                   required
@@ -231,13 +233,13 @@ export default function AdminBlogPosts() {
                   onClick={() => setShowAddModal(false)}
                   className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-lg text-sm"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm"
                 >
-                  Create Draft
+                  {t("Create Draft")}
                 </button>
               </div>
             </form>
@@ -252,10 +254,10 @@ export default function AdminBlogPosts() {
               <div className="p-2.5 bg-rose-500/10 rounded-full border border-rose-500/20">
                 <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">Delete Blog Post</h3>
+              <h3 className="font-extrabold text-base text-white tracking-tight">{t("Delete Blog Post")}</h3>
             </div>
             <p className="text-xs text-slate-350 leading-relaxed font-sans">
-              Are you sure you want to permanently delete this blog post? This action is irreversible and cannot be recovered.
+              {t("Are you sure you want to permanently delete this blog post? This action is irreversible and cannot be recovered.")}
             </p>
             <div className="pt-2 flex justify-end gap-2.5">
               <button
@@ -263,14 +265,14 @@ export default function AdminBlogPosts() {
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-4 py-2 bg-white/[0.02] border border-white/5 hover:bg-white/[0.06] text-slate-300 font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-lg shadow-rose-950/20"
               >
-                Confirm Delete
+                {t("Confirm Delete")}
               </button>
             </div>
           </div>
@@ -282,18 +284,18 @@ export default function AdminBlogPosts() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("title")}>
-                  <div className="flex items-center gap-1">Title <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Title")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("status")}>
-                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Status")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("published_at")}>
-                  <div className="flex items-center gap-1">Date <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Date")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -310,7 +312,7 @@ export default function AdminBlogPosts() {
                     colSpan={5}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No posts found.
+                    {t("No posts found.")}
                   </td>
                 </tr>
               ) : (
@@ -321,7 +323,7 @@ export default function AdminBlogPosts() {
                       className="hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium font-mono">
-                        {startIndex + index + 1}
+                        {n(startIndex + index + 1)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-white">
@@ -343,7 +345,7 @@ export default function AdminBlogPosts() {
                             }
                           `}
                         >
-                          {post.status}
+                          {t(post.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-slate-400 font-medium text-xs">
@@ -355,7 +357,7 @@ export default function AdminBlogPosts() {
                             to={`/tufayel/blog-posts/${post.id}`}
                             className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline py-1"
                           >
-                            Edit
+                            {t("Edit")}
                           </Link>
                           <button
                             onClick={() => handleDelete(post.id)}
@@ -375,20 +377,24 @@ export default function AdminBlogPosts() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-semibold font-medium">
-              Showing {totalCount === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} entries
+              {t("Showing {{start}} to {{end}} of {{total}} entries", {
+                start: n(totalCount === 0 ? 0 : startIndex + 1),
+                end: n(Math.min(startIndex + itemsPerPage, totalCount)),
+                total: n(totalCount)
+              })}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -399,7 +405,7 @@ export default function AdminBlogPosts() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

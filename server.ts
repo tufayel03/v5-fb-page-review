@@ -11,7 +11,8 @@ import sharp from 'sharp';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import * as xlsx from 'xlsx';
-import archiver from 'archiver';
+import * as archiverNamespace from 'archiver';
+const archiver = (archiverNamespace as any).default || archiverNamespace;
 import extract from 'extract-zip';
 import os from 'os';
 

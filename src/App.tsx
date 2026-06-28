@@ -25,6 +25,7 @@ import {
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import RouteLoader from "./components/RouteLoader";
 
 let lastTrackedPath = "";
@@ -195,6 +196,7 @@ const BusinessClaimPage = lazy(() => import("./pages/business/BusinessClaimPage"
 import Footer from "./components/Footer";
 
 function StandardLayout() {
+  const { language, setLanguage, t, n } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -294,7 +296,7 @@ function StandardLayout() {
               <HomeIcon
                 className={`w-4.5 h-4.5 transition-colors ${location.pathname === "/" ? "text-slate-950" : "text-slate-500"}`}
               />
-              <span>Home</span>
+              <span>{t("Home")}</span>
             </Link>
 
             {/* Detected Fraud Pages */}
@@ -309,7 +311,7 @@ function StandardLayout() {
               <ShieldCheck
                 className={`w-4.5 h-4.5 transition-colors ${isFraudPagesActive ? "text-[#f43f5e]" : "text-slate-500"}`}
               />
-              <span>Detected Fraud Pages</span>
+              <span>{t("Detected Fraud Pages")}</span>
             </Link>
 
             {/* Blog */}
@@ -324,7 +326,7 @@ function StandardLayout() {
               <FileText
                 className={`w-4.5 h-4.5 transition-colors ${isBlogActive ? "text-slate-950" : "text-slate-500"}`}
               />
-              <span>Blog</span>
+              <span>{t("Blog")}</span>
             </Link>
 
             {/* Write a Review - special Highlight style from mockup */}
@@ -342,12 +344,19 @@ function StandardLayout() {
                 }`}
               >
                 <SquarePen className="w-4.5 h-4.5 text-[#0fbc6f]" />
-                <span>Write a Review</span>
+                <span>{t("Write a Review")}</span>
               </Link>
             )}
 
             {/* Right Group: Account / Business login */}
             <div className="flex items-center gap-4 ml-2 self-center">
+              <button
+                onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-xs font-black text-slate-700 transition-all select-none cursor-pointer outline-none shrink-0"
+                title="Switch Language"
+              >
+                <span>🌐 {language === 'bn' ? 'English' : 'বাংলা'}</span>
+              </button>
               <div className="flex items-center gap-3 border-l pl-5 border-slate-200 h-6">
                 {user ? (
                   <>
@@ -364,7 +373,7 @@ function StandardLayout() {
                         to="/business-dashboard"
                         className="text-indigo-600 hover:text-indigo-700 font-extrabold transition-colors text-sm"
                       >
-                        Business Dashboard
+                        {t("Business Dashboard")}
                       </Link>
                     ) : (
                       <Link
@@ -381,13 +390,13 @@ function StandardLayout() {
                         to="/tufayel"
                         className="text-blue-600 hover:text-blue-700 font-extrabold transition-colors text-sm ml-2"
                       >
-                        Admin Panel
+                        {t("Admin Panel")}
                       </Link>
                     )}
                     <button
                       onClick={logout}
                       className="text-slate-400 hover:text-rose-600 transition-colors ml-2 cursor-pointer outline-none"
-                      title="Log Out"
+                      title={t("Log Out")}
                     >
                       <LogOut className="w-4 h-4" />
                     </button>
@@ -398,7 +407,7 @@ function StandardLayout() {
                       to="/login"
                       className="text-slate-800 hover:text-[#0fbc6f] transition-colors font-extrabold tracking-tight px-1 py-1.5 select-none text-[13.5px]"
                     >
-                      Log In
+                      {t("Log In")}
                     </Link>
 
                     <div className="h-6 w-px bg-slate-200 shrink-0 select-none" />
@@ -408,7 +417,7 @@ function StandardLayout() {
                       className="bg-[#111827] hover:bg-slate-900 text-white font-extrabold text-[12.5px] tracking-tight px-4.5 py-2.5 rounded-xl transition-all inline-flex items-center gap-2 shrink-0 select-none shadow-3xs border border-slate-800"
                     >
                       <Store className="w-4 h-4 text-[#10b981] shrink-0" />
-                      <span>For businesses</span>
+                      <span>{t("For businesses")}</span>
                       <ChevronRight className="w-3.5 h-3.5 text-white/90 shrink-0 ml-0.5" />
                     </Link>
                   </>
@@ -418,7 +427,13 @@ function StandardLayout() {
           </nav>
 
           {/* Mobile Nav Toggle */}
-          <div className="flex md:hidden items-center gap-1">
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setLanguage(language === 'bn' ? 'en' : 'bn')}
+              className="flex items-center px-2 py-1 rounded-lg border border-slate-200 text-xs font-black text-slate-700 select-none cursor-pointer outline-none bg-white hover:bg-slate-50"
+            >
+              {language === 'bn' ? 'EN' : 'বাং'}
+            </button>
             <button
               className="p-2 cursor-pointer outline-none text-[#0fbc6f]"
               onClick={() => {
@@ -454,7 +469,7 @@ function StandardLayout() {
               onClick={() => setMobileMenuOpen(false)}
               className="block w-full py-3 mb-6 bg-transparent border border-slate-800 rounded-full font-bold text-sm text-center hover:bg-slate-50 transition-colors"
             >
-              For businesses
+              {t("For businesses")}
             </Link>
 
             {user && (
@@ -488,7 +503,7 @@ function StandardLayout() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="text-indigo-600"
                     >
-                      Business Dashboard
+                      {t("Business Dashboard")}
                     </Link>
                   ) : (
                     <>
@@ -497,14 +512,14 @@ function StandardLayout() {
                         onClick={() => setMobileMenuOpen(false)}
                         className="hover:text-emerald-600"
                       >
-                        My Reviews
+                        {t("My Reviews")}
                       </Link>
                       <Link
                         to="/settings"
                         onClick={() => setMobileMenuOpen(false)}
                         className="hover:text-emerald-600"
                       >
-                        My Settings
+                        {t("My Settings")}
                       </Link>
                     </>
                   )}
@@ -515,21 +530,21 @@ function StandardLayout() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-rose-600 hover:text-rose-700"
               >
-                Detected Fraud Pages
+                {t("Detected Fraud Pages")}
               </Link>
               <Link
                 to="/blog"
                 onClick={() => setMobileMenuOpen(false)}
                 className="hover:text-emerald-600"
               >
-                Blog
+                {t("Blog")}
               </Link>
               <Link
                 to="/help"
                 onClick={() => setMobileMenuOpen(false)}
                 className="hover:text-emerald-600"
               >
-                Help
+                {t("Help")}
               </Link>
 
               {user ? (
@@ -542,7 +557,7 @@ function StandardLayout() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="text-indigo-600"
                     >
-                      Admin Panel
+                      {t("Admin Panel")}
                     </Link>
                   )}
                   <button
@@ -552,7 +567,7 @@ function StandardLayout() {
                     }}
                     className="text-indigo-600 text-left pt-2 flex items-center gap-2 font-bold hover:text-indigo-700 transition-colors"
                   >
-                    Log out <span className="text-lg">→</span>
+                    {t("Log Out")} <span className="text-lg">→</span>
                   </button>
                 </>
               ) : (
@@ -563,14 +578,14 @@ function StandardLayout() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="hover:text-emerald-600"
                   >
-                    Log In
+                    {t("Log In")}
                   </Link>
                   <Link
                     to="/register"
                     onClick={() => setMobileMenuOpen(false)}
                     className="hover:text-emerald-600"
                   >
-                    Sign Up
+                    {t("Sign Up")}
                   </Link>
                 </>
               )}
@@ -587,7 +602,7 @@ function StandardLayout() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-emerald-600 hover:text-emerald-700 transition-colors font-bold"
                 >
-                  Write a Review
+                  {t("Write a Review")}
                 </Link>
               </div>
             )}
@@ -614,7 +629,7 @@ function StandardLayout() {
           }`}
         >
           <HomeIcon className="w-[21px] h-[21px] shrink-0" />
-          <span className="text-[10px] font-black tracking-tight">Home</span>
+          <span className="text-[10px] font-black tracking-tight">{t("Home")}</span>
         </Link>
 
         <Link
@@ -627,7 +642,7 @@ function StandardLayout() {
         >
           <ShieldAlert className="w-[21px] h-[21px] shrink-0" />
           <span className="text-[10px] font-black tracking-tight text-center">
-            Fraud Pages
+            {t("Fraud Pages")}
           </span>
         </Link>
 
@@ -641,7 +656,7 @@ function StandardLayout() {
         >
           <MessageSquare className="w-[21px] h-[21px] shrink-0" />
           <span className="text-[10px] font-black tracking-tight text-center">
-            Reviews
+            {t("Reviews")}
           </span>
         </Link>
 
@@ -655,7 +670,7 @@ function StandardLayout() {
         >
           <Menu className="w-[21px] h-[21px] shrink-0" />
           <span className="text-[10px] font-black tracking-tight text-center">
-            Menu
+            {t("Menu")}
           </span>
         </button>
       </div>
@@ -892,9 +907,10 @@ export default function App() {
   return (
     <Router>
       <VisitTracker />
-      <ThemeProvider>
-        <AuthProvider>
-          <Routes>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Routes>
           <Route element={<StandardLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
@@ -1008,8 +1024,9 @@ export default function App() {
             <Route path="settings" element={<BusinessSettings />} />
           </Route>
         </Routes>
-        </AuthProvider>
-      </ThemeProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </Router>
   );
 }

@@ -11,14 +11,14 @@ import {
   AlertCircle,
   Target,
   CreditCard,
-  ChevronRight,
   MessageSquare,
-  Eye,
-  MousePointerClick
+  FileDown
 } from "lucide-react";
 import { Link } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminDashboard() {
+  const { t, n, language } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState("30");
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
   const formatDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      return d.toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', { month: "short", day: "numeric", year: "numeric" });
     } catch (e) {
       return dateStr;
     }
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
 
   const attentionRequired = [
     {
-      title: "Pending Reviews",
+      title: t("Pending Reviews"),
       value: data.attention_stats?.pendingReviews || 0,
       icon: MessageSquare,
       linkColor: "text-emerald-400 group-hover:text-emerald-300",
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
       link: "/tufayel/reviews"
     },
     {
-      title: "Pending Disputes",
+      title: t("Pending Disputes"),
       value: data.attention_stats?.openDisputes || 0,
       icon: ShieldAlert,
       linkColor: "text-cyan-400 group-hover:text-cyan-300",
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
       link: "/tufayel/disputes"
     },
     {
-      title: "Pending Claims",
+      title: t("Pending Claims"),
       value: data.attention_stats?.pendingClaims || 0,
       icon: ShieldCheck,
       linkColor: "text-violet-400 group-hover:text-violet-300",
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
       link: "/tufayel/page-claims"
     },
     {
-      title: "Pending Fraud Reports",
+      title: t("Pending Fraud Reports"),
       value: data.attention_stats?.pendingHighProfileFraudReports || 0,
       icon: Flag,
       linkColor: "text-blue-400 group-hover:text-blue-300",
@@ -205,17 +205,17 @@ export default function AdminDashboard() {
   // Format large numbers (1k, 100k, 1m, 1b)
   const formatNumber = (num: number | undefined | null) => {
     if (num == null) return "0";
-    if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, "") + 'b';
-    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, "") + 'm';
-    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + 'k';
-    return num.toString();
+    if (num >= 1000000000) return n((num / 1000000000).toFixed(1).replace(/\.0$/, "")) + t('b');
+    if (num >= 1000000) return n((num / 1000000).toFixed(1).replace(/\.0$/, "")) + t('m');
+    if (num >= 1000) return n((num / 1000).toFixed(1).replace(/\.0$/, "")) + t('k');
+    return n(num);
   };
 
   const overviewStats = [
     { 
-      title: "Total Pages", 
+      title: t("Total Pages"), 
       value: formatNumber(data.platform_statistics?.totalPages?.value ?? 0), 
-      change: data.platform_statistics?.totalPages?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.totalPages?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.totalPages?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.totalPages?.sparkline ?? [],
       icon: FileText, 
@@ -224,9 +224,9 @@ export default function AdminDashboard() {
       link: "/tufayel/pages"
     },
     { 
-      title: "Total Reviews", 
+      title: t("Total Reviews"), 
       value: formatNumber(data.platform_statistics?.totalReviews?.value ?? 0), 
-      change: data.platform_statistics?.totalReviews?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.totalReviews?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.totalReviews?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.totalReviews?.sparkline ?? [],
       icon: Star, 
@@ -235,9 +235,9 @@ export default function AdminDashboard() {
       link: "/tufayel/reviews"
     },
     { 
-      title: "Total Users", 
+      title: t("Total Users"), 
       value: formatNumber(data.platform_statistics?.totalUsers?.value ?? 0), 
-      change: data.platform_statistics?.totalUsers?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.totalUsers?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.totalUsers?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.totalUsers?.sparkline ?? [],
       icon: Users, 
@@ -246,9 +246,9 @@ export default function AdminDashboard() {
       link: "/tufayel/users"
     },
     { 
-      title: "Fraud Pages", 
+      title: t("Fraud Pages"), 
       value: formatNumber(data.platform_statistics?.totalFraudPages?.value ?? 0), 
-      change: data.platform_statistics?.totalFraudPages?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.totalFraudPages?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.totalFraudPages?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.totalFraudPages?.sparkline ?? [],
       icon: ShieldAlert, 
@@ -257,9 +257,9 @@ export default function AdminDashboard() {
       link: "/tufayel/pages?filter=fraud"
     },
     { 
-      title: "Reported Contacts", 
+      title: t("Reported Contacts"), 
       value: formatNumber(data.platform_statistics?.reportedContacts?.value ?? 0), 
-      change: data.platform_statistics?.reportedContacts?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.reportedContacts?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.reportedContacts?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.reportedContacts?.sparkline ?? [],
       icon: AlertCircle, 
@@ -268,9 +268,9 @@ export default function AdminDashboard() {
       link: "/tufayel/contact-numbers"
     },
     { 
-      title: "Claimed Pages", 
+      title: t("Claimed Pages"), 
       value: formatNumber(data.platform_statistics?.claimedPages?.value ?? 0), 
-      change: data.platform_statistics?.claimedPages?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.claimedPages?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.claimedPages?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.claimedPages?.sparkline ?? [],
       icon: ShieldCheck, 
@@ -279,9 +279,9 @@ export default function AdminDashboard() {
       link: "/tufayel/page-claims"
     },
     { 
-      title: "Payment Methods", 
+      title: t("Payment Methods"), 
       value: formatNumber(data.platform_statistics?.paymentMethods?.value ?? 0), 
-      change: data.platform_statistics?.paymentMethods?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.paymentMethods?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.paymentMethods?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.paymentMethods?.sparkline ?? [],
       icon: CreditCard, 
@@ -290,9 +290,9 @@ export default function AdminDashboard() {
       link: "/tufayel/settings"
     },
     { 
-      title: "Total Fraud Reports", 
+      title: t("Total Fraud Reports"), 
       value: formatNumber(data.platform_statistics?.totalFraudReports?.value ?? 0), 
-      change: data.platform_statistics?.totalFraudReports?.change ?? "No trend yet",
+      change: t(data.platform_statistics?.totalFraudReports?.change ?? "No trend yet"),
       hasHistoricalData: data.platform_statistics?.totalFraudReports?.hasHistoricalData ?? false,
       sparkline: data.platform_statistics?.totalFraudReports?.sparkline ?? [],
       icon: Target, 
@@ -303,13 +303,13 @@ export default function AdminDashboard() {
   ];
 
   const seriesList = [
-    { key: "pages", label: "Pages Added", color: "#10b981" },
-    { key: "reviews", label: "Reviews Added", color: "#06b6d4" },
-    { key: "users", label: "Users Registered", color: "#a855f7" },
-    { key: "visitors", label: "Web Visitors", color: "#ef4444" },
-    { key: "claims", label: "Claims Submitted", color: "#a5b4fc" },
-    { key: "disputes", label: "Disputes Opened", color: "#fb7185" },
-    { key: "fraudReports", label: "Fraud Reports", color: "#f43f5e" }
+    { key: "pages", label: t("Pages Added"), color: "#10b981" },
+    { key: "reviews", label: t("Reviews Added"), color: "#06b6d4" },
+    { key: "users", label: t("Users Registered"), color: "#a855f7" },
+    { key: "visitors", label: t("Web Visitors"), color: "#ef4444" },
+    { key: "claims", label: t("Claims Submitted"), color: "#a5b4fc" },
+    { key: "disputes", label: t("Disputes Opened"), color: "#fb7185" },
+    { key: "fraudReports", label: t("Fraud Reports"), color: "#f43f5e" }
   ];
 
   const toggleSeries = (key: string) => {
@@ -335,7 +335,7 @@ export default function AdminDashboard() {
                 <div key={p.dataKey} className="flex items-center gap-2 text-white">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: match.color }}></span>
                   <span className="text-slate-400">{match.label}:</span>
-                  <span className="ml-auto font-black">{p.value ?? 0}</span>
+                  <span className="ml-auto font-black">{n(p.value ?? 0)}</span>
                 </div>
               );
             })}
@@ -347,13 +347,11 @@ export default function AdminDashboard() {
   };
 
   const ranges = [
-    { value: "7", label: "Last 7 Days" },
-    { value: "30", label: "Last 30 Days" },
-    { value: "90", label: "Last 90 Days" },
-    { value: "all", label: "All Time" }
+    { value: "7", label: t("Last 7 Days") },
+    { value: "30", label: t("Last 30 Days") },
+    { value: "90", label: t("Last 90 Days") },
+    { value: "all", label: t("All Time") }
   ];
-
-  const isLowData = (data.platform_statistics?.totalPages?.value || 0) <= 2 && (data.platform_statistics?.totalReviews?.value || 0) <= 2;
 
   return (
     <div className="space-y-8 w-full mx-auto select-none bg-[#050b18]">
@@ -362,10 +360,10 @@ export default function AdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Dashboard Overview
+            {t("Dashboard Overview")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Welcome back, System Admin! Real-time analytics, daily logs, and attention metrics.
+            {t("Welcome back, System Admin! Real-time analytics, daily logs, and attention metrics.")}
           </p>
         </div>
         
@@ -404,10 +402,10 @@ export default function AdminDashboard() {
               <div className="space-y-1">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.title}</p>
                 <h3 className={`text-3.5xl font-black tracking-tight ${stat.linkColor}`}>
-                  {stat.value.toLocaleString()}
+                  {n(stat.value)}
                 </h3>
                 <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
-                  {hasItems ? "Attention Needed" : "All clean"}
+                  {hasItems ? t("Attention Needed") : t("All clean")}
                 </p>
               </div>
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all group-hover:scale-105 ${stat.iconGlow}`}>
@@ -456,28 +454,28 @@ export default function AdminDashboard() {
             <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.2)] mb-4">
               <Activity className="h-8 w-8 text-slate-500" />
             </div>
-            <h3 className="text-md font-black text-white">No activity yet</h3>
+            <h3 className="text-md font-black text-white">{t("No activity yet")}</h3>
             <p className="text-slate-400 text-xs max-w-md mt-1.5 leading-relaxed">
-              Platform activity will appear here after pages, reviews, users, claims, disputes, or reports are added.
+              {t("Platform activity will appear here after pages, reviews, users, claims, disputes, or reports are added.")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
               <Link
                 to="/tufayel/pages"
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all shadow-md hover:shadow-emerald-500/20"
               >
-                Add Facebook Page
+                {t("Add Facebook Page")}
               </Link>
               <Link
                 to="/tufayel/bulk-import"
                 className="px-4 py-2 bg-[#050b18] border border-white/10 hover:border-white/20 hover:bg-[#0c152a] text-white text-xs font-black rounded-xl transition-all"
               >
-                Import Data
+                {t("Import Data")}
               </Link>
               <Link
                 to="/tufayel/reviews"
                 className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-black rounded-xl transition-all shadow-md hover:shadow-indigo-500/20"
               >
-                View Reviews
+                {t("View Reviews")}
               </Link>
             </div>
           </div>
@@ -502,20 +500,20 @@ export default function AdminDashboard() {
                     </h3>
                   </div>
                   <div className="flex flex-col items-start sm:items-end">
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Total Events</p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">{t("Total Events")}</p>
                     <p className="text-lg font-black text-white mt-1">{formatNumber(totalEvents)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                   {[
-                    { label: "Pages Added", value: singleDayData.pages || 0, color: "#10b981" },
-                    { label: "Reviews Added", value: singleDayData.reviews || 0, color: "#06b6d4" },
-                    { label: "Users Registered", value: singleDayData.users || 0, color: "#a855f7" },
-                    { label: "Web Visitors", value: singleDayData.visitors || 0, color: "#ef4444" },
-                    { label: "Claims Submitted", value: singleDayData.claims || 0, color: "#a5b4fc" },
-                    { label: "Disputes Opened", value: singleDayData.disputes || 0, color: "#fb7185" },
-                    { label: "Reports Submitted", value: singleDayData.fraudReports || 0, color: "#f43f5e" },
+                    { label: t("Pages Added"), value: singleDayData.pages || 0, color: "#10b981" },
+                    { label: t("Reviews Added"), value: singleDayData.reviews || 0, color: "#06b6d4" },
+                    { label: t("Users Registered"), value: singleDayData.users || 0, color: "#a855f7" },
+                    { label: t("Web Visitors"), value: singleDayData.visitors || 0, color: "#ef4444" },
+                    { label: t("Claims Submitted"), value: singleDayData.claims || 0, color: "#a5b4fc" },
+                    { label: t("Disputes Opened"), value: singleDayData.disputes || 0, color: "#fb7185" },
+                    { label: t("Reports Submitted"), value: singleDayData.fraudReports || 0, color: "#f43f5e" },
                   ].map((item, idx) => (
                     <div key={idx} className="bg-[#050b18]/40 border border-white/5 rounded-xl p-3.5 flex flex-col justify-between hover:border-white/10 hover:bg-[#050b18]/70 transition-all">
                       <p className="text-[10px] font-bold text-slate-400 leading-snug">{item.label}</p>
@@ -579,7 +577,7 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="h-full w-full flex items-center justify-center">
-                <p className="text-xs text-slate-500 font-semibold animate-pulse">Loading chart analytics...</p>
+                <p className="text-xs text-slate-500 font-semibold animate-pulse">{t("Loading chart analytics...")}</p>
               </div>
             )}
           </div>
@@ -588,7 +586,7 @@ export default function AdminDashboard() {
 
       {/* Platform Statistics */}
       <section>
-        <h2 className="text-base font-black text-white mb-4">Platform Statistics</h2>
+        <h2 className="text-base font-black text-white mb-4">{t("Platform Statistics")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {overviewStats.map((stat, idx) => {
             const Icon = stat.icon;
@@ -603,11 +601,11 @@ export default function AdminDashboard() {
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white ${stat.badgeBg}`} style={{ color: stat.color }}>
-                    <Icon className="h-5 w-5" />
+                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1.5">{stat.title}</p>
-                    <h4 className="text-2xl font-black text-white leading-none">{stat.value.toLocaleString()}</h4>
+                    <h4 className="text-2xl font-black text-white leading-none">{stat.value}</h4>
                     
                     {/* Optional real trend indicator */}
                     <p className="text-[10px] font-semibold text-slate-400 mt-1.5">
@@ -632,7 +630,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <span className="text-[9px] text-slate-600 font-bold uppercase shrink-0 bg-slate-900/50 px-2 py-1 rounded-md border border-white/[0.02]">
-                    Static
+                    {t("Static")}
                   </span>
                 )}
               </Link>

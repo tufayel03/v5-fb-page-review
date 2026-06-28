@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
-  Filter,
   ShieldCheck,
   Clock,
   CheckCircle,
@@ -9,8 +8,10 @@ import {
   ArrowUpDown, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Link } from "react-router";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function AdminPageClaims() {
+  const { t, n } = useLanguage();
   const [claims, setClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +76,6 @@ export default function AdminPageClaims() {
     return () => controller.abort();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, sortConfig]);
 
-  
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -94,10 +94,10 @@ export default function AdminPageClaims() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Page Ownership Claims
+            {t("Page Ownership Claims")}
           </h1>
           <p className="text-sm text-slate-400 font-semibold mt-1">
-            Manage page ownership claim requests.
+            {t("Manage page ownership claim requests.")}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -107,15 +107,15 @@ export default function AdminPageClaims() {
                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                  className="bg-[#091124] border border-white/5 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                 <option value="all" className="bg-[#091124]">All Statuses</option>
-                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{s as string}</option>)}
+                 <option value="all" className="bg-[#091124]">{t("All Statuses")}</option>
+                 {uniqueStatuses.map(s => <option key={s as string} value={s as string} className="bg-[#091124]">{t(s as string)}</option>)}
               </select>
           </div>
           <div className="relative flex-1 w-full sm:w-64">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search claims..."
+              placeholder={t("Search claims...")}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-lg pl-9 pr-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -129,21 +129,21 @@ export default function AdminPageClaims() {
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-[#050b18]/60 text-slate-400 uppercase font-bold text-xs">
               <tr>
-                <th className="px-6 py-4 border-b border-white/5 w-16">SL</th>
+                <th className="px-6 py-4 border-b border-white/5 w-16">{t("SL")}</th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("page_name")}>
-                  <div className="flex items-center gap-1">Page <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Page")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("claimer_username")}>
-                  <div className="flex items-center gap-1">Claimer <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Claimer")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("status")}>
-                  <div className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Status")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => handleSort("created_at")}>
-                  <div className="flex items-center gap-1">Submitted <ArrowUpDown className="h-3 w-3"/></div>
+                  <div className="flex items-center gap-1">{t("Submitted")} <ArrowUpDown className="h-3 w-3"/></div>
                 </th>
                 <th className="px-6 py-4 border-b border-white/5 text-right font-black">
-                  Actions
+                  {t("Actions")}
                 </th>
               </tr>
             </thead>
@@ -160,7 +160,7 @@ export default function AdminPageClaims() {
                     colSpan={6}
                     className="px-6 py-8 text-center text-slate-500 italic"
                   >
-                    No page claims found.
+                    {t("No page claims found.")}
                   </td>
                 </tr>
               ) : (
@@ -171,7 +171,7 @@ export default function AdminPageClaims() {
                       className="hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-6 py-4 text-slate-400 font-medium">
-                        {startIndex + index + 1}
+                        {n(startIndex + index + 1)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ export default function AdminPageClaims() {
                               rel="noreferrer"
                               className="text-xs text-blue-400 hover:text-blue-300 hover:underline truncate block mt-0.5"
                             >
-                              View Facebook Page
+                              {t("View Facebook Page")}
                             </a>
                           </div>
                         </div>
@@ -224,7 +224,7 @@ export default function AdminPageClaims() {
                           {claim.status === "Rejected" && (
                             <XCircle className="h-3 w-3" />
                           )}
-                          {claim.status}
+                          {t(claim.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-400">
@@ -235,7 +235,7 @@ export default function AdminPageClaims() {
                           to={`/tufayel/page-claims/${claim.id}`}
                           className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline px-2 py-1"
                         >
-                          Review Claim
+                          {t("Review Claim")}
                         </Link>
                       </td>
                     </tr>
@@ -248,20 +248,20 @@ export default function AdminPageClaims() {
 
         <div className="p-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between bg-[#050b18]/40 gap-4">
            <div className="text-sm text-slate-400 font-semibold font-medium">
-              Showing {totalCount === 0 ? 0 : startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} entries
+              {t("Showing")} {totalCount === 0 ? n(0) : n(startIndex + 1)} {t("to")} {n(Math.min(startIndex + itemsPerPage, totalCount))} {t("of")} {n(totalCount)} {t("entries")}
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 font-medium">Show:</span>
+                <span className="text-sm text-slate-400 font-medium">{t("Show:")}</span>
                 <select 
                    value={itemsPerPage} 
                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                    className="bg-[#091124] border border-white/5 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-200"
                 >
-                   <option value={10} className="bg-[#091124]">10</option>
-                   <option value={20} className="bg-[#091124]">20</option>
-                   <option value={50} className="bg-[#091124]">50</option>
-                   <option value={100} className="bg-[#091124]">100</option>
+                   <option value={10} className="bg-[#091124]">{n(10)}</option>
+                   <option value={20} className="bg-[#091124]">{n(20)}</option>
+                   <option value={50} className="bg-[#091124]">{n(50)}</option>
+                   <option value={100} className="bg-[#091124]">{n(100)}</option>
                 </select>
               </div>
               <div className="flex items-center gap-1">
@@ -272,7 +272,7 @@ export default function AdminPageClaims() {
                  >
                     <ChevronLeft className="h-4 w-4" />
                  </button>
-                 <span className="text-xs font-bold px-2 text-slate-300">{currentPage} / {Math.max(1, totalPages)}</span>
+                 <span className="text-xs font-bold px-2 text-slate-300">{n(currentPage)} / {n(Math.max(1, totalPages))}</span>
                  <button 
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

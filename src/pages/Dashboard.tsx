@@ -23,8 +23,10 @@ import {
   ChevronDown,
   ShoppingBag
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Dashboard() {
+  const { t, n } = useLanguage();
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('reviews');
@@ -104,10 +106,10 @@ export default function Dashboard() {
         setReviews(reviews.filter(r => r.id !== id));
         setDeleteConfirmId(null);
       } else {
-        alert('Failed to delete review');
+        alert(t('Failed to delete review'));
       }
     } catch (e) {
-      alert('Error deleting review');
+      alert(t('Error deleting review'));
     }
   };
 
@@ -179,22 +181,22 @@ export default function Dashboard() {
   const displayedReviews = sortedReviews.slice((currentPage - 1) * limitVal, currentPage * limitVal);
 
   const getMemberSinceDate = (dateString?: string) => {
-    if (!dateString) return 'Member since May 2024';
+    if (!dateString) return t('Member since May 2024');
     try {
       const d = new Date(dateString);
-      return `Member since ${d.toLocaleString('en-US', { month: 'long', year: 'numeric' })}`;
+      return t("Member since {{date}}", { date: d.toLocaleString(t('en-US'), { month: 'long', year: 'numeric' }) });
     } catch (e) {
-      return 'Member since May 2024';
+      return t('Member since May 2024');
     }
   };
 
   const navigationItems = [
-    { id: 'reviews', label: 'My Reviews', icon: Star },
-    { id: 'disputes', label: 'My Disputes', icon: ShieldCheck },
-    { id: 'settings', label: 'Account Settings', icon: User },
-    { id: 'notifications', label: 'Notification Preferences', icon: Bell },
-    { id: 'security', label: 'Security', icon: Lock },
-    { id: 'logout', label: 'Sign Out', icon: LogOut },
+    { id: 'reviews', label: t('My Reviews'), icon: Star },
+    { id: 'disputes', label: t('My Disputes'), icon: ShieldCheck },
+    { id: 'settings', label: t('Account Settings'), icon: User },
+    { id: 'notifications', label: t('Notification Preferences'), icon: Bell },
+    { id: 'security', label: t('Security'), icon: Lock },
+    { id: 'logout', label: t('Sign Out'), icon: LogOut },
   ];
 
   return (
@@ -232,7 +234,7 @@ export default function Dashboard() {
             <div className="relative">
               <span className="text-3xl font-serif text-slate-200 absolute -top-4 -left-2 select-none">“</span>
               <p className="text-slate-400 text-[13px] md:text-sm font-medium italic pl-4 pr-2 leading-relaxed">
-                Helping the community by sharing real experiences.
+                {t("Helping the community by sharing real experiences.")}
               </p>
               <span className="text-3xl font-serif text-slate-200 absolute -bottom-6 -right-2 select-none">”</span>
             </div>
@@ -328,9 +330,9 @@ export default function Dashboard() {
                   <div className="flex-grow flex flex-col">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5 mb-6">
                       <div>
-                        <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">My Reviews</h2>
+                        <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">{t("My Reviews")}</h2>
                         <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-semibold">
-                          {reviews.length === 1 ? '1 review submitted' : `${reviews.length} reviews submitted`}
+                          {reviews.length === 1 ? t('1 review submitted') : t('{{count}} reviews submitted', { count: n(reviews.length) })}
                         </p>
                       </div>
 
@@ -346,17 +348,17 @@ export default function Dashboard() {
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-550 bg-white hover:bg-slate-50 shadow-3xs transition-all shrink-0"
                           >
                             <Filter className="h-3.5 w-3.5 text-slate-400" />
-                            <span>Filter</span>
+                            <span>{t("Filter")}</span>
                             <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           </button>
                           
                           {filterOpen && (
                             <div className="absolute right-0 mt-1.5 w-44 bg-white border border-slate-100 rounded-xl shadow-md p-1 z-25 divide-y divide-slate-50 text-left">
                               {[
-                                { label: 'All Reviews', value: 'All' },
-                                { label: 'Safe', value: 'Safe' },
-                                { label: 'Suspicious', value: 'Suspicious' },
-                                { label: 'Fraud Report', value: 'Fraud' }
+                                { label: t('All Reviews'), value: 'All' },
+                                { label: t('Safe'), value: 'Safe' },
+                                { label: t('Suspicious'), value: 'Suspicious' },
+                                { label: t('Fraud Report'), value: 'Fraud' }
                               ].map((opt) => (
                                 <button
                                   key={opt.value}
@@ -385,17 +387,17 @@ export default function Dashboard() {
                             }}
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-550 bg-white hover:bg-slate-50 shadow-3xs transition-all shrink-0"
                           >
-                            <span>{sortBy === 'Recent' ? 'Most Recent' : sortBy === 'Oldest' ? 'Oldest First' : sortBy === 'RatingHigh' ? 'Highest Rating' : 'Lowest Rating'}</span>
+                            <span>{sortBy === 'Recent' ? t('Most Recent') : sortBy === 'Oldest' ? t('Oldest First') : sortBy === 'RatingHigh' ? t('Highest Rating') : t('Lowest Rating')}</span>
                             <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           </button>
 
                           {sortOpen && (
                             <div className="absolute right-0 mt-1.5 w-44 bg-white border border-slate-100 rounded-xl shadow-md p-1 z-25 divide-y divide-slate-50 text-left">
                               {[
-                                { label: 'Most Recent', value: 'Recent' },
-                                { label: 'Oldest First', value: 'Oldest' },
-                                { label: 'Highest Rating', value: 'RatingHigh' },
-                                { label: 'Lowest Rating', value: 'RatingLow' }
+                                { label: t('Most Recent'), value: 'Recent' },
+                                { label: t('Oldest First'), value: 'Oldest' },
+                                { label: t('Highest Rating'), value: 'RatingHigh' },
+                                { label: t('Lowest Rating'), value: 'RatingLow' }
                               ].map((opt) => (
                                 <button
                                   key={opt.value}
@@ -420,10 +422,10 @@ export default function Dashboard() {
                       <div className="text-center py-12 md:py-16 bg-slate-50/50 border border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center">
                         <Star className="h-10 w-10 text-slate-300 mb-4" />
                         <h3 className="text-lg md:text-xl font-extrabold text-[#0a192f] mb-1">
-                          No reviews found matching that filter.
+                          {t("No reviews found matching that filter.")}
                         </h3>
                         <p className="text-slate-400 text-xs md:text-sm max-w-sm mb-6 leading-relaxed font-semibold">
-                          Try selection of a different filter query, or clear filters.
+                          {t("Try selection of a different filter query, or clear filters.")}
                         </p>
                         
                         <button 
@@ -435,7 +437,7 @@ export default function Dashboard() {
                           }} 
                           className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0fbc6f] hover:bg-[#0da662] font-bold text-white text-xs sm:text-sm rounded-xl hover:shadow-2xs active:scale-98 transition-all"
                         >
-                          Show All Reviews
+                          {t("Show All Reviews")}
                         </button>
                       </div>
                     ) : (
@@ -480,7 +482,7 @@ export default function Dashboard() {
                                       ))}
                                     </div>
                                     <span className="text-slate-500 font-bold text-xs select-none mt-0.5">
-                                      {parseFloat(review.star_rating || '5.0').toFixed(1)}
+                                      {n(parseFloat(review.star_rating || '5.0').toFixed(1))}
                                     </span>
                                   </div>
 
@@ -498,7 +500,7 @@ export default function Dashboard() {
                                   <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold select-none">
                                     <Calendar className="h-3.5 w-3.5 text-slate-405 shrink-0" />
                                     <span>
-                                      {new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                      {new Date(review.created_at).toLocaleDateString(t('en-US'), { year: 'numeric', month: 'short', day: 'numeric' })}
                                     </span>
                                   </div>
 
@@ -509,10 +511,10 @@ export default function Dashboard() {
                                        (review.review_type === 'Suspicious' || review.review_type === 'Bad') ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                        'bg-slate-50 text-slate-500 border-slate-150'}
                                   `}>
-                                    {review.review_type === 'Fraud Report' ? 'FRAUD REPORT' : 
-                                     (review.review_type === 'Safe' || review.review_type === 'Good') ? 'GOOD' :
-                                     (review.review_type === 'Suspicious' || review.review_type === 'Bad') ? 'BAD' :
-                                     (review.review_type || 'NEUTRAL').toUpperCase()}
+                                    {review.review_type === 'Fraud Report' ? t('FRAUD REPORT') : 
+                                     (review.review_type === 'Safe' || review.review_type === 'Good') ? t('GOOD') :
+                                     (review.review_type === 'Suspicious' || review.review_type === 'Bad') ? t('BAD') :
+                                     t(review.review_type || 'NEUTRAL').toUpperCase()}
                                   </span>
                                 </div>
 
@@ -520,10 +522,10 @@ export default function Dashboard() {
                                 <div className="flex items-center gap-1.5 select-none">
                                   <Link 
                                     to={`/write-review?pageId=${review.page_id}`} 
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl text-xs font-bold text-slate-550 hover:text-slate-800 bg-white hover:bg-slate-50 shadow-3xs hover:shadow-2xs active:scale-98 transition-all"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:border-slate-355 rounded-xl text-xs font-bold text-slate-550 hover:text-slate-800 bg-white hover:bg-slate-55 shadow-3xs hover:shadow-2xs active:scale-98 transition-all"
                                   >
                                     <SquarePen className="h-3.5 w-3.5 text-slate-400" />
-                                    <span>Edit Review</span>
+                                    <span>{t("Edit Review")}</span>
                                   </Link>
 
                                   {isConfirmingDelete ? (
@@ -532,7 +534,7 @@ export default function Dashboard() {
                                       onClick={() => handleDeleteReview(review.id)} 
                                       className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-all text-xs shadow-3xs"
                                     >
-                                      Confirm Delete
+                                      {t("Confirm Delete")}
                                     </button>
                                   ) : (
                                     <button 
@@ -541,7 +543,7 @@ export default function Dashboard() {
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-rose-100/50 hover:border-rose-250 hover:bg-rose-50/50 rounded-xl font-bold text-rose-550 hover:text-rose-700 transition-all text-xs"
                                     >
                                       <Trash2 className="h-3.5 w-3.5 text-rose-450" />
-                                      <span>Delete</span>
+                                      <span>{t("Delete")}</span>
                                     </button>
                                   )}
                                 </div>
@@ -560,7 +562,7 @@ export default function Dashboard() {
                               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                               className="inline-flex items-center gap-1 px-3.5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl font-bold text-slate-600 text-xs bg-white hover:bg-slate-52 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-3xs"
                             >
-                              <span>&lsaquo; Previous</span>
+                              <span>{t("Previous")}</span>
                             </button>
 
                             <div className="flex items-center gap-1">
@@ -578,7 +580,7 @@ export default function Dashboard() {
                                         : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-350 hover:bg-slate-50'
                                     }`}
                                   >
-                                    {p}
+                                    {n(p)}
                                   </button>
                                 );
                               })}
@@ -590,7 +592,7 @@ export default function Dashboard() {
                               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                               className="inline-flex items-center gap-1 px-3.5 py-1.5 border border-slate-200 hover:border-slate-350 rounded-xl font-bold text-slate-600 text-xs bg-white hover:bg-slate-52 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-3xs"
                             >
-                              <span>Next &rsaquo;</span>
+                              <span>{t("Next")}</span>
                             </button>
                           </div>
 
@@ -599,9 +601,9 @@ export default function Dashboard() {
                             <button 
                               type="button"
                               onClick={() => setItemsPerPageOpen(!itemsPerPageOpen)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-xl font-bold text-slate-650 text-xs bg-white hover:bg-slate-50 shadow-3xs transition-all"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-xl font-bold text-slate-655 text-xs bg-white hover:bg-slate-50 shadow-3xs transition-all"
                             >
-                              <span>{limitVal} per page</span>
+                              <span>{t("{{count}} per page", { count: n(limitVal) })}</span>
                               <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                             </button>
 
@@ -618,7 +620,7 @@ export default function Dashboard() {
                                     }}
                                     className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors ${limitVal === val ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-slate-600'}`}
                                   >
-                                    {val} per page
+                                    {t("{{count}} per page", { count: n(val) })}
                                   </button>
                                 ))}
                               </div>
@@ -636,46 +638,46 @@ export default function Dashboard() {
                   <div>
                     <div className="flex flex-row justify-between items-center border-b border-slate-100 pb-5 mb-6">
                       <div>
-                        <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">My Disputes</h2>
-                        <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">Track response/appeals for contested or flagged reviews.</p>
+                        <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">{t("My Disputes")}</h2>
+                        <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">{t("Track response/appeals for contested or flagged reviews.")}</p>
                       </div>
                     </div>
 
                     {disputes.length === 0 ? (
                       <div className="text-center py-16 bg-slate-50/50 border border-dashed border-slate-200/80 rounded-3xl p-6">
                          <ShieldAlert className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                         <h3 className="font-extrabold text-slate-700 text-base mb-1">You haven't submitted any disputes.</h3>
+                         <h3 className="font-extrabold text-slate-700 text-base mb-1">{t("You haven't submitted any disputes.")}</h3>
                          <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed">
-                           Disputes are made when page owners raise compliance flags on your reviews and you request a secondary admin review.
+                           {t("Disputes are made when page owners raise compliance flags on your reviews and you request a secondary admin review.")}
                          </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {disputes.map((dispute) => (
                           <div key={dispute.id} className="border border-slate-100 rounded-2xl p-5 hover:border-emerald-200 transition-colors bg-white">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 pb-3 border-b border-slate-50">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 pb-3 border-b border-slate-55">
                               <div>
-                                <h3 className="font-bold text-[#0a192f] text-base">Dispute for {dispute.page_name}</h3>
-                                <p className="text-[11px] text-slate-400 mt-1">Submitted on {new Date(dispute.created_at).toLocaleDateString()}</p>
+                                <h3 className="font-bold text-[#0a192f] text-base">{t("Dispute for {{name}}", { name: dispute.page_name })}</h3>
+                                <p className="text-[11px] text-slate-400 mt-1">{t("Submitted on {{date}}", { date: new Date(dispute.created_at).toLocaleDateString() })}</p>
                               </div>
                               <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 border
-                                  ${['Approved', 'Resolved'].includes(dispute.status) ? 'bg-emerald-50 text-emerald-700 border-emerald-150' :
+                                  ${['Approved', 'Resolved'].includes(dispute.status) ? 'bg-emerald-55 text-emerald-700 border-emerald-150' :
                                      dispute.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-150' :
                                      'bg-amber-50 text-amber-700 border-amber-150'}
                                `}>
                                 {['Approved', 'Resolved'].includes(dispute.status) && <CheckCircle className="h-3 w-3" />}
-                                {dispute.status}
+                                {t(dispute.status)}
                               </span>
                             </div>
 
                             <div className="space-y-1.5 mt-2">
-                              <span className="text-xs font-bold text-slate-450 block">contested review: <span className="text-slate-750 font-extrabold">"{dispute.review_title}"</span></span>
-                              <p className="text-slate-500 text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">{dispute.reason}</p>
+                              <span className="text-xs font-bold text-slate-450 block">{t("contested review:")} <span className="text-slate-750 font-extrabold">"{dispute.review_title}"</span></span>
+                              <p className="text-slate-550 text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">{dispute.reason}</p>
                             </div>
 
                             {dispute.admin_decision && (
                               <div className="mt-4 bg-emerald-50/20 p-4 rounded-xl border border-emerald-100/50">
-                                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1.5">Admin Resolution Decision:</h4>
+                                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1.5">{t("Admin Resolution Decision:")}</h4>
                                 <p className="text-xs sm:text-sm text-slate-600 font-medium whitespace-pre-wrap leading-relaxed">{dispute.admin_decision}</p>
                               </div>
                             )}
@@ -690,14 +692,14 @@ export default function Dashboard() {
                 {activeTab === 'settings' && (
                   <div>
                     <div className="border-b border-slate-100 pb-5 mb-6">
-                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">Account Settings</h2>
-                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">Update profile representation & register account details.</p>
+                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">{t("Account Settings")}</h2>
+                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">{t("Update profile representation & register account details.")}</p>
                     </div>
 
                     {profileSuccess && (
                       <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-[#0fbc6f] font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
-                        Profile properties updated successfully!
+                        {t("Profile properties updated successfully!")}
                       </div>
                     )}
 
@@ -708,7 +710,7 @@ export default function Dashboard() {
                     }} className="space-y-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">Full Name</label>
+                          <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">{t("Full Name")}</label>
                           <div className="relative">
                             <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                             <input 
@@ -718,14 +720,14 @@ export default function Dashboard() {
                                 setUser({ ...user, full_name: e.target.value });
                               }}
                               className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 hover:border-slate-300 focus:border-emerald-500 rounded-xl text-slate-800 font-medium text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/20 transition-all shadow-3xs"
-                              placeholder="John Doe"
+                              placeholder={t("John Doe")}
                               required
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">Username</label>
+                          <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">{t("Username")}</label>
                           <div className="relative">
                             <span className="absolute left-4 top-3 text-slate-400 font-mono text-sm">@</span>
                             <input 
@@ -735,7 +737,7 @@ export default function Dashboard() {
                                 setUser({ ...user, username: e.target.value });
                               }}
                               className="w-full pl-9 pr-4 py-3 bg-white border border-slate-200 hover:border-slate-300 focus:border-emerald-500 rounded-xl text-slate-800 font-medium text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/20 transition-all shadow-3xs"
-                              placeholder="username"
+                              placeholder={t("username")}
                               required
                             />
                           </div>
@@ -743,7 +745,7 @@ export default function Dashboard() {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">Email Address</label>
+                        <label className="block text-[11px] font-black text-slate-455 uppercase tracking-wider mb-2">{t("Email Address")}</label>
                         <div className="relative">
                           <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                           <input 
@@ -764,7 +766,7 @@ export default function Dashboard() {
                           type="submit"
                           className="px-6 py-3 bg-[#0fbc6f] hover:bg-[#0da662] font-semibold text-white text-xs sm:text-sm rounded-xl hover:shadow-2xs active:scale-98 transition-all"
                         >
-                          Save Changes
+                          {t("Save Changes")}
                         </button>
                       </div>
                     </form>
@@ -775,14 +777,14 @@ export default function Dashboard() {
                 {activeTab === 'notifications' && (
                   <div>
                     <div className="border-b border-slate-100 pb-5 mb-6">
-                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">Notification Preferences</h2>
-                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">Manage how and when you receive review updates.</p>
+                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">{t("Notification Preferences")}</h2>
+                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">{t("Manage how and when you receive review updates.")}</p>
                     </div>
 
                     {prefSuccess && (
-                      <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-[#0fbc6f] font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2">
+                      <div className="mb-6 p-4 bg-emerald-55 border border-emerald-200 text-[#0fbc6f] font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
-                        Preferences updated successfully!
+                        {t("Preferences updated successfully!")}
                       </div>
                     )}
 
@@ -795,8 +797,8 @@ export default function Dashboard() {
                             className="mt-1 h-4 w-4 rounded text-[#0fbc6f] focus:ring-[#0fbc6f] border-slate-300 shrink-0"
                           />
                           <div>
-                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">Email alerts upon replies</span>
-                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">Receive immediate emails when users or business owners reply to your reviews.</span>
+                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">{t("Email alerts upon replies")}</span>
+                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">{t("Receive immediate emails when users or business owners reply to your reviews.")}</span>
                           </div>
                         </label>
 
@@ -807,8 +809,8 @@ export default function Dashboard() {
                             className="mt-1 h-4 w-4 rounded text-[#0fbc6f] focus:ring-[#0fbc6f] border-slate-300 shrink-0"
                           />
                           <div>
-                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">Dispute resolution alerts</span>
-                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">Get notified immediately when an admin reaches a decision regarding a dispute on your reviews.</span>
+                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">{t("Dispute resolution alerts")}</span>
+                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">{t("Get notified immediately when an admin reaches a decision regarding a dispute on your reviews.")}</span>
                           </div>
                         </label>
 
@@ -818,8 +820,8 @@ export default function Dashboard() {
                             className="mt-1 h-4 w-4 rounded text-[#0fbc6f] focus:ring-[#0fbc6f] border-slate-300 shrink-0"
                           />
                           <div>
-                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">Monthly digest logs</span>
-                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">Receive a monthly summary of your contributions, views, and trust community level.</span>
+                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">{t("Monthly digest logs")}</span>
+                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">{t("Receive a monthly summary of your contributions, views, and trust community level.")}</span>
                           </div>
                         </label>
 
@@ -830,8 +832,8 @@ export default function Dashboard() {
                             className="mt-1 h-4 w-4 rounded text-[#0fbc6f] focus:ring-[#0fbc6f] border-slate-300 shrink-0"
                           />
                           <div>
-                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">Identity & security updates</span>
-                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">Alert me of complex API operations, new logins from untried devices, or password actions.</span>
+                            <span className="block font-bold text-slate-800 text-xs sm:text-sm">{t("Identity & security updates")}</span>
+                            <span className="block text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed">{t("Alert me of complex API operations, new logins from untried devices, or password actions.")}</span>
                           </div>
                         </label>
                       </div>
@@ -845,7 +847,7 @@ export default function Dashboard() {
                           }}
                           className="px-6 py-3 bg-[#0fbc6f] hover:bg-[#0da662] font-semibold text-white text-xs sm:text-sm rounded-xl hover:shadow-2xs active:scale-98 transition-all"
                         >
-                          Save Preferences
+                          {t("Save Preferences")}
                         </button>
                       </div>
                     </div>
@@ -856,14 +858,14 @@ export default function Dashboard() {
                 {activeTab === 'security' && (
                   <div>
                     <div className="border-b border-slate-100 pb-5 mb-6">
-                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">Security</h2>
-                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">Protect your account with encrypted passwords and managed active sessions.</p>
+                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0a192f] tracking-tight">{t("Security")}</h2>
+                      <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-medium">{t("Protect your account with encrypted passwords and managed active sessions.")}</p>
                     </div>
 
                     {secSuccess && (
                       <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-[#0fbc6f] font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
-                        Credentials updated successfully!
+                        {t("Credentials updated successfully!")}
                       </div>
                     )}
 
@@ -873,11 +875,11 @@ export default function Dashboard() {
                         setSecSuccess(true);
                         setTimeout(() => setSecSuccess(false), 4000);
                       }} className="space-y-4">
-                        <h3 className="font-bold text-slate-800 text-[14px]">Update Security Password</h3>
+                        <h3 className="font-bold text-slate-800 text-[14px]">{t("Update Security Password")}</h3>
                         
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Current Password</label>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{t("Current Password")}</label>
                             <div className="relative">
                               <Key className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                               <input 
@@ -891,7 +893,7 @@ export default function Dashboard() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">New Password</label>
+                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{t("New Password")}</label>
                               <div className="relative">
                                 <Key className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                                 <input 
@@ -904,7 +906,7 @@ export default function Dashboard() {
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">Confirm Password</label>
+                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">{t("Confirm Password")}</label>
                               <div className="relative">
                                 <Key className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                                 <input 
@@ -923,14 +925,14 @@ export default function Dashboard() {
                             type="submit"
                             className="px-5 py-2.5 bg-[#0fbc6f] hover:bg-[#0da662] font-semibold text-white text-xs rounded-xl shadow-3xs transition-all"
                           >
-                            Update Password
+                            {t("Update Password")}
                           </button>
                         </div>
                       </form>
 
                       {/* Browser session logs */}
                       <div className="pt-6 border-t border-slate-100">
-                        <h3 className="font-extrabold text-[#0a192f] text-sm sm:text-base mb-3 leading-tight">Active Login Sessions</h3>
+                        <h3 className="font-extrabold text-[#0a192f] text-sm sm:text-base mb-3 leading-tight">{t("Active Login Sessions")}</h3>
                         <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between gap-4 block text-left">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-emerald-50 text-[#0fbc6f] flex items-center justify-center shrink-0">
@@ -938,10 +940,10 @@ export default function Dashboard() {
                             </div>
                             <div>
                               <span className="block font-bold text-slate-800 text-xs sm:text-sm">
-                                Chrome on Windows (Current Active Device)
-                                <span className="inline-block text-[9px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded ml-1.5 uppercase">Current</span>
+                                {t("Chrome on Windows (Current Active Device)")}
+                                <span className="inline-block text-[9px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded ml-1.5 uppercase">{t("Current")}</span>
                               </span>
-                              <span className="block text-slate-400 text-[11px] mt-0.5 font-medium">IP Address: 103.111.173.22 • Active right now</span>
+                              <span className="block text-slate-400 text-[11px] mt-0.5 font-medium">{t("IP Address: 103.111.173.22 • Active right now")}</span>
                             </div>
                           </div>
                         </div>

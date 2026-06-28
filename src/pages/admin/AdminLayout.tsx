@@ -8,11 +8,9 @@ import {
   Users,
   ShieldCheck,
   MessageSquareWarning,
-  Columns,
   FileEdit,
   Flag,
   Upload,
-  Target,
   Settings,
   ScrollText,
   Menu,
@@ -30,6 +28,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 import RouteLoader from "../../components/RouteLoader";
 
 export default function AdminLayout() {
@@ -42,6 +41,7 @@ export default function AdminLayout() {
   
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -60,12 +60,12 @@ export default function AdminLayout() {
         const data = await res.json();
         
         const notifs = [];
-        if (data.pendingReviews > 0) notifs.push({ type: 'review', count: data.pendingReviews, message: 'Pending reviews need approval', link: '/tufayel/reviews' });
-        if (data.openDisputes > 0) notifs.push({ type: 'dispute', count: data.openDisputes, message: 'Open disputes require action', link: '/tufayel/disputes' });
-        if (data.pendingClaims > 0) notifs.push({ type: 'claim', count: data.pendingClaims, message: 'Pending page claims to verify', link: '/tufayel/page-claims' });
-        if (data.pendingHighProfileFraudReports > 0) notifs.push({ type: 'fraud', count: data.pendingHighProfileFraudReports, message: 'High profile fraud reports pending', link: '/tufayel/reviews' });
-        if (data.isCookieExpired) notifs.push({ type: 'cookie_expired', count: 1, message: 'Facebook scraper session EXPIRED! Update your cookies.', link: '/tufayel/settings' });
-        else if (!data.isCookieConfigured) notifs.push({ type: 'cookie_missing', count: 1, message: 'No scraper cookie configured. Search scraping might fail.', link: '/tufayel/settings' });
+        if (data.pendingReviews > 0) notifs.push({ type: 'review', count: data.pendingReviews, message: t('Pending reviews need approval'), link: '/tufayel/reviews' });
+        if (data.openDisputes > 0) notifs.push({ type: 'dispute', count: data.openDisputes, message: t('Open disputes require action'), link: '/tufayel/disputes' });
+        if (data.pendingClaims > 0) notifs.push({ type: 'claim', count: data.pendingClaims, message: t('Pending page claims to verify'), link: '/tufayel/page-claims' });
+        if (data.pendingHighProfileFraudReports > 0) notifs.push({ type: 'fraud', count: data.pendingHighProfileFraudReports, message: t('High profile fraud reports pending'), link: '/tufayel/reviews' });
+        if (data.isCookieExpired) notifs.push({ type: 'cookie_expired', count: 1, message: t('Facebook scraper session EXPIRED! Update your cookies.'), link: '/tufayel/settings' });
+        else if (!data.isCookieConfigured) notifs.push({ type: 'cookie_missing', count: 1, message: t('No scraper cookie configured. Search scraping might fail.'), link: '/tufayel/settings' });
         
         setNotifications(notifs);
 
@@ -88,7 +88,7 @@ export default function AdminLayout() {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000); // refresh every minute
     return () => clearInterval(interval);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -106,20 +106,20 @@ export default function AdminLayout() {
   };
 
   const allNavItems = [
-    { name: "Dashboard", path: "/tufayel", icon: LayoutDashboard },
-    { name: "Reviews", path: "/tufayel/reviews", icon: Star },
-    { name: "Facebook Pages", path: "/tufayel/pages", icon: FileText },
-    { name: "bKash / Contact", path: "/tufayel/contact-numbers", icon: Phone },
-    { name: "Users", path: "/tufayel/users", icon: Users },
-    { name: "Page Claims", path: "/tufayel/page-claims", icon: ShieldCheck },
-    { name: "Disputes", path: "/tufayel/disputes", icon: MessageSquareWarning },
-    { name: "Blog Posts", path: "/tufayel/blog-posts", icon: FileEdit },
-    { name: "Media Library", path: "/tufayel/media-library", icon: Image },
-    { name: "Reports / Abuse", path: "/tufayel/reports-abuse", icon: Flag },
-    { name: "Bulk Import / Export", path: "/tufayel/bulk-import", icon: Upload },
-    { name: "Contact Messages", path: "/tufayel/messages", icon: Mail },
-    { name: "Settings", path: "/tufayel/settings", icon: Settings },
-    { name: "Admin Logs", path: "/tufayel/logs", icon: ScrollText },
+    { name: t("Dashboard"), path: "/tufayel", icon: LayoutDashboard },
+    { name: t("Reviews"), path: "/tufayel/reviews", icon: Star },
+    { name: t("Facebook Pages"), path: "/tufayel/pages", icon: FileText },
+    { name: t("bKash / Contact"), path: "/tufayel/contact-numbers", icon: Phone },
+    { name: t("Users"), path: "/tufayel/users", icon: Users },
+    { name: t("Page Claims"), path: "/tufayel/page-claims", icon: ShieldCheck },
+    { name: t("Disputes"), path: "/tufayel/disputes", icon: MessageSquareWarning },
+    { name: t("Blog Posts"), path: "/tufayel/blog-posts", icon: FileEdit },
+    { name: t("Media Library"), path: "/tufayel/media-library", icon: Image },
+    { name: t("Reports / Abuse"), path: "/tufayel/reports-abuse", icon: Flag },
+    { name: t("Bulk Import / Export"), path: "/tufayel/bulk-import", icon: Upload },
+    { name: t("Contact Messages"), path: "/tufayel/messages", icon: Mail },
+    { name: t("Settings"), path: "/tufayel/settings", icon: Settings },
+    { name: t("Admin Logs"), path: "/tufayel/logs", icon: ScrollText },
   ];
 
   const moderatorHiddenPaths = ["/tufayel", "/tufayel/users", "/tufayel/bulk-import", "/tufayel/settings", "/tufayel/logs"];
@@ -138,7 +138,7 @@ export default function AdminLayout() {
       {/* Mobile Header */}
       <div className="md:hidden bg-[#060b15] border-b border-white/5 text-white p-4 flex items-center justify-between sticky top-0 z-50">
         <div className="font-bold text-lg flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-[#10b981]" /> Admin
+          <ShieldCheck className="h-5 w-5 text-[#10b981]" /> {t("Admin")}
         </div>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? (
@@ -160,7 +160,7 @@ export default function AdminLayout() {
           <div className="bg-[#10b981]/15 border border-[#10b981]/25 rounded-lg p-1.5 flex items-center justify-center text-[#10b981]">
             <ShieldCheck className="h-5 w-5 text-[#10b981]" />
           </div>
-          {!isCollapsed && <span className="text-[15.5px] font-black tracking-tight text-white">FB Page Review</span>}
+          {!isCollapsed && <span className="text-[15.5px] font-black tracking-tight text-white">{t("FB Page Review")}</span>}
         </div>
 
         <nav className="flex-1 px-3 pb-6 space-y-1 mt-4 md:mt-0 overflow-y-auto hide-scrollbar">
@@ -213,15 +213,15 @@ export default function AdminLayout() {
               </svg>
             </div>
             
-            <p className="text-[10px] font-black text-slate-500 tracking-wider uppercase">System Status</p>
+            <p className="text-[10px] font-black text-slate-500 tracking-wider uppercase">{t("System Status")}</p>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]"></span>
               </span>
-              <span className="text-sm font-bold text-white leading-none">Healthy</span>
+              <span className="text-sm font-bold text-white leading-none">{t("Healthy")}</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-semibold mt-1 relative z-10">All systems operational</p>
+            <p className="text-[11px] text-slate-400 font-semibold mt-1 relative z-10">{t("All systems operational")}</p>
           </div>
         )}
 
@@ -231,7 +231,7 @@ export default function AdminLayout() {
              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors text-xs font-semibold"
            >
              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-             {!isCollapsed && <span>Collapse</span>}
+             {!isCollapsed && <span>{t("Collapse")}</span>}
            </button>
         </div>
       </aside>
@@ -244,7 +244,7 @@ export default function AdminLayout() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3" />
             <input
               type="text"
-              placeholder="Search pages, reviews, users..."
+              placeholder={t("Search pages, reviews, users...")}
               className="w-full bg-[#091124] border border-white/5 text-slate-100 rounded-xl pl-9 pr-12 py-2 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#10b981]/20 focus:border-[#10b981]/40"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-[#050b18] border border-slate-800 rounded select-none">
@@ -266,7 +266,7 @@ export default function AdminLayout() {
                   }
                 }}
                 className="relative p-2 text-slate-400 hover:bg-white/5 rounded-full transition-colors"
-                aria-label="Notifications"
+                aria-label={t("Notifications")}
               >
                 <Bell className="h-5 w-5" />
                 {hasUnread && (
@@ -277,13 +277,13 @@ export default function AdminLayout() {
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-[#0d1527] rounded-xl shadow-2xl border border-white/10 z-50 overflow-hidden text-left">
                   <div className="p-3 border-b border-white/5 flex justify-between items-center bg-[#091124]">
-                    <h3 className="font-bold text-white text-sm">Notifications</h3>
+                    <h3 className="font-bold text-white text-sm">{t("Notifications")}</h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center text-slate-400 flex flex-col items-center">
                         <Bell className="h-8 w-8 text-slate-600 mb-2" />
-                        <p className="text-sm font-semibold">No new notifications</p>
+                        <p className="text-sm font-semibold">{t("No new notifications")}</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-white/5">
@@ -299,7 +299,7 @@ export default function AdminLayout() {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-white group-hover:text-[#10b981] transition-colors">
-                                {notif.count} {notif.type}{notif.count > 1 ? 's' : ''}
+                                {notif.count} {t(notif.type)}{notif.count > 1 ? 's' : ''}
                               </p>
                               <p className="text-xs text-slate-400 mt-0.5">{notif.message}</p>
                             </div>
@@ -316,7 +316,7 @@ export default function AdminLayout() {
             <button 
               onClick={toggleTheme}
               className="p-2 text-slate-400 hover:bg-white/5 rounded-full transition-colors cursor-pointer outline-none"
-              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={theme === "dark" ? t("Switch to Light Mode") : t("Switch to Dark Mode")}
             >
               {theme === "dark" ? (
                 <Moon className="h-5 w-5 text-[#10b981] animate-pulse" />
@@ -333,10 +333,10 @@ export default function AdminLayout() {
               </div>
               <div className="hidden md:block text-left text-xs select-none leading-normal">
                 <p className="font-extrabold text-white">
-                  {user?.full_name || "System Admin"}
+                  {user?.full_name || t("System Admin")}
                 </p>
                 <p className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">
-                  {user?.role || "Admin"}
+                  {t(user?.role || "Admin")}
                 </p>
               </div>
               <svg className="h-4 w-4 text-slate-500 hidden md:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,7 +345,7 @@ export default function AdminLayout() {
               <button
                 onClick={handleLogout}
                 className="p-2 text-slate-500 hover:text-rose-500 transition-colors ml-1"
-                title="Log Out"
+                title={t("Log Out")}
               >
                 <LogOut className="h-4.5 w-4.5" />
               </button>
@@ -370,4 +370,5 @@ export default function AdminLayout() {
       )}
     </div>
   );
+}
 }

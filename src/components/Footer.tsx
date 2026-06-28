@@ -12,8 +12,10 @@ import {
   ChevronDown, 
   Lock 
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<any>({});
   
   // Accordion state for mobile view
@@ -100,7 +102,7 @@ export default function Footer() {
                 </Link>
                 
                 <p className="text-slate-600 text-[13.5px] leading-relaxed mb-6 font-medium">
-                  {settings.footer_desc || "FB Page Review helps users check Facebook pages, seller profiles, reviews, fraud reports, and payment numbers before buying online."}
+                  {settings.footer_desc || t("FB Page Review helps users check Facebook pages, seller profiles, reviews, fraud reports, and payment numbers before buying online.")}
                 </p>
               </div>
 
@@ -110,8 +112,8 @@ export default function Footer() {
                   <ShieldCheck className="w-5 h-5 text-[#0fbc6f]" />
                 </div>
                 <p className="text-slate-600 text-[12px] font-bold leading-tight">
-                  Trusted by thousands of <br />
-                  users to <span className="text-[#0fbc6f] font-extrabold">shop safely.</span>
+                  {t("Trusted by thousands of users to")} <br />
+                  <span className="text-[#0fbc6f] font-extrabold">{t("shop safely.")}</span>
                 </p>
               </div>
 
@@ -126,7 +128,7 @@ export default function Footer() {
                   <Link2 className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">Quick Links</span>
+                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">{t("Quick Links")}</span>
                   <div className="h-[2px] bg-[#0fbc6f] w-8 mt-1.5 rounded-full" />
                 </div>
               </div>
@@ -134,25 +136,25 @@ export default function Footer() {
               <ul className="flex flex-col">
                 <li className="border-b border-slate-100">
                   <Link to="/" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Home</span>
+                    <span>{t("Home")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0fbc6f] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/write-review" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Write a Review</span>
+                    <span>{t("Write a Review")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0fbc6f] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/business" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Claim Your Page</span>
+                    <span>{t("Claim Your Page")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0fbc6f] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/blog" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Blog</span>
+                    <span>{t("Blog")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0fbc6f] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
@@ -168,7 +170,7 @@ export default function Footer() {
                   <Building className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">Company</span>
+                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">{t("Company")}</span>
                   <div className="h-[2px] bg-[#2563eb] w-8 mt-1.5 rounded-full" />
                 </div>
               </div>
@@ -176,31 +178,31 @@ export default function Footer() {
               <ul className="flex flex-col">
                 <li className="border-b border-slate-100">
                   <Link to="/about" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>About Us</span>
+                    <span>{t("About Us")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#2563eb] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/contact" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Contact Us</span>
+                    <span>{t("Contact Us")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#2563eb] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/privacy-policy" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Privacy Policy</span>
+                    <span>{t("Privacy Policy")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#2563eb] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/terms" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Terms & Conditions</span>
+                    <span>{t("Terms & Conditions")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#2563eb] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/disclaimer" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Disclaimer</span>
+                    <span>{t("Disclaimer")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#2563eb] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
@@ -216,7 +218,7 @@ export default function Footer() {
                   <Shield className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">Safety</span>
+                  <span className="font-extrabold text-[12px] tracking-widest text-slate-800 uppercase">{t("Safety")}</span>
                   <div className="h-[2px] bg-[#ef4444] w-8 mt-1.5 rounded-full" />
                 </div>
               </div>
@@ -224,31 +226,31 @@ export default function Footer() {
               <ul className="flex flex-col">
                 <li className="border-b border-slate-100">
                   <Link to="/write-review?type=fraud" className="py-3 flex items-center justify-between group text-[13.5px] text-[#ef4444] hover:text-red-700 transition-colors font-bold">
-                    <span>Report a Fraud Page</span>
+                    <span>{t("Report a Fraud Page")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef4444] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/review-guidelines" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Review Guidelines</span>
+                    <span>{t("Review Guidelines")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef4444] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/how-reviews-work" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>How Reviews Work</span>
+                    <span>{t("How Reviews Work")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef4444] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/dispute-policy" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Dispute Policy</span>
+                    <span>{t("Dispute Policy")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef4444] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
                 <li className="border-b border-slate-100">
                   <Link to="/content-removal-policy" className="py-3 flex items-center justify-between group text-[13.5px] text-slate-600 hover:text-slate-900 transition-colors font-semibold">
-                    <span>Content Removal Policy</span>
+                    <span>{t("Content Removal Policy")}</span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#ef4444] group-hover:translate-x-1 transition-all" />
                   </Link>
                 </li>
@@ -264,9 +266,9 @@ export default function Footer() {
                   <Headphones className="w-5 h-5 text-white" />
                 </div>
                 
-                <h3 className="font-extrabold text-slate-950 text-[15px] tracking-tight">Need Help?</h3>
+                <h3 className="font-extrabold text-slate-950 text-[15px] tracking-tight">{t("Need Help?")}</h3>
                 <p className="text-slate-600 text-[13px] leading-relaxed mt-1 font-medium">
-                  We're here to help you shop with confidence.
+                  {t("We're here to help you shop with confidence.")}
                 </p>
 
                 <div className="border-t border-[#dce4f4] my-4"></div>
@@ -278,7 +280,7 @@ export default function Footer() {
                       <Mail className="w-4.5 h-4.5" />
                     </div>
                     <div>
-                      <p className="text-slate-500 font-extrabold text-[10.5px] tracking-wider uppercase">Email Us</p>
+                      <p className="text-slate-500 font-extrabold text-[10.5px] tracking-wider uppercase">{t("Email Us")}</p>
                       <span className="text-[#0fbc6f] font-extrabold text-[12.5px] hover:underline block truncate max-w-[160px]">
                         {emailDisplay}
                       </span>
@@ -296,7 +298,7 @@ export default function Footer() {
                       <Facebook className="w-4.5 h-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-slate-500 font-extrabold text-[10.5px] tracking-wider uppercase group-hover/fb:text-[#2563eb] transition-colors">Follow Us</p>
+                      <p className="text-slate-500 font-extrabold text-[10.5px] tracking-wider uppercase group-hover/fb:text-[#2563eb] transition-colors">{t("Follow Us")}</p>
                       <span className="text-[#2563eb] font-extrabold text-[12.5px] truncate block max-w-[160px] group-hover/fb:underline">
                         {fbDisplayUrl}
                       </span>
@@ -350,7 +352,7 @@ export default function Footer() {
               </Link>
               
               <p className="text-slate-600 text-[13px] leading-relaxed mb-5 font-medium">
-                {settings.footer_desc || "FB Page Review helps users check Facebook pages, seller profiles, reviews, fraud reports, and payment numbers before buying online."}
+                {settings.footer_desc || t("FB Page Review helps users check Facebook pages, seller profiles, reviews, fraud reports, and payment numbers before buying online.")}
               </p>
             </div>
 
@@ -360,8 +362,8 @@ export default function Footer() {
                 <ShieldCheck className="w-4.5 h-4.5 text-[#0fbc6f]" />
               </div>
               <p className="text-slate-600 text-[11.5px] font-bold leading-tight">
-                Trusted by thousands of users <br />
-                to <span className="text-[#0fbc6f] font-extrabold">shop safely.</span>
+                {t("Trusted by thousands of users to")} <br />
+                <span className="text-[#0fbc6f] font-extrabold">{t("shop safely.")}</span>
               </p>
             </div>
           </div>
@@ -379,7 +381,7 @@ export default function Footer() {
                   <div className="w-9 h-9 rounded-full bg-[#e6f7ef] flex items-center justify-center text-[#0fbc6f]">
                     <Link2 className="w-4.5 h-4.5" />
                   </div>
-                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">Quick Links</span>
+                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">{t("Quick Links")}</span>
                 </div>
                 <ChevronDown 
                   className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${openSections.quickLinks ? 'rotate-180 text-slate-700' : ''}`} 
@@ -391,25 +393,25 @@ export default function Footer() {
                   <ul className="flex flex-col">
                     <li className="border-b border-slate-100">
                       <Link to="/" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Home</span>
+                        <span>{t("Home")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/write-review" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Write a Review</span>
+                        <span>{t("Write a Review")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/business" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Claim Your Page</span>
+                        <span>{t("Claim Your Page")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/blog" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Blog</span>
+                        <span>{t("Blog")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
@@ -428,7 +430,7 @@ export default function Footer() {
                   <div className="w-9 h-9 rounded-full bg-[#eff4ff] flex items-center justify-center text-[#2563eb]">
                     <Building className="w-4.5 h-4.5" />
                   </div>
-                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">Company</span>
+                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">{t("Company")}</span>
                 </div>
                 <ChevronDown 
                   className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${openSections.company ? 'rotate-180 text-slate-700' : ''}`} 
@@ -440,31 +442,31 @@ export default function Footer() {
                   <ul className="flex flex-col">
                     <li className="border-b border-slate-100">
                       <Link to="/about" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>About Us</span>
+                        <span>{t("About Us")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/contact" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Contact Us</span>
+                        <span>{t("Contact Us")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/privacy-policy" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Privacy Policy</span>
+                        <span>{t("Privacy Policy")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/terms" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Terms & Conditions</span>
+                        <span>{t("Terms & Conditions")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/disclaimer" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Disclaimer</span>
+                        <span>{t("Disclaimer")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
@@ -483,7 +485,7 @@ export default function Footer() {
                   <div className="w-9 h-9 rounded-full bg-[#fef2f2] flex items-center justify-center text-[#ef4444]">
                     <Shield className="w-4.5 h-4.5" />
                   </div>
-                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">Safety</span>
+                  <span className="font-extrabold text-[12.5px] tracking-wider text-slate-800 uppercase">{t("Safety")}</span>
                 </div>
                 <ChevronDown 
                   className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${openSections.safety ? 'rotate-180 text-slate-700' : ''}`} 
@@ -495,31 +497,31 @@ export default function Footer() {
                   <ul className="flex flex-col">
                     <li className="border-b border-slate-100">
                       <Link to="/write-review?type=fraud" className="py-3 flex items-center justify-between group text-[13px] text-[#ef4444] hover:text-red-700 font-bold">
-                        <span>Report a Fraud Page</span>
+                        <span>{t("Report a Fraud Page")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/review-guidelines" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Review Guidelines</span>
+                        <span>{t("Review Guidelines")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/how-reviews-work" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>How Reviews Work</span>
+                        <span>{t("How Reviews Work")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/dispute-policy" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Dispute Policy</span>
+                        <span>{t("Dispute Policy")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
                     <li className="border-b border-slate-100">
                       <Link to="/content-removal-policy" className="py-3 flex items-center justify-between group text-[13px] text-slate-600 hover:text-slate-900 font-semibold">
-                        <span>Content Removal Policy</span>
+                        <span>{t("Content Removal Policy")}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                       </Link>
                     </li>
@@ -537,8 +539,8 @@ export default function Footer() {
                 <Headphones className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-extrabold text-[14.5px] text-slate-950">Need Help?</h3>
-                <p className="text-slate-600 text-[12px] font-medium leading-tight mt-0.5">We're here to help you shop with confidence.</p>
+                <h3 className="font-extrabold text-[14.5px] text-slate-950">{t("Need Help?")}</h3>
+                <p className="text-slate-600 text-[12px] font-medium leading-tight mt-0.5">{t("We're here to help you shop with confidence.")}</p>
               </div>
             </div>
 
@@ -553,7 +555,7 @@ export default function Footer() {
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Email Us</p>
+                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">{t("Email Us")}</p>
                     <p className="text-[#0fbc6f] font-extrabold text-[12.5px] mt-0.5">{emailDisplay}</p>
                   </div>
                 </div>
@@ -567,7 +569,7 @@ export default function Footer() {
                     <Facebook className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">Follow Us</p>
+                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-wider">{t("Follow Us")}</p>
                     <p className="text-[#2563eb] font-extrabold text-[12.5px] mt-0.5">{fbDisplayUrl}</p>
                   </div>
                 </div>
@@ -600,7 +602,7 @@ export default function Footer() {
             <div className="flex items-center gap-3 lg:max-w-2xl">
               <Lock className="w-4.5 h-4.5 text-slate-400 shrink-0" />
               <p className="text-[12.5px] text-slate-400 font-semibold leading-normal">
-                For support, corrections, or business inquiries, contact us by email or Facebook.
+                {t("For support, corrections, or business inquiries, contact us by email or Facebook.")}
               </p>
             </div>
 
