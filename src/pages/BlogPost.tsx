@@ -171,31 +171,46 @@ export default function BlogPost() {
       )}
 
       <div className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-emerald-600 hover:prose-a:text-emerald-700 prose-img:rounded-xl">
-        <Markdown rehypePlugins={[rehypeRaw]}>{post.content}</Markdown>
+        <Markdown 
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            'download-card': () => (
+              <div className="my-10 p-5 bg-emerald-50/20 border border-emerald-100/70 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-5 shadow-3xs not-prose">
+                <div className="flex items-center gap-4 text-left w-full sm:w-auto">
+                  <div className="p-3 bg-white rounded-xl border border-emerald-100 text-emerald-600 shadow-3xs shrink-0">
+                    <FileText className="h-6.5 w-6.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-[15px] sm:text-base font-black text-emerald-950 tracking-tight leading-snug break-all">
+                      {post.attachment_name || t("Attachment Resource")}
+                    </h4>
+                  </div>
+                </div>
+                <a
+                  href={post.attachment_url}
+                  download={post.attachment_name || "attachment.txt"}
+                  className="flex items-center gap-2 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-black text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-xs w-full sm:w-auto justify-center cursor-pointer shrink-0"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{t("Download File")}</span>
+                </a>
+              </div>
+            )
+          }}
+        >
+          {(() => {
+            let content = post.content;
+            if (post.attachment_url) {
+              if (content.includes('[download]')) {
+                content = content.replace('[download]', '\n\n<download-card></download-card>\n\n');
+              } else {
+                content = content + '\n\n<download-card></download-card>\n\n';
+              }
+            }
+            return content;
+          })()}
+        </Markdown>
       </div>
-
-      {post.attachment_url && (
-        <div className="my-10 p-5 bg-emerald-50/20 border border-emerald-100/70 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-5 shadow-3xs">
-          <div className="flex items-center gap-4 text-left w-full sm:w-auto">
-            <div className="p-3 bg-white rounded-xl border border-emerald-100 text-emerald-600 shadow-3xs shrink-0">
-              <FileText className="h-6.5 w-6.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h4 className="text-[15px] sm:text-base font-black text-emerald-950 tracking-tight leading-snug break-all">
-                {post.attachment_name || t("Attachment Resource")}
-              </h4>
-            </div>
-          </div>
-          <a
-            href={post.attachment_url}
-            download={post.attachment_name || "attachment.txt"}
-            className="flex items-center gap-2 bg-[#0fbc6f] hover:bg-[#0da662] text-white font-black text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-xs w-full sm:w-auto justify-center cursor-pointer shrink-0"
-          >
-            <Download className="h-4 w-4" />
-            <span>{t("Download File")}</span>
-          </a>
-        </div>
-      )}
 
       <AdBanner htmlCode={publicSettings.blog_ad_native} />
     </article>

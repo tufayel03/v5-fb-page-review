@@ -1118,30 +1118,45 @@ export default function AdminBlogPostDetails() {
                   {/* Markdown post text wrapper (3 columns) */}
                   <div className={`${headingList.length > 0 ? "md:col-span-3" : "md:col-span-4"} prose prose-invert max-w-none prose-sm sm:prose-base leading-relaxed`}>
                      <div className="text-slate-200 select-all font-sans space-y-4">
-                       <Markdown rehypePlugins={[rehypeRaw]}>{formData.content || t("*There's no text in the dashboard content editor body yet. Please write some words.*")}</Markdown>
-                       
-                       {formData.attachment_url && (
-                          <div className="mt-8 p-5 bg-emerald-50/10 border border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
-                            <div className="flex items-center gap-3.5 text-left w-full sm:w-auto">
-                              <div className="p-3 bg-[#0c192e] rounded-xl border border-emerald-500/25 text-emerald-400 shadow-3xs shrink-0">
-                                <FileText className="h-6 w-6" />
+                       <Markdown 
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            'download-card': () => (
+                              <div className="mt-8 p-5 bg-emerald-50/10 border border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 select-none not-prose">
+                                <div className="flex items-center gap-3.5 text-left w-full sm:w-auto">
+                                  <div className="p-3 bg-[#0c192e] rounded-xl border border-emerald-500/25 text-emerald-400 shadow-3xs shrink-0">
+                                    <FileText className="h-6 w-6" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-sm font-bold text-[#e6f7ef] tracking-tight leading-snug break-all">
+                                      {formData.attachment_name || t("Attachment Resource")}
+                                    </h4>
+                                  </div>
+                                </div>
+                                <a
+                                  href={formData.attachment_url}
+                                  download={formData.attachment_name || "attachment.txt"}
+                                  className="flex items-center gap-2 bg-[#0fbc6f] hover:bg-[#0da662] text-white px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-xs w-full sm:w-auto justify-center cursor-pointer shrink-0"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  <span>{t("Download File")}</span>
+                                </a>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-bold text-[#e6f7ef] tracking-tight leading-snug break-all">
-                                  {formData.attachment_name || t("Attachment Resource")}
-                                </h4>
-                              </div>
-                            </div>
-                            <a
-                              href={formData.attachment_url}
-                              download={formData.attachment_name || "attachment.txt"}
-                              className="flex items-center gap-2 bg-[#0fbc6f] hover:bg-[#0da662] text-white px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-xs w-full sm:w-auto justify-center cursor-pointer shrink-0"
-                            >
-                              <Download className="h-4 w-4" />
-                              <span>{t("Download File")}</span>
-                            </a>
-                          </div>
-                        )}
+                            )
+                          }}
+                        >
+                          {(() => {
+                            let content = formData.content || t("*There's no text in the dashboard content editor body yet. Please write some words.*");
+                            if (formData.attachment_url) {
+                              if (content.includes('[download]')) {
+                                content = content.replace('[download]', '\n\n<download-card></download-card>\n\n');
+                              } else {
+                                content = content + '\n\n<download-card></download-card>\n\n';
+                              }
+                            }
+                            return content;
+                          })()}
+                        </Markdown>
                      </div>
                   </div>
                 </div>
