@@ -5809,10 +5809,20 @@ async function startServer() {
         return res.status(400).json({ error: 'No file uploaded' });
       }
       const fileId = crypto.randomUUID();
-      let finalFilepath = path.join(uploadsDir, `media-${fileId}${path.extname(req.file.originalname) || '.webp'}`);
-      let url = `/uploads/media-${fileId}${path.extname(req.file.originalname) || '.webp'}`;
+      const originalExt = path.extname(req.file.originalname).toLowerCase();
+      
+      // Determine if the file is an image and should be optimized
+      const isImage = req.file.mimetype && 
+                      req.file.mimetype.startsWith('image/') && 
+                      !['.txt', '.csv', '.json', '.pdf', '.zip'].includes(originalExt);
 
-      if (req.file.mimetype && req.file.mimetype.startsWith('image/')) {
+      // Fallback extension if none is provided
+      const ext = originalExt || (isImage ? '.webp' : '.txt');
+      
+      let finalFilepath = path.join(uploadsDir, `media-${fileId}${ext}`);
+      let url = `/uploads/media-${fileId}${ext}`;
+
+      if (isImage) {
         const optimizedFilename = `media-${fileId}.webp`;
         finalFilepath = path.join(uploadsDir, optimizedFilename);
         await sharp(req.file.buffer)
