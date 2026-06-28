@@ -67,8 +67,8 @@ const translations: Record<string, string> = {
 
   // Hero Section
   "SHOP SMART, STAY SAFE": "স্মার্ট কেনাকাটা করুন, নিরাপদ থাকুন",
-  "Check Facebook Pages": "ফেসবুক পেজ চেক করুন",
-  "Before You Pay": "পেমেন্ট করার আগে",
+  "Check Facebook Pages": "অনলাইনে কেনাকাটার আগে",
+  "Before You Pay": "ফেসবুক পেজ যাচাই করুন",
   "Search sellers, usernames, and bKash numbers to avoid fraud and shop with confidence.": "প্রতারণা এড়াতে এবং বিশ্বস্ততার সাথে কেনাকাটা করতে বিক্রেতা, ইউজারনেম এবং বিকাশ/নগদ নম্বর দিয়ে চেক করুন।",
   "Search page name, page URL, bKash / Nagad number...": "পেজের নাম, পেজ লিংক, বিকাশ / নগদ নম্বর দিয়ে খুঁজুন...",
   "Examples": "উদাহরণ",
