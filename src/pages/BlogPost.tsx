@@ -1,9 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { ChevronLeft, Calendar, User } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { useLanguage } from "../context/LanguageContext";
+
+function AdBanner({ htmlCode }: { htmlCode: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    if (!htmlCode) return;
+
+    try {
+      const range = document.createRange();
+      range.selectNode(containerRef.current);
+      const fragment = range.createContextualFragment(htmlCode);
+      containerRef.current.appendChild(fragment);
+    } catch (e) {
+      console.error("Ad script render error:", e);
+    }
+  }, [htmlCode]);
+
+  if (!htmlCode) {
+    return <div className="hidden" />;
+  }
+
+  return (
+    <div className="w-full flex justify-center py-4 my-2 select-none">
+      <div ref={containerRef} className="ad-container overflow-hidden min-h-[60px] max-w-full flex justify-center" />
+    </div>
+  );
+}
+
+function AdScriptInjector({ htmlCode }: { htmlCode: string }) {
+  useEffect(() => {
+    if (!htmlCode) return;
+    const div = document.createElement("div");
+    div.style.display = "none";
+    try {
+      const range = document.createRange();
+      range.selectNode(document.body);
+      const fragment = range.createContextualFragment(htmlCode);
+      div.appendChild(fragment);
+      document.body.appendChild(div);
+    } catch (e) {
+      console.error("Error injecting ad script:", e);
+    }
+    return () => {
+      if (div.parentNode) {
+        div.parentNode.removeChild(div);
+      }
+    };
+  }, [htmlCode]);
+
+  return null;
+}
 
 export default function BlogPost() {
   const { t, language } = useLanguage();
@@ -11,6 +64,16 @@ export default function BlogPost() {
   const navigate = useNavigate();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [publicSettings, setPublicSettings] = useState<any>({});
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) setPublicSettings(data);
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -63,6 +126,10 @@ export default function BlogPost() {
 
   return (
     <article className="max-w-4xl mx-auto px-4 py-16">
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_popunder} />
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_socialbar} />
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_smartlink} />
+
       <Link to="/blog" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-emerald-600 mb-8 transition-colors">
         <ChevronLeft className="h-4 w-4 mr-1" />
         {t("Back to Blog")}
@@ -87,6 +154,8 @@ export default function BlogPost() {
             </>
           )}
         </div>
+        
+        <AdBanner htmlCode={publicSettings.blog_ad_below_title} />
       </div>
 
       {post.featured_image && (
@@ -98,6 +167,8 @@ export default function BlogPost() {
       <div className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-emerald-600 hover:prose-a:text-emerald-700 prose-img:rounded-xl">
         <Markdown rehypePlugins={[rehypeRaw]}>{post.content}</Markdown>
       </div>
+
+      <AdBanner htmlCode={publicSettings.blog_ad_native} />
     </article>
   );
 }

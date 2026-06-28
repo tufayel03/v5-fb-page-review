@@ -850,7 +850,9 @@ async function startServer() {
         'allow_image_proof', 'site_logo',
         'allow_bkash', 'allow_nagad', 'show_publicly', 'mask_numbers',
         'homepage_adsterra_code', 'homepage_adsense_code',
-        'profile_sidebar_adsterra_code', 'head_verification_code'
+        'profile_sidebar_adsterra_code', 'head_verification_code',
+        'blog_ad_below_title', 'blog_ad_popunder',
+        'blog_ad_socialbar', 'blog_ad_native', 'blog_ad_smartlink'
       ];
       settings.forEach(s => {
         if (allowedKeys.includes(s.key_name)) {

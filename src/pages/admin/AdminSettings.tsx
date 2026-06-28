@@ -798,9 +798,37 @@ export default function AdminSettings() {
                       <textarea rows={6} value={getSettingValue('homepage_adsense_code', '')} onChange={e => updateSetting('homepage_adsense_code', e.target.value, 'advertising', 'textarea', 'Google AdSense banner ad code for the homepage')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script async src='https://pagead2.googlesyndication.com...'></script><ins class='adsbygoogle' ...></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>" />
                       <p className="text-xs text-slate-500 mt-1">{t("Paste your auto-ads script snippet or custom custom display ad block code from your AdSense console.")}</p>
                     </div>
+                    <div className="border-t border-white/5 pt-6">
+                      <h3 className="text-md font-bold text-emerald-400 mb-4">{t("Blog Page Specific Ads (Only loads on /blog and /blog/*)")}</h3>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-1">{t("Blog Page Banner Ad Code (Below Title)")}</label>
+                      <textarea rows={6} value={getSettingValue('blog_ad_below_title', '')} onChange={e => updateSetting('blog_ad_below_title', e.target.value, 'advertising', 'textarea', 'Adsterra banner ad code (e.g. 160x600, 728x90) displayed below the title on blog pages')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script> or <iframe src='...'></iframe>" />
+                      <p className="text-xs text-slate-500 mt-1">{t("Paste the banner ad code (you chose 160x600 size) to display directly below the blog title.")}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-1">{t("Blog Page Popunder Ad Code")}</label>
+                      <textarea rows={6} value={getSettingValue('blog_ad_popunder', '')} onChange={e => updateSetting('blog_ad_popunder', e.target.value, 'advertising', 'textarea', 'Adsterra Popunder script code for blog pages')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script>" />
+                      <p className="text-xs text-slate-500 mt-1">{t("Paste your Adsterra Popunder script code. It will only trigger on the blog pages.")}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-1">{t("Blog Page Social Bar Ad Code")}</label>
+                      <textarea rows={6} value={getSettingValue('blog_ad_socialbar', '')} onChange={e => updateSetting('blog_ad_socialbar', e.target.value, 'advertising', 'textarea', 'Adsterra Social Bar script code for blog pages')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script>" />
+                      <p className="text-xs text-slate-500 mt-1">{t("Paste your Adsterra Social Bar script code.")}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-1">{t("Blog Page Native Banner Ad Code")}</label>
+                      <textarea rows={6} value={getSettingValue('blog_ad_native', '')} onChange={e => updateSetting('blog_ad_native', e.target.value, 'advertising', 'textarea', 'Adsterra Native Banner ad code for blog pages')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script> or <iframe src='...'></iframe>" />
+                      <p className="text-xs text-slate-500 mt-1">{t("Paste your Adsterra Native Banner ad code (will be displayed at the bottom of the blog posts).")}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-1">{t("Blog Page Smartlink / Extra Ad Code")}</label>
+                      <textarea rows={6} value={getSettingValue('blog_ad_smartlink', '')} onChange={e => updateSetting('blog_ad_smartlink', e.target.value, 'advertising', 'textarea', 'Adsterra Smartlink or other extra ad code for blog pages')} className="w-full border border-white/5 bg-[#050b18]/45 text-[#00ffcc] font-mono text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500/20 outline-none" placeholder="e.g. <script type='text/javascript'>...</script> or <a href='...'></a>" />
+                      <p className="text-xs text-slate-500 mt-1">{t("Paste your Adsterra Smartlink or any additional ad scripts you want to run on the blog pages.")}</p>
+                    </div>
                  </div>
               </div>
-          )}
+            )}
 
         </div>
       </div>

@@ -1,7 +1,60 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { Search, ChevronLeft, ChevronRight, Calendar, ArrowRight, Pin } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+
+function AdBanner({ htmlCode }: { htmlCode: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    if (!htmlCode) return;
+
+    try {
+      const range = document.createRange();
+      range.selectNode(containerRef.current);
+      const fragment = range.createContextualFragment(htmlCode);
+      containerRef.current.appendChild(fragment);
+    } catch (e) {
+      console.error("Ad script render error:", e);
+    }
+  }, [htmlCode]);
+
+  if (!htmlCode) {
+    return <div className="hidden" />;
+  }
+
+  return (
+    <div className="w-full flex justify-center py-4 my-2 select-none">
+      <div ref={containerRef} className="ad-container overflow-hidden min-h-[60px] max-w-full flex justify-center" />
+    </div>
+  );
+}
+
+function AdScriptInjector({ htmlCode }: { htmlCode: string }) {
+  useEffect(() => {
+    if (!htmlCode) return;
+    const div = document.createElement("div");
+    div.style.display = "none";
+    try {
+      const range = document.createRange();
+      range.selectNode(document.body);
+      const fragment = range.createContextualFragment(htmlCode);
+      div.appendChild(fragment);
+      document.body.appendChild(div);
+    } catch (e) {
+      console.error("Error injecting ad script:", e);
+    }
+    return () => {
+      if (div.parentNode) {
+        div.parentNode.removeChild(div);
+      }
+    };
+  }, [htmlCode]);
+
+  return null;
+}
 
 export default function Blog() {
   const { t, n, language } = useLanguage();
@@ -12,6 +65,16 @@ export default function Blog() {
   const [sort, setSort] = useState("recent");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [publicSettings, setPublicSettings] = useState<any>({});
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) setPublicSettings(data);
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,11 +126,16 @@ export default function Blog() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-20">
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_popunder} />
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_socialbar} />
+      <AdScriptInjector htmlCode={publicSettings.blog_ad_smartlink} />
+
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">{t("Safety Blog")}</h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
           {t("Insights, guides, and tips to help you stay safe while navigating Facebook marketplaces and online transactions.")}
         </p>
+        <AdBanner htmlCode={publicSettings.blog_ad_below_title} />
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-10">
@@ -182,6 +250,8 @@ export default function Blog() {
           </button>
         </div>
       )}
+
+      <AdBanner htmlCode={publicSettings.blog_ad_native} />
     </div>
   );
 }
