@@ -4,12 +4,15 @@ import { ChevronLeft, Calendar, User, FileText, Download } from "lucide-react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 
 function AdBanner({ htmlCode }: { htmlCode: string }) {
+  const { user } = useAuth();
+  const isAdmin = user && ["admin", "Admin", "Super Admin", "Moderator"].includes(user.role);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (isAdmin || !containerRef.current) return;
     containerRef.current.innerHTML = "";
     if (!htmlCode) return;
 
@@ -21,10 +24,10 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
     } catch (e) {
       console.error("Ad script render error:", e);
     }
-  }, [htmlCode]);
+  }, [htmlCode, isAdmin]);
 
-  if (!htmlCode) {
-    return <div className="hidden" />;
+  if (isAdmin || !htmlCode) {
+    return null;
   }
 
   return (
@@ -35,8 +38,11 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
 }
 
 function AdScriptInjector({ htmlCode }: { htmlCode: string }) {
+  const { user } = useAuth();
+  const isAdmin = user && ["admin", "Admin", "Super Admin", "Moderator"].includes(user.role);
+
   useEffect(() => {
-    if (!htmlCode) return;
+    if (isAdmin || !htmlCode) return;
     const div = document.createElement("div");
     div.style.display = "none";
     try {
@@ -53,7 +59,7 @@ function AdScriptInjector({ htmlCode }: { htmlCode: string }) {
         div.parentNode.removeChild(div);
       }
     };
-  }, [htmlCode]);
+  }, [htmlCode, isAdmin]);
 
   return null;
 }

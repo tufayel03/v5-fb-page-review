@@ -92,10 +92,12 @@ function TrustpilotStars({
 
 
 function AdBanner({ htmlCode }: { htmlCode: string }) {
+  const { user } = useAuth();
+  const isAdmin = user && ["admin", "Admin", "Super Admin", "Moderator"].includes(user.role);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (isAdmin || !containerRef.current) return;
     containerRef.current.innerHTML = "";
     if (!htmlCode) return;
 
@@ -107,10 +109,10 @@ function AdBanner({ htmlCode }: { htmlCode: string }) {
     } catch (e) {
       console.error("Ad script render error:", e);
     }
-  }, [htmlCode]);
+  }, [htmlCode, isAdmin]);
 
-  if (!htmlCode) {
-    return <div className="hidden" />;
+  if (isAdmin || !htmlCode) {
+    return null;
   }
 
   return (
