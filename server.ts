@@ -188,6 +188,42 @@ async function optimizeBase64Image(base64Str: string, type: 'profile' | 'proof',
     return base64Str;
   }
 }
+
+function deleteOldProfilePicture(profilePictureUrl: string | null | undefined) {
+  if (!profilePictureUrl || !profilePictureUrl.startsWith('/uploads/')) return;
+  try {
+    const fullPath = path.join(process.cwd(), profilePictureUrl);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      console.log(`[File Cleanup] Deleted old profile picture: ${fullPath}`);
+    }
+    // Also delete thumbnail
+    const dir = path.dirname(fullPath);
+    const ext = path.extname(fullPath);
+    const base = path.basename(fullPath, ext);
+    const thumbPath = path.join(dir, `profile-thumb-${base.replace('profile-', '')}${ext}`);
+    if (fs.existsSync(thumbPath)) {
+      fs.unlinkSync(thumbPath);
+      console.log(`[File Cleanup] Deleted old thumbnail: ${thumbPath}`);
+    }
+  } catch (err: any) {
+    console.error('[File Cleanup] Error deleting old profile picture:', err.message);
+  }
+}
+
+function deleteUploadFile(fileUrl: string | null | undefined) {
+  if (!fileUrl || !fileUrl.startsWith('/uploads/')) return;
+  try {
+    const fullPath = path.join(process.cwd(), fileUrl);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      console.log(`[File Cleanup] Deleted file: ${fullPath}`);
+    }
+  } catch (err: any) {
+    console.error('[File Cleanup] Error deleting file:', err.message);
+  }
+}
+
 import nodemailer from 'nodemailer';
 import { setupFraudEndpoints } from './fraud_endpoints.ts';
 import { setupBusinessEndpoints } from './business_endpoints.ts';
@@ -2322,6 +2358,16 @@ async function startServer() {
           return res.status(403).json({ error: 'Only admins can mass-delete pages' });
         }
         db.transaction(() => {
+          try {
+            const pages = db.prepare(`SELECT profile_picture FROM FacebookPages WHERE id IN (${placeholders})`).all(...ids) as { profile_picture: string | null }[];
+            for (const page of pages) {
+              if (page.profile_picture) {
+                deleteOldProfilePicture(page.profile_picture);
+              }
+            }
+          } catch (err: any) {
+            console.error('[Admin] Error cleaning up mass-deleted profile pictures:', err.message);
+          }
           db.prepare(`DELETE FROM OwnerReplies WHERE review_id IN (SELECT id FROM Reviews WHERE page_id IN (${placeholders}))`).run(...ids);
           db.prepare(`DELETE FROM Disputes WHERE page_id IN (${placeholders})`).run(...ids);
           db.prepare(`DELETE FROM Claims WHERE page_id IN (${placeholders})`).run(...ids);
@@ -4280,28 +4326,22 @@ async function startServer() {
       extra_contacts = cleanPhoneNumbers(extra_contacts);
 
       let profile_picture = req.body.profile_picture;
-      if (profile_picture) {
+      if (profile_picture && profile_picture.startsWith('data:image')) {
+        try {
+          const oldPage = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(req.params.id) as any;
+          if (oldPage && oldPage.profile_picture) {
+            deleteOldProfilePicture(oldPage.profile_picture);
+          }
+        } catch (err: any) {
+          console.error('[Admin] Error deleting old profile picture before update:', err.message);
+        }
         profile_picture = await optimizeBase64Image(profile_picture, 'profile', req.params.id);
       } else if (profile_picture === '') {
         // Explicitly deleted/cleared by the admin!
         try {
           const oldPage = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(req.params.id) as any;
           if (oldPage && oldPage.profile_picture) {
-            const oldPath = oldPage.profile_picture;
-            const fullPath = path.join(__dirname, oldPath);
-            if (fs.existsSync(fullPath)) {
-              fs.unlinkSync(fullPath);
-              console.log(`[Admin] Deleted old profile picture: ${fullPath}`);
-            }
-            // Also delete thumbnail
-            const dir = path.dirname(fullPath);
-            const ext = path.extname(fullPath);
-            const base = path.basename(fullPath, ext);
-            const thumbPath = path.join(dir, `profile-thumb-${base.replace('profile-', '')}${ext}`);
-            if (fs.existsSync(thumbPath)) {
-              fs.unlinkSync(thumbPath);
-              console.log(`[Admin] Deleted old thumbnail: ${thumbPath}`);
-            }
+            deleteOldProfilePicture(oldPage.profile_picture);
           }
         } catch (err: any) {
           console.error('[Admin] Error deleting profile picture file:', err.message);
@@ -4533,6 +4573,16 @@ async function startServer() {
 
   app.delete('/api/admin/pages/:id', requireAdmin, (req, res) => {
     try {
+      // Get profile picture to delete it from disk
+      try {
+        const page = db.prepare('SELECT profile_picture FROM FacebookPages WHERE id = ?').get(req.params.id) as { profile_picture: string | null } | undefined;
+        if (page && page.profile_picture) {
+          deleteOldProfilePicture(page.profile_picture);
+        }
+      } catch (err: any) {
+        console.error('[Admin] Error cleaning up deleted page profile picture:', err.message);
+      }
+
       db.transaction(() => {
         db.prepare('DELETE FROM OwnerReplies WHERE review_id IN (SELECT id FROM Reviews WHERE page_id = ?)').run(req.params.id);
         db.prepare('DELETE FROM Disputes WHERE page_id = ?').run(req.params.id);
@@ -5771,6 +5821,22 @@ async function startServer() {
   app.put('/api/admin/blogs/:id', requireAdmin, (req, res) => {
     try {
       const { title, slug, excerpt, content, category_id, tags, featured_image, seo_title, seo_description, focus_keyword, og_title, og_description, og_image, status, published_at, is_pinned, attachment_url, attachment_name } = req.body;
+      
+      // Get the old post to compare files
+      try {
+        const oldPost = db.prepare('SELECT featured_image, attachment_url FROM BlogPosts WHERE id = ?').get(req.params.id) as any;
+        if (oldPost) {
+          if (oldPost.featured_image && oldPost.featured_image !== featured_image) {
+            deleteUploadFile(oldPost.featured_image);
+          }
+          if (oldPost.attachment_url && oldPost.attachment_url !== attachment_url) {
+            deleteUploadFile(oldPost.attachment_url);
+          }
+        }
+      } catch (err: any) {
+        console.error('[Admin] Error cleaning up old blog post files during update:', err.message);
+      }
+
       db.prepare(`
         UPDATE BlogPosts SET title=?, slug=?, excerpt=?, content=?, category_id=?, tags=?, featured_image=?, seo_title=?, seo_description=?, focus_keyword=?, og_title=?, og_description=?, og_image=?, status=?, published_at=?, is_pinned=?, attachment_url=?, attachment_name=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
       `).run(
@@ -5786,6 +5852,21 @@ async function startServer() {
 
   app.delete('/api/admin/blogs/:id', requireAdmin, (req, res) => {
     try {
+      // Get the post files to delete them from disk
+      try {
+        const oldPost = db.prepare('SELECT featured_image, attachment_url FROM BlogPosts WHERE id = ?').get(req.params.id) as any;
+        if (oldPost) {
+          if (oldPost.featured_image) {
+            deleteUploadFile(oldPost.featured_image);
+          }
+          if (oldPost.attachment_url) {
+            deleteUploadFile(oldPost.attachment_url);
+          }
+        }
+      } catch (err: any) {
+        console.error('[Admin] Error cleaning up deleted blog post files:', err.message);
+      }
+
       db.prepare('DELETE FROM BlogPosts WHERE id = ?').run(req.params.id);
       res.json({ success: true });
     } catch (e) {
